@@ -1,0 +1,9 @@
+Copyright (c) 2025 California Institute of Technology (“Caltech”). U.S. Government sponsorship acknowledged.
+
+All rights reserved.
+
+Neither the name of Caltech nor its operating division, the Jet Propulsion Laboratory, nor the names of its
+contributors may be used to endorse or promote products derived from this software without specific prior written
+permission.
+
+This product includes a linker script derived from the picolibc library developed by Keith Packard.

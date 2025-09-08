@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fprime-gds-vorago"
+dynamic = ["version"]
+dependencies = [
+    "aiofile",
+    "pluggy>=1.3.0",
+    "fprime-gds>=3.6.0"
+]
+
+[tool.setuptools]
+packages = ["Va416x0.Drv.SeggerByteStream", "Va416x0.Os.SeggerTerminal"]
+
+[project.scripts]
+fprime-segger-rtt = "Va416x0.Os.SeggerTerminal.terminal:main"
+
+[project.entry-points.fprime_gds]
+segger_rtt = "Va416x0.Drv.SeggerByteStream.gds_plugin:SeggerRttAdapter"
+
+[tool.setuptools_scm]
