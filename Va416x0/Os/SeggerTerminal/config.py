@@ -20,13 +20,16 @@ Module for getting common JLink configuration
 import os
 
 # Environment variable for default Jlink connection speed
-SPEED_ENV = 'JLINK_DEFAULT_SPEED'
+SPEED_ENV = "JLINK_DEFAULT_SPEED"
+
 
 def get_speed():
     return os.environ.get(SPEED_ENV, 2000)
 
+
 def get_speed_src():
     return f"set by environment variable {SPEED_ENV} if set, else set to a hard coded value"
+
 
 # FIXME: Consider providing gets for all common config
 # def get_device():

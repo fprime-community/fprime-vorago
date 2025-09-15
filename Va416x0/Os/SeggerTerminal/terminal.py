@@ -103,17 +103,17 @@ async def copy_stream_to_stream(
     input: asyncio.StreamReader,
     output: Union[asyncio.StreamWriter, OutputStreamWriter],
 ):
-    # When there's a long running JLink command executed by another 
-    # program (such as loadfile), the stream read can hang instead of 
+    # When there's a long running JLink command executed by another
+    # program (such as loadbin), the stream read can hang instead of
     # accepting new input
-    # So use a timeout and keep running the loop until a successful 
+    # So use a timeout and keep running the loop until a successful
     # read returns no data
     # NOTE: I considered using jlink.IsOpen() and/or jlink.IsConnected()
     # NOTE: to check if the connection was still valid, but that added
     # NOTE: enough delay data was dropped, so not doing that
     while True:
         try:
-            # Data gets dropped when the wait duration is too small 
+            # Data gets dropped when the wait duration is too small
             data = await asyncio.wait_for(input.read(4096), 5)
             if not data:
                 break
@@ -163,7 +163,9 @@ class JLinkRTT:
     def _sync_connect_to_target(self):
         print(f"Connect JLink with speed {self.speed}")
         # Tell the J-Link daemon what kind of device we're talking to, and how to talk to it
-        self.jlink.Connect(sDevice="VA416xx", TargetIF=jlinksdk.TIF.SWD, TIFSpeed=self.speed)
+        self.jlink.Connect(
+            sDevice="VA416xx", TargetIF=jlinksdk.TIF.SWD, TIFSpeed=self.speed
+        )
 
         # Find the SEGGER RTT block
         self.jlink.RTTerminal.Start(SEGGER_RTT_BLOCK_ADDRESS)
@@ -328,7 +330,7 @@ async def main_async():
     # what and how to startup
     parser = argparse.ArgumentParser(
         description="Reads serial output/writes serial input via the JLink RTT",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-t",
@@ -355,7 +357,7 @@ async def main_async():
         "-s",
         "--speed",
         help=f"JLink speed (if not provided, {config.get_speed_src()}",
-        default=config.get_speed()
+        default=config.get_speed(),
     )
     args = parser.parse_args()
     time_fmt = args.time_fmt if args.include_timestamp else None
@@ -392,7 +394,7 @@ async def main_async():
 def main():
     try:
         asyncio.run(main_async())
-    except (KeyboardInterrupt,RuntimeError):
+    except (KeyboardInterrupt, RuntimeError):
         print("\n --- Terminated by Ctrl + C ---\n")
 
 
