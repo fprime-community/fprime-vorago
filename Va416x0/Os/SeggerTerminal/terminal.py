@@ -25,6 +25,8 @@ from typing import Union, Optional
 
 import aiofile
 
+import Va416x0.Os.SeggerTerminal.config as config
+
 try:
     import jlinksdk
 except ImportError:
@@ -38,7 +40,6 @@ except ImportError:
     )
     print("\033[0m", file=sys.stderr)
     raise
-
 
 # We can hard-code this address (and avoid needing to scan through a binary) because va416x0.ld enforces that the
 # SEGGER RTT block is always located at the start of RAM.
@@ -102,12 +103,25 @@ async def copy_stream_to_stream(
     input: asyncio.StreamReader,
     output: Union[asyncio.StreamWriter, OutputStreamWriter],
 ):
+    # When there's a long running JLink command executed by another
+    # program (such as loadbin), the stream read can hang instead of
+    # accepting new input
+    # So use a timeout and keep running the loop until a successful
+    # read returns no data
+    # NOTE: I considered using jlink.IsOpen() and/or jlink.IsConnected()
+    # NOTE: to check if the connection was still valid, but that added
+    # NOTE: enough delay data was dropped, so not doing that
     while True:
-        data = await input.read(4096)
-        if not data:
-            break
-        output.write(data)
-        await output.drain()
+        try:
+            # Data gets dropped when the wait duration is too small
+            data = await asyncio.wait_for(input.read(4096), 5)
+            if not data:
+                break
+        except asyncio.TimeoutError:
+            continue
+        else:
+            output.write(data)
+            await output.drain()
 
 
 # From https://stackoverflow.com/a/64317899
@@ -124,7 +138,7 @@ async def connect_stdin_stdout():
 
 
 class JLinkRTT:
-    def __init__(self):
+    def __init__(self, speed=None):
         # Clear DISPLAY to prevent the J-Link DLL from opening windows
         os.environ["DISPLAY"] = ""
 
@@ -138,14 +152,20 @@ class JLinkRTT:
 
         self.up_buffers: list = None
         self.down_buffers: list = None
+        if speed is None:
+            speed = config.get_speed()
+        self.speed = speed
 
     def _sync_connect_to_daemon(self):
         # Establish TCP connection to J-Link daemon via 127.0.0.1:19020
         self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
 
     def _sync_connect_to_target(self):
+        print(f"Connect JLink with speed {self.speed}")
         # Tell the J-Link daemon what kind of device we're talking to, and how to talk to it
-        self.jlink.Connect(sDevice="VA416xx", TargetIF=jlinksdk.TIF.SWD, TIFSpeed=2000)
+        self.jlink.Connect(
+            sDevice="VA416xx", TargetIF=jlinksdk.TIF.SWD, TIFSpeed=self.speed
+        )
 
         # Find the SEGGER RTT block
         self.jlink.RTTerminal.Start(SEGGER_RTT_BLOCK_ADDRESS)
@@ -309,7 +329,8 @@ async def main_async():
 
     # what and how to startup
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Reads serial output/writes serial input via the JLink RTT",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-t",
@@ -332,6 +353,12 @@ async def main_async():
         "--output",
         help="Path to file in which stdout should be stored (instead of terminal)",
     )
+    parser.add_argument(
+        "-s",
+        "--speed",
+        help=f"JLink speed (if not provided, {config.get_speed_src()}",
+        default=config.get_speed(),
+    )
     args = parser.parse_args()
     time_fmt = args.time_fmt if args.include_timestamp else None
 
@@ -339,7 +366,7 @@ async def main_async():
     stdin, stdout = await connect_stdin_stdout()
     async with OutputStreamWriter(stdout, args.output, time_fmt) as stdout_fd:
 
-        async with JLinkRTT() as rtt:
+        async with JLinkRTT(args.speed) as rtt:
             print(
                 f"Found {len(rtt.up_buffers)} up buffers and {len(rtt.down_buffers)} down buffers:"
             )
@@ -356,7 +383,6 @@ async def main_async():
 
             target_stdio = rtt.stream_async(0)
             await stdout_fd.awrite(b"\n\n\n**** TERMINAL CONNECTED ****\n")
-
             await asyncio.wait(
                 [
                     asyncio.create_task(copy_stream_to_stream(target_stdio, stdout_fd)),
@@ -368,7 +394,7 @@ async def main_async():
 def main():
     try:
         asyncio.run(main_async())
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, RuntimeError):
         print("\n --- Terminated by Ctrl + C ---\n")
 
 
