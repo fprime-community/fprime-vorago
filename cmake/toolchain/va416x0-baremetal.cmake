@@ -150,6 +150,15 @@ function(register_with_bsp TARGET_NAME)
     foreach(AC_CXX_FLAG ${BUILD_INFO_AC_CXX_FLAGS})
         list(APPEND BUILD_INFO_AC_CMD ${AC_CXX_FLAG})
     endforeach()
+    # Add (a) all build directories as include paths and (b) special directories from CMAKE_BINARY_DIR
+    # The way in which the include paths in CMAKE_BINARY_DIR are added is a little ugly, but the 
+    # '${CMAKE_BINARY_DIR}/F-Prime/${_FP_PACKAGE_DIR}' paths aren't added to any global variables 
+    # accessible here, same for the platform headers
+    list(APPEND BUILD_INFO_AC_CMD "-I${CMAKE_BINARY_DIR}/F-Prime/default/")
+    list(APPEND BUILD_INFO_AC_CMD "-I${CMAKE_BINARY_DIR}/cmake/platform/va416x0/")
+    foreach(BUILD_DIR ${FPRIME_BUILD_LOCATIONS})
+        list(APPEND BUILD_INFO_AC_CMD "-I${BUILD_DIR}")
+    endforeach()
     add_custom_command("TARGET" "${TARGET_NAME}" PRE_LINK
         # Auto-generate the CPP file containing the build information
         COMMAND "${CMAKE_COMMAND}" -E env
