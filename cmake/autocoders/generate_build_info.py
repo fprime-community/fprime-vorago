@@ -108,14 +108,25 @@ def get_build_identifier(project_root: str) -> str:
     # $JENKINS_BUILD_ID can be set from the Jenkins environment to ensure unified identifiers
     # across Jenkins builds
     key = "JENKINS_BUILD_ID"
-    try:
+    if key in os.environ:
         value = os.environ[key]
+        # If the version is set by an environment variable, assume the entire 
+        # string is required to uniquely identify the build, and fatal if it 
+        # would be truncated when reported in GDS
         if len(value) > BUILD_ID_MAX_LEN:
             sys.exit(
                 f"ERROR: Value of {key} environment variable ({value!r}, length "
                 f"{len(value)}) exceeds maximum build ID length ({BUILD_ID_MAX_LEN})\n"
             )
-    except KeyError:
+    else:
+        # If the version is not set by an environment variable, the build ID
+        # is less important so accept that the date, branch, and user (even
+        # if some characters are truncated) is identification _enough_
+        # The goal is to make life easier for developers, because GIT branch
+        # names are often long enough that the build ID exceeds
+        # BUILD_ID_MAX_LEN. Fatal'ing on that requires either developers rename
+        # the branches (and loose information there) or set the build ID via
+        # environment variable (which also results in loss of information)
         date = get_date()
         branch = get_branch(project_root)
         user = get_user()
