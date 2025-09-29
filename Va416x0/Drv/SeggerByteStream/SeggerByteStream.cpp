@@ -31,6 +31,7 @@ namespace Va416x0Drv {
 SeggerByteStream ::SeggerByteStream(const char* const compName) : SeggerByteStreamComponentBase(compName) {}
 
 void SeggerByteStream ::setup(Fw::MemAllocator& allocator,
+                              FwEnumStoreType memId,
                               U32 bufferIndex,
                               const char* bufferName,
                               U32 bufferUpSize,
@@ -46,11 +47,11 @@ void SeggerByteStream ::setup(Fw::MemAllocator& allocator,
 
     // These buffers are purely used for RTT interactions and are not sent anywhere outside this component.
     bool recover = false;
-    void* buffer_up = allocator.allocate(1, bufferUpSize, recover);
+    void* buffer_up = allocator.allocate(memId, bufferUpSize, recover);
     FW_ASSERT(buffer_up != NULL, bufferIndex, bufferUpSize);
-    void* buffer_down = allocator.allocate(2, bufferDownSize, recover);
+    void* buffer_down = allocator.allocate(memId, bufferDownSize, recover);
     FW_ASSERT(buffer_down != NULL, bufferIndex, bufferDownSize);
-
+    
     // Configure RTT buffers
     int ok = SEGGER_RTT_ConfigUpBuffer(bufferIndex, bufferName, buffer_up, bufferUpSize, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
     FW_ASSERT(ok == 0, bufferIndex, ok);
