@@ -1,6 +1,6 @@
 /**
  * \file
- * \brief A MemAllocator implementation class that uses malloc and tracks memory 
+ * \brief A MemAllocator implementation class that uses malloc and tracks memory
  * allocations (depends on the fprime-baremetal OverrideNewDelete functionality)
  *
  *

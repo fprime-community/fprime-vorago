@@ -51,7 +51,7 @@ void SeggerByteStream ::setup(Fw::MemAllocator& allocator,
     FW_ASSERT(buffer_up != NULL, bufferIndex, bufferUpSize);
     void* buffer_down = allocator.allocate(memId, bufferDownSize, recover);
     FW_ASSERT(buffer_down != NULL, bufferIndex, bufferDownSize);
-    
+
     // Configure RTT buffers
     int ok = SEGGER_RTT_ConfigUpBuffer(bufferIndex, bufferName, buffer_up, bufferUpSize, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
     FW_ASSERT(ok == 0, bufferIndex, ok);
