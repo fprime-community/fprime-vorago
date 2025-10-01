@@ -10,7 +10,7 @@
 #define TYPES_STRICTMALLOCALLOCATOR_HPP_
 
 #include <Fw/FPrimeBasicTypes.hpp>
-#include <Fw/Types/MallocAllocator.hpp>
+#include <Fw/Types/MemAllocator.hpp>
 #include <atomic>
 
 namespace Va416x0Svc {
@@ -25,7 +25,7 @@ namespace Va416x0Svc {
  *
  */
 
-class StrictMallocAllocator : public Fw::MallocAllocator {
+class StrictMallocAllocator : public Fw::MemAllocator {
   public:
     StrictMallocAllocator();
     virtual ~StrictMallocAllocator();

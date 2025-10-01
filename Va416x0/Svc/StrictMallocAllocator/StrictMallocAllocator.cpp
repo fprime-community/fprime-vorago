@@ -118,6 +118,7 @@ void StrictMallocAllocator::reportAllocation() {
     FwSizeType total = 0;
     FwSizeType preReg = this->m_preRegisterAllocation;
     total += preReg;
+    printf("Start of MEM report\n");
     for (FwEnumStoreType i = 0; i < this->m_numIds; i++) {
         FwSizeType val = this->m_allocations[i].load();
         if (val != 0) {
@@ -130,5 +131,6 @@ void StrictMallocAllocator::reportAllocation() {
     printf("MEM: total allocated         %10d bytes\n", total);
     printf("MEM: stdlib allocated        %10d bytes\n", mi.uordblks);
     printf("MEM: unaccounted for         %10d bytes\n", mi.uordblks - total);
+    printf("End of MEM report\n");
 }
 }  // namespace Va416x0Svc
