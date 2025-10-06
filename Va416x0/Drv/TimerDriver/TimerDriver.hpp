@@ -40,7 +40,6 @@ class TimerDriver : public TimerDriverComponentBase {
     void setup(U8 timer_peripheral_index, U32 cycle_time_microseconds);
 
   private:
-    bool m_wait;
     U32 m_tickIndex;
 
     Va416x0Mmio::Nvic::InterruptControl m_exception;

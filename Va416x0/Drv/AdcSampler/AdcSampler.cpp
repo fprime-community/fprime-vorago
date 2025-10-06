@@ -91,7 +91,7 @@ void AdcSampler ::setup(AdcConfig& config, U32 interrupt_priority) {
 
     // Configure GPIO pins for MUX(es) if using any
     if (config.num_addr_pins != 0 || config.num_en_pins != 0) {
-        this->m_gpioPort = config.gpio_port;
+        this->m_muxEnaGpioPort = config.gpio_port;
 
         // NOTE: The below code initializes each pin separately, that's very inefficient but
         // allows AdcSampler to offload the knowledge of default pin configuration to Pin.hpp
@@ -99,12 +99,17 @@ void AdcSampler ::setup(AdcConfig& config, U32 interrupt_priority) {
 
         // Setup GPIO pins for mux enable signals (if any are used)
         FW_ASSERT(config.num_en_pins <= ADC_MUX_PINS_EN_MAX, config.num_en_pins);
-        this->m_muxPinsMask = 0;
+        for (U32 i = 0; i < Va416x0Mmio::Gpio::NUM_PORTS; i++) {
+            this->m_muxPinsMask[i] = 0;
+        }
         this->m_muxEnPinsMask = 0;
+
         for (U32 i = 0; i < config.num_en_pins; i++) {
-            this->m_muxPinsMask += (Fw::Logic::HIGH << config.mux_en_output[i]);
+            this->m_muxPinsMask[this->m_muxEnaGpioPort.value().get_gpio_port()] +=
+                (Fw::Logic::HIGH << config.mux_en_output[i]);
             this->m_muxEnPinsMask += (Fw::Logic::HIGH << config.mux_en_output[i]);
-            Va416x0Mmio::Gpio::Pin pin = Va416x0Mmio::Gpio::Pin(config.gpio_port, config.mux_en_output[i]);
+            Va416x0Mmio::Gpio::Pin pin =
+                Va416x0Mmio::Gpio::Pin(this->m_muxEnaGpioPort.value(), config.mux_en_output[i]);
             // Default enable pins to HIGH (MUX disabled)
             pin.out(Fw::Logic::HIGH);
             pin.configure_as_gpio(Fw::Direction::OUT);
@@ -113,12 +118,15 @@ void AdcSampler ::setup(AdcConfig& config, U32 interrupt_priority) {
         // Setup GPIO pins for mux address/selection signals (if any are used)
         FW_ASSERT(config.num_addr_pins != 0 && config.num_addr_pins <= ADC_MUX_PINS_ADDR_MAX, config.num_addr_pins);
         for (U32 i = 0; i < config.num_addr_pins; i++) {
-            this->m_muxPinsMask += (1 << config.mux_addr_output[i]);
-            Va416x0Mmio::Gpio::Pin pin = Va416x0Mmio::Gpio::Pin(config.gpio_port, config.mux_addr_output[i]);
-            pin.configure_as_gpio(Fw::Direction::OUT);
+            this->m_muxPinsMask[config.mux_addr_output[i].get_gpio_port_number()] +=
+                (1 << config.mux_addr_output[i].get_pin_number());
+            config.mux_addr_output[i].configure_as_gpio(Fw::Direction::OUT);
         }
     }
-    this->m_lastPinsValue = 0xffffffff;
+
+    for (U32 i = 0; i < Va416x0Mmio::Gpio::NUM_PORTS; i++) {
+        this->m_lastPinsValue[i] = 0xffffffff;
+    }
 
     // This only enables the DONE interrupt (not overflow or underflow or error b/c those _shouldn't_ happen)
     // If AdcSamplerStatus is updated to include a FAILURE status, we could also enable
@@ -216,20 +224,26 @@ void AdcSampler ::startReadInner() {
     // accept a number of cycles to delay after changing MUX configuration
     // See AdcCollector's SDD for more info.
     if (REQ_GET_IS_MUX(this->m_curRequest)) {
-        U32 pin_values = this->calculateGpioPinsValue(this->m_curRequest);
+        // NOTE: This only works as expected if all MUX enable pins come from the same GPIO port group.
+        // Otherwise this logic should be updated to first disable the previous MUX, then enable the next MUX,
+        // and then calulate the other pins to be set for the address pins.
+        for (U32 i; i < Va416x0Mmio::Gpio::NUM_PORTS; i++) {
+            Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(i);
+            U32 pin_values = this->calculateGpioPinsValue(this->m_curRequest, gpioPort.get_gpio_port());
 
-        // Don't set the GPIO port if its new value matches the previous value
-        if (this->m_lastPinsValue != pin_values) {
-            FW_ASSERT(this->m_gpioPort.has_value());
-            // Disable interrupts to prevent a higher priority ISR writing DATAMASK on the same GPIO port
-            // Artificial block scope for scope lock
-            {
-                Va416x0Mmio::Lock::CriticalSectionLock lock;
-                this->m_gpioPort.value().write_datamask(this->m_muxPinsMask);
-                this->m_gpioPort.value().write_dataout(pin_values);
+            // Don't set the GPIO port if its new value matches the previous value
+            if (this->m_lastPinsValue[i] != pin_values) {
+                FW_ASSERT(this->m_muxEnaGpioPort.has_value());
+                // Disable interrupts to prevent a higher priority ISR writing DATAMASK on the same GPIO port
+                // Artificial block scope for scope lock
+                {
+                    Va416x0Mmio::Lock::CriticalSectionLock lock;
+                    gpioPort.write_datamask(this->m_muxPinsMask[i]);
+                    gpioPort.write_dataout(pin_values);
+                }
             }
+            this->m_lastPinsValue[i] = pin_values;
         }
-        this->m_lastPinsValue = pin_values;
     }
 
     // Clear FIFO & previous interrupt
@@ -255,7 +269,7 @@ void AdcSampler ::startReadInner() {
     Va416x0Mmio::Adc::write_ctrl(ctrl_val);
 }
 
-U32 AdcSampler::calculateGpioPinsValue(U32 request) {
+U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
     U32 pin_values = 0;
     U8 mux_chan = REQ_GET_MUX_CHAN(request);
     U8 mux_en_index = REQ_GET_MUX_ENABLE(request);
@@ -263,8 +277,10 @@ U32 AdcSampler::calculateGpioPinsValue(U32 request) {
     // The address pins should be set as a binary translation of the mux channel
     // where HI=1 and LO=0 (selecting Chan31 = 0b11111, selecting Chan0=0b0000)
     for (U32 i = 0; i < this->m_pConfig->num_addr_pins; i++) {
-        if ((1 << i) & mux_chan) {
-            pin_values += (1 << this->m_pConfig->mux_addr_output[i]);
+        if (this->m_pConfig->mux_addr_output[i].get_gpio_port_number() == port_number) {
+            if ((1 << i) & mux_chan) {
+                pin_values += (1 << this->m_pConfig->mux_addr_output[i].get_pin_number());
+            }
         }
     }
 
@@ -272,9 +288,12 @@ U32 AdcSampler::calculateGpioPinsValue(U32 request) {
     // is LO (0) and all other pins are HI (1)
     if (mux_en_index != ADC_MUX_PINS_EN_MAX) {
         FW_ASSERT(mux_en_index < this->m_pConfig->num_en_pins, mux_en_index, this->m_pConfig->num_en_pins);
-        U32 en_mask = ~(1 << this->m_pConfig->mux_en_output[mux_en_index]);
-        pin_values += (this->m_muxEnPinsMask & en_mask);
+        if (this->m_muxEnaGpioPort.value().get_gpio_port() == port_number) {
+            U32 en_mask = ~(1 << this->m_pConfig->mux_en_output[mux_en_index]);
+            pin_values += (this->m_muxEnPinsMask & en_mask);
+        }
     }
+
     return pin_values;
 }
 
