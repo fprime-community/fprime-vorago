@@ -41,9 +41,7 @@ void SpiController ::open(Va416x0Mmio::Spi spi,
                           SpiSsMode ss_mode,
                           Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> sck_pin,
                           Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> miso_pin,
-                          Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> mosi_pin,
-                          Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> ssn_pin,
-                          U32 ssn_idx) {
+                          Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> mosi_pin) {
     FW_ASSERT(m_spiDevice == Va416x0Types::ABSENT);
     m_spiDevice = spi;
 
@@ -106,9 +104,13 @@ void SpiController ::open(Va416x0Mmio::Spi spi,
     if (mosi_pin.has_value()) {
         mosi_pin.value().configure_as_function(spi.get_mosi_signal());
     }
-    if (ssn_pin.has_value()) {
-        ssn_pin.value().configure_as_function(spi.get_ssn_signal(ssn_idx));
-    }
+}
+
+void SpiController ::enableSubordinatePin(U32 ssnIndex, Va416x0Mmio::Gpio::Pin ssnPin) {
+    FW_ASSERT(m_spiDevice != Va416x0Types::ABSENT);
+    Va416x0Mmio::Spi spi = m_spiDevice.value();
+    // The get_ssn_signal function asserts on ssnIndex being less than the total number of subordinate slots (8)
+    ssnPin.configure_as_function(spi.get_ssn_signal(ssnIndex));
 }
 
 // ----------------------------------------------------------------------
