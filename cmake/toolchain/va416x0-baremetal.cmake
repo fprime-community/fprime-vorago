@@ -68,6 +68,17 @@ set(VA416X0_COMMON_C_CXX_FLAGS "\
     -fstack-usage \
 ")
 
+# FIXME: make this conditional
+set(VA416X0_ENABLE_PROFILER "yes")
+
+if (DEFINED VA416X0_ENABLE_PROFILER)
+    set(VA416X0_COMMON_C_CXX_FLAGS "\
+        ${VA416X0_COMMON_C_CXX_FLAGS} \
+        -finstrument-functions-after-inlining \
+        -DVA416X0_ENABLE_PROFILER \
+    ")
+endif()
+
 if (NOT DEFINED VA416X0_DISABLE_LTO)
     set(VA416X0_COMMON_C_CXX_FLAGS "\
         ${VA416X0_COMMON_C_CXX_FLAGS} \
@@ -126,10 +137,28 @@ set(BUILD_INFO_AC_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/../autocoders/generate_build
 set(BUILD_INFO_AC_DIR "${CMAKE_BINARY_DIR}/Deployments/build_info")
 make_directory("${BUILD_INFO_AC_DIR}")
 
+# Profiler configuration
+set(PROFILER_CPP "${CMAKE_CURRENT_LIST_DIR}/../../Va416x0/Svc/Profiler/Profiler.cpp")
+set(PROFILER_BUILD_DIR "${CMAKE_BINARY_DIR}/Components/Profiler")
+make_directory("${PROFILER_BUILD_DIR}")
+
 # FIXME - Temporary until F' cmake system creates this folder (only `fprime-util generate` currently creates the folder)
 # FIXME - Folder needed for hash-to-file util
 # FIXME - Related F' ticket: https://github.com/nasa/fprime/issues/4032
 make_directory("${CMAKE_BINARY_DIR}/.fprime-build-dir")
+
+# For use in compiling build info and profiler binaries
+function(add_include_flags FLAGS_LIST)
+    # Add (a) all build directories as include paths and (b) special directories from CMAKE_BINARY_DIR
+    # The way in which the include paths in CMAKE_BINARY_DIR are added is a little ugly, but the
+    # '${CMAKE_BINARY_DIR}/F-Prime/${_FP_PACKAGE_DIR}' paths aren't added to any global variables
+    # accessible here, same for the platform headers
+    list(APPEND FLAGS_LIST "-I${CMAKE_BINARY_DIR}/F-Prime/default/")
+    list(APPEND FLAGS_LIST "-I${CMAKE_BINARY_DIR}/cmake/platform/va416x0/")
+    foreach(BUILD_DIR ${FPRIME_BUILD_LOCATIONS})
+        list(APPEND FLAGS_LIST "-I${BUILD_DIR}")
+    endforeach()
+endfunction()
 
 # Call this in the deployment CMakeLists after register_fprime_deployment to
 # ensure App.hex is generated in addition to App.elf file
@@ -150,15 +179,7 @@ function(register_with_bsp TARGET_NAME)
     foreach(AC_CXX_FLAG ${BUILD_INFO_AC_CXX_FLAGS})
         list(APPEND BUILD_INFO_AC_CMD ${AC_CXX_FLAG})
     endforeach()
-    # Add (a) all build directories as include paths and (b) special directories from CMAKE_BINARY_DIR
-    # The way in which the include paths in CMAKE_BINARY_DIR are added is a little ugly, but the 
-    # '${CMAKE_BINARY_DIR}/F-Prime/${_FP_PACKAGE_DIR}' paths aren't added to any global variables 
-    # accessible here, same for the platform headers
-    list(APPEND BUILD_INFO_AC_CMD "-I${CMAKE_BINARY_DIR}/F-Prime/default/")
-    list(APPEND BUILD_INFO_AC_CMD "-I${CMAKE_BINARY_DIR}/cmake/platform/va416x0/")
-    foreach(BUILD_DIR ${FPRIME_BUILD_LOCATIONS})
-        list(APPEND BUILD_INFO_AC_CMD "-I${BUILD_DIR}")
-    endforeach()
+    add_include_flags(BUILD_INFO_AC_CMD)
     add_custom_command("TARGET" "${TARGET_NAME}" PRE_LINK
         # Auto-generate the CPP file containing the build information
         COMMAND "${CMAKE_COMMAND}" -E env
@@ -169,6 +190,23 @@ function(register_with_bsp TARGET_NAME)
     )
     # Add the auto-generated object file to the linker path
     target_link_options("${TARGET_NAME}" PRIVATE "${BUILD_INFO_AC_OBJ}")
+    if (DEFINED VA416X0_ENABLE_PROFILER)
+        # Build and link the profiler
+        set(PROFILER_OBJ "${PROFILER_BUILD_DIR}/Profiler.obj")
+        # This is needed to expand the CMAKE_CXX_FLAGS variable into a list for use inside add_custom_command
+        set(PROFILER_BUILD_CMD "${CMAKE_CXX_COMPILER}" -c "${PROFILER_CPP}" -o "${PROFILER_OBJ}")
+        separate_arguments(PROFILER_CXX_FLAGS UNIX_COMMAND "${CMAKE_CXX_FLAGS}")
+        foreach(AC_CXX_FLAG ${PROFILER_CXX_FLAGS})
+            list(APPEND PROFILER_BUILD_CMD ${AC_CXX_FLAG})
+        endforeach()
+        add_include_flags(PROFILER_BUILD_CMD)
+        add_custom_command("TARGET" "${TARGET_NAME}" PRE_LINK
+            # Compile the profiler to an object file to be linked to the target
+            COMMAND ${PROFILER_BUILD_CMD}
+        )
+    endif()
+    # Add the profiler object file to the linker path
+    target_link_options("${TARGET_NAME}" PRIVATE "${PROFILER_OBJ}")
     # Do a few post-build steps that are not built in
     add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
         # Copy the map file into the build-artifacts directory
