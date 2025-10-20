@@ -246,6 +246,11 @@ void AdcSampler ::startReadInner() {
         }
     }
 
+    // FIXME
+    for (U32 i = 0; i < 1500; i++) {
+        Va416x0Mmio::Cpu::nop();
+    }
+
     // Clear FIFO & previous interrupt
     Va416x0Mmio::Adc::write_fifo_clr(Va416x0Mmio::Adc::FIFO_CLR_FIFO_CLR);
 
