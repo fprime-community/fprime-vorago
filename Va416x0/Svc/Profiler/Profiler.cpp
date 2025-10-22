@@ -41,14 +41,13 @@ constexpr U32 CSR_ENABLE = 1 << 0;
 // cost and is also dependent on symbol locations, the best way forward would probably be adding a
 // custom clang attribute ala __attribute__((instrument_function))
 
-__attribute__((no_instrument_function)) void Profiler::enable(U32 clockFreq, U32 irqFreq) {
+__attribute__((no_instrument_function)) void Profiler::enable(U32 irq_freq, U32 clock_freq) {
     // SysTick::configure(1, 0xFFFFFF)
     *reinterpret_cast<volatile U32*>(REG_CSR) = 0;
     *reinterpret_cast<volatile U32*>(REG_RVR) = 0;
     *reinterpret_cast<volatile U32*>(REG_CVR) = 0;
     __dsb(0xF);
-    const U32 reload_val = (clockFreq / irqFreq) - 1;
-    *reinterpret_cast<volatile U32*>(REG_RVR) = reload_val;
+    *reinterpret_cast<volatile U32*>(REG_RVR) = (clock_freq / irq_freq) - 1;
     *reinterpret_cast<volatile U32*>(REG_CVR) = 0;
     *reinterpret_cast<volatile U32*>(REG_CSR) = CSR_CLKSOURCE;
     __dsb(0xF);
@@ -118,13 +117,10 @@ __attribute__((no_instrument_function)) void Profiler::dump() {
 extern "C" {
 
 __attribute__((used, no_instrument_function)) void __cyg_profile_func_enter(void* function, void* call_site) {
-    //! TODO: IBRAULT: use an extern instance for faster execution than the instance call
     Va416x0Svc::Profiler::getInstance().funcEnter(function);
 }
 
 __attribute__((used, no_instrument_function)) void __cyg_profile_func_exit(void* function, void* call_site) {
-    //! TODO: IBRAULT: use an extern instance for faster execution than the instance call
     Va416x0Svc::Profiler::getInstance().funcExit(function);
 }
-
 }

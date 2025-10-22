@@ -38,27 +38,27 @@ class Profiler {
     // Public interface
     // ----------------------------------------------------------------------
 
-    //!< TODO: IBRAULT: replace singleton with an extern instance for better performance
+    //! Returns the singleton profiler instance
     __attribute__((no_instrument_function)) static Profiler& getInstance() {
         static Profiler instance;
         return instance;
     }
 
-    //!< Enable profiler data collection
-    void enable(U32 clockFreq,  //!< ???
-                U32 irqFreq     //!< ???
+    //! Enable profiler data collection
+    void enable(U32 irq_freq = 1,          //!< SysTick IRQ frequency
+                U32 clock_freq = 0xFFFFFF  //!< SysTick clock frequency
     );
 
-    //!< Disable profiler data collection
+    //! Disable profiler data collection
     void disable();
 
-    //!< Function entry hook
+    //! Function entry hook
     void funcEnter(void* function);
 
-    //!< Function exit hook
+    //! Function exit hook
     void funcExit(void* function);
 
-    //!< Dump collected profile data
+    //! Dump collected profile data
     void dump();
 
     // Deleted copy constructor and equality operator
@@ -81,11 +81,11 @@ class Profiler {
         Phase mode;
     };
 
-    //!< Toggles profiler data collection
+    //! Toggles profiler data collection
     bool m_enabled;
-    //!< Buffer to hold function entry/exit events
-    FwSizeType m_index;
+    //! Buffer to hold function entry/exit events
     Event m_events[PROFILER_BUFFER_SIZE];
+    FwSizeType m_index;
 };
 
 }  // namespace Va416x0Svc
