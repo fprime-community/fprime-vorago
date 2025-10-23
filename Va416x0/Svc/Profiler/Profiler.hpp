@@ -30,19 +30,13 @@ namespace Va416x0Svc {
 constexpr FwSizeType PROFILER_BUFFER_SIZE = 512;
 
 class Profiler {
-  private:
+  public:
     __attribute__((no_instrument_function)) Profiler() : m_enabled(false), m_index(0) {};
 
   public:
     // ----------------------------------------------------------------------
     // Public interface
     // ----------------------------------------------------------------------
-
-    //! Returns the singleton profiler instance
-    __attribute__((no_instrument_function)) static Profiler& getInstance() {
-        static Profiler instance;
-        return instance;
-    }
 
     //! Enable profiler data collection
     void enable(U32 irq_freq = 1,          //!< SysTick IRQ frequency
@@ -87,6 +81,9 @@ class Profiler {
     Event m_events[PROFILER_BUFFER_SIZE];
     FwSizeType m_index;
 };
+
+//! Global singleton profiler instance
+extern Profiler profilerInstance;
 
 }  // namespace Va416x0Svc
 

@@ -26,6 +26,10 @@
 #include "Va416x0/Types/ExceptionNumberEnumAc.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
 
+#ifdef VA416X0_ENABLE_PROFILER
+#include "Va416x0/Svc/Profiler/Profiler.hpp"
+#endif
+
 #include <arm_acle.h>
 
 #include <stdio.h>
@@ -33,6 +37,11 @@
 #include <cstring>
 
 namespace Va416x0Svc {
+
+#ifdef VA416X0_ENABLE_PROFILER
+// Instantiate the global profiler singleton
+Profiler profilerInstance;
+#endif
 
 // ----------------------------------------------------------------------
 // Component construction and destruction

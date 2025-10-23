@@ -117,10 +117,10 @@ __attribute__((no_instrument_function)) void Profiler::dump() {
 extern "C" {
 
 __attribute__((used, no_instrument_function)) void __cyg_profile_func_enter(void* function, void* call_site) {
-    Va416x0Svc::Profiler::getInstance().funcEnter(function);
+    Va416x0Svc::profilerInstance.funcEnter(function);
 }
 
 __attribute__((used, no_instrument_function)) void __cyg_profile_func_exit(void* function, void* call_site) {
-    Va416x0Svc::Profiler::getInstance().funcExit(function);
+    Va416x0Svc::profilerInstance.funcExit(function);
 }
 }
