@@ -32,4 +32,5 @@ register_fprime_library(
         "${CMAKE_CURRENT_LIST_DIR}/Profiler.cpp"
     DEPENDS
         Fw_Types
+        Va416x0_Mmio_SysTick
 )
