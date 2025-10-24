@@ -31,7 +31,7 @@ constexpr FwSizeType PROFILER_BUFFER_SIZE = 512;
 
 class Profiler {
   public:
-    __attribute__((no_instrument_function)) Profiler() : m_enabled(false), m_index(0) {};
+    Profiler();
 
   public:
     // ----------------------------------------------------------------------
@@ -64,22 +64,20 @@ class Profiler {
     // Member variables
     // ----------------------------------------------------------------------
 
-    enum Phase : U8 {
-        ENTRY = 0,
-        EXIT = 1,
-    };
-
     struct Event {
+        // the most-significant bit of the function address is used to indicate the phase
+        // set to 0 for entry, set to 1 for exit
         U32 functionAddress;
         U32 ticks;
-        Phase mode;
     };
 
-    //! Toggles profiler data collection
-    bool m_enabled;
+    //! Pointer to the current index in the buffer; encapsulates enable/disable functionality and
+    //! is set to point past the end of the buffer when disabled
+    Event* m_index;
+    //! End of the event buffer
+    Event* m_end;
     //! Buffer to hold function entry/exit events
     Event m_events[PROFILER_BUFFER_SIZE];
-    FwSizeType m_index;
 };
 
 //! Global singleton profiler instance

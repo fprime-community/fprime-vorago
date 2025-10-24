@@ -20,20 +20,19 @@
 // ======================================================================
 
 #include "Profiler.hpp"
+#include "Va416x0/Mmio/SysTick/SysTick.hpp"
 
 #include <arm_acle.h>
 #include <cstdio>
 
 namespace Va416x0Svc {
 
-constexpr U32 THUMB_MASK = 0xFFFFFFFE;
+constexpr U32 THUMB_MASK = 0x7FFFFFFE;
+constexpr U32 PHASE_FUNC_EXIT = 1 << 31;
 
-// from SysTick
-constexpr U32 REG_CSR = 0xE000E010;
-constexpr U32 REG_RVR = 0xE000E014;
-constexpr U32 REG_CVR = 0xE000E018;
-constexpr U32 CSR_CLKSOURCE = 1 << 2;
-constexpr U32 CSR_ENABLE = 1 << 0;
+constexpr U32 getPhase(U32 functionAddress) {
+    return (functionAddress & PHASE_FUNC_EXIT) >> 31;
+}
 
 //! NOTE: IBRAULT: outstanding issue
 // this needs a way to filter out functions as there are several frequently-called ones from the
@@ -41,57 +40,51 @@ constexpr U32 CSR_ENABLE = 1 << 0;
 // cost and is also dependent on symbol locations, the best way forward would probably be adding a
 // custom clang attribute ala __attribute__((instrument_function))
 
-__attribute__((no_instrument_function)) void Profiler::enable(U32 irq_freq, U32 clock_freq) {
-    // SysTick::configure(1, 0xFFFFFF)
-    *reinterpret_cast<volatile U32*>(REG_CSR) = 0;
-    *reinterpret_cast<volatile U32*>(REG_RVR) = 0;
-    *reinterpret_cast<volatile U32*>(REG_CVR) = 0;
-    __dsb(0xF);
-    *reinterpret_cast<volatile U32*>(REG_RVR) = (clock_freq / irq_freq) - 1;
-    *reinterpret_cast<volatile U32*>(REG_CVR) = 0;
-    *reinterpret_cast<volatile U32*>(REG_CSR) = CSR_CLKSOURCE;
-    __dsb(0xF);
-    // SysTick::enable_counter()
-    const U32 csr = *reinterpret_cast<volatile U32*>(REG_CSR);
-    *reinterpret_cast<volatile U32*>(REG_CSR) = csr | CSR_ENABLE;
-    __dsb(0xF);
+__attribute__((no_instrument_function)) Profiler::Profiler() {
+    this->m_end = (&this->m_events[0]) + PROFILER_BUFFER_SIZE;
+    this->m_index = this->m_end;
+    // Function address 0 indicates an unused buffer entry
+    for (FwSizeType i = 0; i < PROFILER_BUFFER_SIZE; i++) {
+        this->m_events[i].functionAddress = 0;
+    }
+}
 
-    this->m_enabled = true;
+__attribute__((no_instrument_function)) void Profiler::enable(U32 irq_freq, U32 clock_freq) {
+    // Configure and enable the SysTick counter
+    Va416x0Mmio::SysTick::configure(irq_freq, clock_freq);
+    Va416x0Mmio::SysTick::enable_counter();
+    // Then move the index pointer to the start of the event buffer
+    this->m_index = &this->m_events[0];
 }
 
 __attribute__((no_instrument_function)) void Profiler::disable() {
-    this->m_enabled = false;
+    this->m_index = this->m_end;
 }
 
 __attribute__((no_instrument_function)) void Profiler::funcEnter(void* function) {
-    if ((!this->m_enabled) || (this->m_index == PROFILER_BUFFER_SIZE)) {
+    if (this->m_index == this->m_end) {
         return;
     }
+    U32 ticks = Va416x0Mmio::SysTick::read_cvr();
+    auto index = this->m_index;
 
-    // address is in thumb mode but symbol table is not, convert the address
-    U32 functionAddress = reinterpret_cast<U32>(function) & THUMB_MASK;
-    // SysTick::read_cvr()
-    U32 ticks = *reinterpret_cast<volatile U32*>(REG_CVR);
+    index->functionAddress = reinterpret_cast<U32>(function);
+    index->ticks = ticks;
 
-    Event event = {functionAddress, ticks, Phase::ENTRY};
-    this->m_events[this->m_index] = event;
-    this->m_index++;
+    this->m_index = index + 1;
 }
 
 __attribute__((no_instrument_function)) void Profiler::funcExit(void* function) {
-    if ((!this->m_enabled) || (this->m_index == PROFILER_BUFFER_SIZE)) {
+    if (this->m_index == this->m_end) {
         return;
     }
+    U32 ticks = Va416x0Mmio::SysTick::read_cvr();
+    auto index = this->m_index;
 
-    // address is in thumb mode but symbol table is not, convert the address
-    U32 functionAddress = reinterpret_cast<U32>(function) & THUMB_MASK;
-    // SysTick::read_cvr()
-    // see https://developer.arm.com/documentation/ka001406/latest/ for calculation explanation
-    U32 ticks = *reinterpret_cast<volatile U32*>(REG_CVR) - 2;
+    index->functionAddress = reinterpret_cast<U32>(function) | PHASE_FUNC_EXIT;
+    index->ticks = ticks;
 
-    Event event = {functionAddress, ticks, Phase::EXIT};
-    this->m_events[this->m_index] = event;
-    this->m_index++;
+    this->m_index = index + 1;
 }
 
 //! NOTE: IBRAULT: outstanding issue
@@ -99,17 +92,20 @@ __attribute__((no_instrument_function)) void Profiler::funcExit(void* function) 
 // quickly if done during initialization and the instrumentation hooks cause overruns when run
 // after initialization, further work is needed
 __attribute__((no_instrument_function)) void Profiler::dump() {
-    // do not dump while enabled
-    if (this->m_enabled) {
+    // Do not dump while enabled
+    if (this->m_index != this->m_end) {
         return;
     }
 
-    for (FwSizeType i = 0; i < this->m_index; i++) {
-        // function address, phase, timestamp
-        printf("P:%u,%u,%u\n", this->m_events[i].functionAddress, this->m_events[i].mode, this->m_events[i].ticks);
+    for (FwSizeType i = 0; i < PROFILER_BUFFER_SIZE; i++) {
+        if (this->m_events[i].functionAddress == 0) {
+            break;
+        }
+        // Function address is in thumb mode but symbol table is not, convert before dumping
+        U32 functionAddress = this->m_events[i].functionAddress & THUMB_MASK;
+        U32 phase = getPhase(functionAddress);
+        printf("P:%u,%u,%u\n", functionAddress, phase, this->m_events[i].ticks);
     }
-
-    this->m_index = 0;
 }
 
 }  // namespace Va416x0Svc
