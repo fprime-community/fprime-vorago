@@ -103,8 +103,8 @@ __attribute__((no_instrument_function)) void Profiler::dump() {
         }
         // Function address is in thumb mode but symbol table is not, convert before dumping
         U32 functionAddress = this->m_events[i].functionAddress & THUMB_MASK;
-        U32 phase = getPhase(functionAddress);
-        printf("P:%u,%u,%u\n", functionAddress, phase, this->m_events[i].ticks);
+        U32 phase = getPhase(this->m_events[i].functionAddress);
+        printf("P:%X,%u,%X\n", functionAddress, phase, this->m_events[i].ticks);
     }
 }
 
