@@ -14,11 +14,11 @@
 #include <fprime-baremetal/Os/OverrideNewDelete/OverrideNewDelete.hpp>
 
 #if defined(__clang__) || defined(__GNUG__)
-const size_t OVERHEAD = sizeof(size_t);
+constexpr size_t ARRAY_OVERHEAD = sizeof(size_t);
 #else
-static_assert(false, "you need to determine the size of your implementation's array OVERHEAD");
-const size_t OVERHEAD =
-    0;  // Declaration prevents additional diagnostics about OVERHEAD being undefined; the value used does not matter.
+static_assert(false, "you need to determine the size of your implementation's array overhead");
+const size_t ARRAY_OVERHEAD = 0;  // Declaration prevents additional diagnostics about ARRAY_OVERHEAD being undefined;
+                                  // the value used does not matter.
 #endif
 // operator overload from example in
 // https://wiki.sei.cmu.edu/confluence/display/cplusplus/mem54-cpp.+provide+placement+new+with+properly+aligned+pointers+to+sufficient+storage+capacity
@@ -53,7 +53,7 @@ void StrictMallocAllocator::setup(FwEnumStoreType numIds, FwEnumStoreType defaul
     this->m_defaultId = defaultId;
     // Calculate size of m_allocations array & then allocate that memory
     FwSizeType reqSize =
-        sizeof(std::atomic<FwSizeType>) * this->m_numIds + std::max(OVERHEAD, alignof(std::atomic<FwSizeType>));
+        sizeof(std::atomic<FwSizeType>) * this->m_numIds + std::max(ARRAY_OVERHEAD, alignof(std::atomic<FwSizeType>));
     size_t actSize;
     void* memory = wrapMalloc(reqSize, actSize);
     FW_ASSERT(memory != nullptr);
@@ -83,7 +83,7 @@ void* StrictMallocAllocator::allocate(const FwEnumStoreType identifier, FwSizeTy
         size = 0;  // set to zero if can't get memory
     } else {
         // Check id is a valid index and m_allocations has been allocated,
-        FW_ASSERT(id >= 0 && id <= this->m_numIds, id, size, this->m_numIds);
+        FW_ASSERT(id >= 0 && id < this->m_numIds, id, size, this->m_numIds);
         FW_ASSERT(this->m_allocations != nullptr);
         // Then add actualSize this ID's memory total
         this->m_allocations[id].fetch_add(actualSize);
@@ -107,7 +107,8 @@ FwSizeType StrictMallocAllocator::getAllocationById(FwEnumStoreType identifier) 
     return this->m_allocations[identifier];
 }
 FwSizeType StrictMallocAllocator::getSystemAllocation() {
-    return 0;
+    struct mallinfo mi = mallinfo();
+    return static_cast<FwSizeType>(mi.uordblks);
 }
 void StrictMallocAllocator::disableAllocation() {
     this->m_allowAllocation.store(false);
