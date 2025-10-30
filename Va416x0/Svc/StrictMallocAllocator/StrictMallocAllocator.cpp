@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <Fw/Types/Assert.hpp>
 #include <algorithm>  // included for max
+#include <fprime-baremetal/Os/MemoryIdScope/MemoryIdScope.hpp>
 #include <fprime-baremetal/Os/OverrideNewDelete/OverrideNewDelete.hpp>
 
 #if defined(__clang__) || defined(__GNUG__)
@@ -72,7 +73,7 @@ StrictMallocAllocator::~StrictMallocAllocator() {}
 void* StrictMallocAllocator::allocate(const FwEnumStoreType identifier, FwSizeType& size, bool& recoverable) {
     FW_ASSERT(this->m_allowAllocation.load() == true);
     FwEnumStoreType id = identifier;
-    if (identifier == Os::Baremetal::OverrideNewDelete::DEFAULT_ID) {
+    if (identifier == Os::Baremetal::MemoryIdScope::DEFAULT_ID) {
         id = this->m_defaultId;
     }
     // heap memory is never recoverable
