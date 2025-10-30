@@ -73,6 +73,7 @@ register_fprime_ut(
         "${CMAKE_CURRENT_LIST_DIR}/DefaultRawTime.cpp"
     DEPENDS
         STest
+        Va416x0_Os_TimerRawTime_Implementation
     CHOOSES_IMPLEMENTATIONS
         Va416x0_Os_TimerRawTime
 
