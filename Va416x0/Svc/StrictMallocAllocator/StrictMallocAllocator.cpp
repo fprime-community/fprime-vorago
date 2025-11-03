@@ -59,7 +59,6 @@ void StrictMallocAllocator::setup(FwEnumStoreType numIds, FwEnumStoreType defaul
     void* memory = wrapMalloc(reqSize, actSize);
     FW_ASSERT(memory != nullptr);
     // Create the array
-    memset(memory, 0, reqSize);  // sets initial state
     this->m_allocations = ::new (memory, reqSize) std::atomic<FwSizeType>[this->m_numIds];
     // Track how much memory this class allocated and how has been allocated up to now
     this->m_internalAllocation = actSize;
@@ -95,6 +94,12 @@ U32 StrictMallocAllocator::getNumIds() {
     return this->m_numIds;
 }
 void StrictMallocAllocator::deallocate(const FwEnumStoreType identifier, void* ptr) {
+    // Currently asserting on deallocate because the memory tracking approach being
+    // used doesn't work for deallocation AND because the only project
+    // using this feature doesn't call deallocate().
+    // If this assert ever trips, this function should be updated to use mallinfo()
+    // before & after the free to determine how much memory was released and that
+    // needs to be tested to verify it works correctly.
     FW_ASSERT(false, identifier, FwAssertArgType(reinterpret_cast<PlatformPointerCastType>((ptr))));
     ::free(ptr);
 }
@@ -104,7 +109,7 @@ FwSizeType StrictMallocAllocator::getAllocationInternal() {
 }
 FwSizeType StrictMallocAllocator::getAllocationById(FwEnumStoreType identifier) {
     FW_ASSERT(this->m_allocations != nullptr);
-    FW_ASSERT(this->m_numIds > identifier, identifier, this->m_numIds);
+    FW_ASSERT(this->m_numIds > identifier && this->m_numIds > 0, identifier, this->m_numIds);
     return this->m_allocations[identifier];
 }
 FwSizeType StrictMallocAllocator::getSystemAllocation() {

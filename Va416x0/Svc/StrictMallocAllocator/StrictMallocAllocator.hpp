@@ -41,7 +41,7 @@ class StrictMallocAllocator : public Fw::MemAllocator {
     FwSizeType getAllocationInternal();
     //! Get the dynamic memory allocated for a given ID
     FwSizeType getAllocationById(FwEnumStoreType identifier);
-    //! Get dynamic memory allocated according to picolib
+    //! Get dynamic memory allocated according to picolibc
     FwSizeType getSystemAllocation();
     //! Gets the number of IDs allocation is tracked
     U32 getNumIds();
