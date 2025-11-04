@@ -39,6 +39,7 @@ class SeggerByteStream final : public SeggerByteStreamComponentBase {
     );
 
     void setup(Fw::MemAllocator& allocator,
+               FwEnumStoreType memId,
                U32 bufferIndex,
                const char* bufferName,
                U32 bufferUpSize,
