@@ -109,7 +109,7 @@ FwSizeType StrictMallocAllocator::getAllocationInternal() {
 }
 FwSizeType StrictMallocAllocator::getAllocationById(FwEnumStoreType identifier) {
     FW_ASSERT(this->m_allocations != nullptr);
-    FW_ASSERT(this->m_numIds > identifier && identifier > 0, identifier, this->m_numIds);
+    FW_ASSERT(this->m_numIds > identifier && identifier >= 0, identifier, this->m_numIds);
     return this->m_allocations[identifier];
 }
 FwSizeType StrictMallocAllocator::getSystemAllocation() {
