@@ -22,12 +22,9 @@
 #ifndef Scythe_Profiler_HPP
 #define Scythe_Profiler_HPP
 
-#include "Fw/FPrimeBasicTypes.hpp"
+#include <Fw/FPrimeBasicTypes.hpp>
 
 namespace Va416x0Svc {
-
-//! TODO: IBRAULT: should be configurable
-constexpr FwSizeType PROFILER_BUFFER_SIZE = 512;
 
 class Profiler {
   public:
@@ -52,7 +49,9 @@ class Profiler {
     //! Function exit hook
     void funcExit(void* function);
 
-    //! Dump collected profile data
+    //! Dump collected profile data via printf
+    //! This is left in place for debugging purposes but the configured memory region should
+    //! instead be dumped using the JLink connection
     void dump();
 
     // Deleted copy constructor and equality operator
@@ -71,13 +70,9 @@ class Profiler {
         U32 ticks;
     };
 
-    //! Pointer to the current index in the buffer; encapsulates enable/disable functionality and
-    //! is set to point past the end of the buffer when disabled
+    //! Pointer to the current index in the profiler memory region; encapsulates enable/disable
+    //! functionality and is set to the end of the memory region when disabled
     Event* m_index;
-    //! End of the event buffer
-    Event* m_end;
-    //! Buffer to hold function entry/exit events
-    Event m_events[PROFILER_BUFFER_SIZE];
 };
 
 //! Global singleton profiler instance
