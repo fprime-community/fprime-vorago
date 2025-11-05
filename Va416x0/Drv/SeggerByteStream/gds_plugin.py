@@ -128,6 +128,11 @@ class SeggerRttAdapter(BaseAdapter):
         except JLinkError as e:
             LOGGER.error("J-Link read failed: %s", e)
             self.close()
+        
+        # This condition was happening due to the cpu reset
+        # perhaps better to check if the jlink is connected
+        # Saw ARM DISCONNECT or something similar in the logfile
+        self.close()
         return b""
 
     @classmethod
