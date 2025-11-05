@@ -22,6 +22,7 @@ import os
 import sys
 import time
 from typing import Union, Optional
+from jlinksdk import JLinkError
 
 import aiofile
 
@@ -158,7 +159,11 @@ class JLinkRTT:
 
     def _sync_connect_to_daemon(self):
         # Establish TCP connection to J-Link daemon via 127.0.0.1:19020
-        self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
+        try:
+            self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
+        except JLinkError as e:
+            print("Can not connect to JLink, attempt retry")
+            self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
 
     def _sync_connect_to_target(self):
         print(f"Connect JLink with speed {self.speed}")
@@ -172,7 +177,7 @@ class JLinkRTT:
 
     def _sync_find_buffers(self):
         # Since there is no scanning for the RTT block, it should be found promptly.
-        time.sleep(0.1)
+        time.sleep(0.4)
 
         # Make sure the buffers were found
         num_up_buffers = self.jlink.RTTerminal.GetNumBuf(
