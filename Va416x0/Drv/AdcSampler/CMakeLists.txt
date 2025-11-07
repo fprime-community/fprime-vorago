@@ -46,6 +46,7 @@ set(MOD_DEPS
     Va416x0/Types
     Va416x0/Mmio/SysConfig
     Va416x0/Mmio/Cpu
+    Va416x0/Mmio/IrqRouter
 )
 
 register_fprime_module()

@@ -30,6 +30,7 @@
 #include "Va416x0/Types/AdcTypes.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
 #include "Va416x0/Types/Optional.hpp"
+#include "Va416x0/Mmio/Timer/Timer.hpp"
 
 /// @brief Combine channel mask, count, and other ADC request information into a U32 value
 /// @param chan_en Channel mask for the read (1 to 0xffff)
@@ -85,7 +86,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     );
 
     //! Setup
-    void setup(AdcConfig& config, U32 interrupt_priority);
+    void setup(AdcConfig& config, U32 interrupt_priority, U32 adc_delay_microseconds, U8 timer_peripheral_index);
 
   private:
     //! ADC read request in progress (set by startRead())
@@ -112,6 +113,10 @@ class AdcSampler final : public AdcSamplerComponentBase {
     std::atomic<U32> m_requestIdx;
     //! \brief Index to store data into when current read completes
     U32 m_dataIdx;
+    //! \brief The timer delay in timer ticks before triggering the adc conversion
+    U32 m_adcDelayTicks;
+    //! \brief Timer peripheral index
+    U8 m_timerIdx;
 
     //! Starts the next read in the this->m_pRequests list
     void startReadInner();
@@ -145,6 +150,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! Handler implementation for getNumDataValues
     U32 getNumDataValues_handler(FwIndexType portNum  //!< The port number
                                  ) override;
+
 };
 
 }  // namespace Va416x0
