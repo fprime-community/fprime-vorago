@@ -20,9 +20,9 @@
 // ======================================================================
 
 #include "Profiler.hpp"
-#include "config/ProfilerCfg.hpp"
 #include "Fw/Types/Assert.hpp"
 #include "Va416x0/Mmio/SysTick/SysTick.hpp"
+#include "config/ProfilerCfg.hpp"
 
 #include <arm_acle.h>
 #include <cstdio>
