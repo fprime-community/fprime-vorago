@@ -53,9 +53,10 @@ class StrictMallocAllocator : public Fw::MemAllocator {
      * \param identifier the memory segment identifier (not used)
      * \param size the requested size (not changed)
      * \param recoverable - flag to indicate the memory could be recoverable (always set to false)
+    //! \param alignment - alignment requirement for the allocation. Default: maximum alignment defined by C++.
      * \return the pointer to memory. Zero if unable to allocate.
      */
-    void* allocate(const FwEnumStoreType identifier, FwSizeType& size, bool& recoverable);
+    void* allocate(const FwEnumStoreType identifier, FwSizeType& size, bool& recoverable, FwSizeType alignment = alignof(std::max_align_t));
     /*! Deallocate memory
      * \param identifier the memory segment identifier (not used)
      * \param ptr the pointer to memory returned by allocate()

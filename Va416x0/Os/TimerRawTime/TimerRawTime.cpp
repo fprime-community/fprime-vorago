@@ -199,18 +199,21 @@ TimerRawTime::Status TimerRawTime::getTimeInterval(const Os::RawTime& other, Fw:
     return getTimeIntervalInternal(*other_handle, interval, fastpath);
 }
 
-Fw::SerializeStatus TimerRawTime::serializeTo(Fw::SerializeBufferBase& buffer) const {
-    return buffer.serialize(m_handle.m_val);
+Fw::SerializeStatus TimerRawTime::serializeTo(Fw::SerialBufferBase& buffer,
+                                        Fw::Endianness mode) const {
+    return buffer.serializeFrom(m_handle.m_val, mode);
 }
 
-Fw::SerializeStatus TimerRawTime::deserializeFrom(Fw::SerializeBufferBase& buffer) {
+Fw::SerializeStatus TimerRawTime::deserializeFrom(Fw::SerialBufferBase& buffer,
+                                            Fw::Endianness mode)  {
     Fw::SerializeStatus stat;
     U64 val;
-    stat = buffer.deserialize(val);
+    stat = buffer.deserializeTo(val,mode);
     if (stat == Fw::FW_SERIALIZE_OK) {
         m_handle.m_val = val;
     }
     return stat;
 }
+
 
 }  // namespace Va416x0Os

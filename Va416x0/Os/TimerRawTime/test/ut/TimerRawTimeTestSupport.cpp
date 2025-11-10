@@ -21,9 +21,42 @@
 
 #include "TimerRawTimeTestSupport.hpp"
 #include "Va416x0/Os/TimerRawTime/TimerRawTime.hpp"
-
+#include <Os/test/ut/rawtime/RulesHeaders.hpp>
 #include <chrono>
 #include <queue>
+
+// FIXME: assert_and_update_now has to be defined because TimerRawTime UT is including STest
+void Os::Test::RawTime::assert_and_update_now(const Os::RawTime& raw_time_under_test,
+                                              const std::chrono::system_clock::time_point& lower_time,
+                                              const std::chrono::system_clock::time_point& upper_time,
+                                              std::chrono::system_clock::time_point& shadow_time) {
+    // Not implemented, so make sure this is not being called 
+    FW_ASSERT(false);
+    // Extract POSIX timespec from raw_time_under_test
+    // const TimerRawTimeHandle& timespec_handle = static_cast<const Va416x0Os::TimerRawTimeHandle*>(
+    //                                       const_cast<Os::RawTime&>(raw_time_under_test).getHandle())
+    //                                       ->m_val;
+    // // Ensure timespec_handle is between lower_time and upper_time
+    // auto lower_time_sec = std::chrono::duration_cast<std::chrono::seconds>(lower_time.time_since_epoch()).count();
+    // auto upper_time_sec = std::chrono::duration_cast<std::chrono::seconds>(upper_time.time_since_epoch()).count();
+    // auto lower_time_nsec =
+    //     std::chrono::duration_cast<std::chrono::nanoseconds>(lower_time.time_since_epoch()).count() % 1000000000;
+    // auto upper_time_nsec =
+    //     std::chrono::duration_cast<std::chrono::nanoseconds>(upper_time.time_since_epoch()).count() % 1000000000;
+
+    // EXPECT_GE(timespec_handle.m_val, lower_time_sec);
+    // EXPECT_LE(timespec_handle.m_val, upper_time_sec);
+    // if (timespec_handle.m_val == lower_time_sec) {
+    //     EXPECT_GE(timespec_handle.m_val, lower_time_nsec);
+    // }
+    // if (timespec_handle.m_val == upper_time_sec) {
+    //     EXPECT_LE(timespec_handle.m_val, upper_time_nsec);
+    // }
+    // // Update shadow time with values of raw_time_under_test
+    // auto duration = std::chrono::seconds{timespec_handle.m_val};
+    // shadow_time = std::chrono::system_clock::time_point(
+    //     std::chrono::duration_cast<std::chrono::system_clock::duration>(duration));
+}
 
 namespace Va416x0Os {
 
