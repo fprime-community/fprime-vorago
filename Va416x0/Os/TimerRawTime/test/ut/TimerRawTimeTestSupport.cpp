@@ -20,42 +20,80 @@
 // ======================================================================
 
 #include "TimerRawTimeTestSupport.hpp"
-#include "Va416x0/Os/TimerRawTime/TimerRawTime.hpp"
 #include <Os/test/ut/rawtime/RulesHeaders.hpp>
 #include <chrono>
 #include <queue>
+#include "Va416x0/Os/TimerRawTime/TimerRawTime.hpp"
 
-// FIXME: assert_and_update_now has to be defined because TimerRawTime UT is including STest
+// Used by assert_and_update_now() to compare elapsed time
+static I64 prev_lower_time_nano_second = 0;
+static I64 prev_upper_time_nano_second = 0;
+static U64 prev_raw_time = 0;
+constexpr U64 APB1_NANO_SEC_PER_TICK = (1000 * 1000 * 1000) / APB1_FREQ;
+
+// The CommonTest::Now() function was updated in https://github.com/nasa/fprime/pull/4323
+// to compare the value returned by raw_time_under_test.now() to the values returned from
+// std::chrono::system_clock::now() immediately before & after. assert_and_update_now() is used
+// to do that comparison
 void Os::Test::RawTime::assert_and_update_now(const Os::RawTime& raw_time_under_test,
                                               const std::chrono::system_clock::time_point& lower_time,
                                               const std::chrono::system_clock::time_point& upper_time,
                                               std::chrono::system_clock::time_point& shadow_time) {
-    // Not implemented, so make sure this is not being called 
-    FW_ASSERT(false);
-    // Extract POSIX timespec from raw_time_under_test
-    // const TimerRawTimeHandle& timespec_handle = static_cast<const Va416x0Os::TimerRawTimeHandle*>(
-    //                                       const_cast<Os::RawTime&>(raw_time_under_test).getHandle())
-    //                                       ->m_val;
-    // // Ensure timespec_handle is between lower_time and upper_time
-    // auto lower_time_sec = std::chrono::duration_cast<std::chrono::seconds>(lower_time.time_since_epoch()).count();
-    // auto upper_time_sec = std::chrono::duration_cast<std::chrono::seconds>(upper_time.time_since_epoch()).count();
-    // auto lower_time_nsec =
-    //     std::chrono::duration_cast<std::chrono::nanoseconds>(lower_time.time_since_epoch()).count() % 1000000000;
-    // auto upper_time_nsec =
-    //     std::chrono::duration_cast<std::chrono::nanoseconds>(upper_time.time_since_epoch()).count() % 1000000000;
+    // Extract timespec from raw_time_under_test
+    Va416x0Os::TimerRawTimeHandle* timespec_handle =
+        static_cast<Va416x0Os::TimerRawTimeHandle*>(const_cast<Os::RawTime&>(raw_time_under_test).getHandle());
+    auto lower_time_nano_second =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(lower_time.time_since_epoch()).count();
+    auto upper_time_nano_second =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(upper_time.time_since_epoch()).count();
+    U64 raw_time = timespec_handle->m_val;
+    U64 delta_lower_ns = 0;
+    U64 delta_upper_ns = 0;
+    U64 delta_raw_time = 0;
+    U64 delta_raw_time_ns = 0;
+    bool ok = false;
+    if (prev_lower_time_nano_second != 0) {
+        FW_ASSERT(prev_lower_time_nano_second > 0 && prev_upper_time_nano_second > 0 && prev_raw_time > 0,
+                  prev_lower_time_nano_second, prev_upper_time_nano_second, prev_raw_time);
+        // Calculated elapsed time (chrono counts up)
+        delta_lower_ns = lower_time_nano_second - prev_lower_time_nano_second;
+        delta_upper_ns = upper_time_nano_second - prev_upper_time_nano_second;
+        // Calculate elapsed ticks (timers count down) and convert to nanoseconds
+        delta_raw_time = prev_raw_time - raw_time;
+        delta_raw_time_ns = APB1_NANO_SEC_PER_TICK * delta_raw_time;
+        EXPECT_TRUE(delta_raw_time_ns >= delta_raw_time);
+        // Verify the elapsed ticks is reasonable
+        ok = ((delta_lower_ns - APB1_NANO_SEC_PER_TICK) <= delta_raw_time_ns <=
+              (delta_lower_ns + APB1_NANO_SEC_PER_TICK)) &&
+             ((delta_upper_ns - APB1_NANO_SEC_PER_TICK) <= delta_raw_time_ns <=
+              (delta_upper_ns + APB1_NANO_SEC_PER_TICK));
+        EXPECT_TRUE(ok);
+        if (!ok) {
+            printf(
+                "assert_and_update_now FAIL: ok=%d, RT = %lu (delta: ticks= %lu, ns= %lu), LT = %ld (delta ns= %ld), "
+                "UT = %ld (delta "
+                "ns= %ld)\n",
+                ok, raw_time, delta_raw_time, delta_raw_time_ns, lower_time, delta_lower_ns, upper_time,
+                delta_upper_ns);
+        }
+    }
 
-    // EXPECT_GE(timespec_handle.m_val, lower_time_sec);
-    // EXPECT_LE(timespec_handle.m_val, upper_time_sec);
-    // if (timespec_handle.m_val == lower_time_sec) {
-    //     EXPECT_GE(timespec_handle.m_val, lower_time_nsec);
-    // }
-    // if (timespec_handle.m_val == upper_time_sec) {
-    //     EXPECT_LE(timespec_handle.m_val, upper_time_nsec);
-    // }
-    // // Update shadow time with values of raw_time_under_test
-    // auto duration = std::chrono::seconds{timespec_handle.m_val};
-    // shadow_time = std::chrono::system_clock::time_point(
-    //     std::chrono::duration_cast<std::chrono::system_clock::duration>(duration));
+    prev_lower_time_nano_second = lower_time_nano_second;
+    prev_upper_time_nano_second = upper_time_nano_second;
+    prev_raw_time = raw_time;
+
+    U64 rt_elapsed = std::numeric_limits<U64>::max() - raw_time;
+    U64 rt_sec = rt_elapsed / APB1_FREQ;
+    U64 rt_nano = (rt_elapsed - rt_sec * APB1_FREQ) * APB1_NANO_SEC_PER_TICK;
+
+    auto duration = std::chrono::seconds{rt_sec} + std::chrono::nanoseconds{rt_nano};
+    shadow_time = std::chrono::system_clock::time_point(
+        std::chrono::duration_cast<std::chrono::system_clock::duration>(duration));
+    if (UT_DEBUG_OUTPUT) {
+        printf("assert_and_update_now: mval = %lu (elapsed: %lu, sec %ld (%d), nsec %ld) & shadow ns = %ld\n", raw_time,
+               rt_elapsed, rt_sec, rt_sec > std::numeric_limits<U32>::max(), rt_nano,
+               std::chrono::duration_cast<std::chrono::microseconds>(shadow_time.time_since_epoch()).count());
+    }
 }
 
 namespace Va416x0Os {

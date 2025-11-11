@@ -35,7 +35,6 @@ std::unique_ptr<Os::Test::RawTime::Tester> get_tester_implementation() {
 }
 
 Functionality::Functionality() : tester(get_tester_implementation()) {
-    const U64 APB1_FREQ = 50 * 1000 * 1000UL;
     Va416x0Os::TimerRawTime::clearConfiguration();
 
     // Configure the TimerRawTime for this run
