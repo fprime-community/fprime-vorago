@@ -119,7 +119,7 @@ class TimerRawTime : public Os::RawTimeInterface {
     //! serialize in 8 bytes. Should an OSAL implementation require more than this, the project must increase
     //! that value in its config/ folder.
     Fw::SerializeStatus serializeTo(Fw::SerialBufferBase& buffer,
-                                            Fw::Endianness mode = Fw::Endianness::BIG) const override;
+                                    Fw::Endianness mode = Fw::Endianness::BIG) const override;
 
     //! \brief Deserialize the contents of the RawTimeInterface object from a buffer.
     //!
@@ -131,7 +131,7 @@ class TimerRawTime : public Os::RawTimeInterface {
     //! serialize in 8 bytes. Should an OSAL implementation require more than this, the project must increase
     //! that value in its config/ folder.
     Fw::SerializeStatus deserializeFrom(Fw::SerialBufferBase& buffer,
-                                                Fw::Endianness mode = Fw::Endianness::BIG) override;
+                                        Fw::Endianness mode = Fw::Endianness::BIG) override;
 
   private:
     //! Get raw timer counts

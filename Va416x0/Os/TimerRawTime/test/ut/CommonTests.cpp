@@ -122,6 +122,7 @@ TEST_F(Functionality, RandomizedTesting) {
 
     // Place these rules into a list of rules
     STest::Rule<Os::Test::RawTime::Tester>* rules[] = {
+        // FIXME: Disabling the get_time_rule because it significantly increases the odds
         &get_time_rule, &diff_zero_rule, &get_diff_rule, &get_interval_rule, &serialization_rule, &overflow_rule,
     };
 

@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <Fw/Types/Assert.hpp>
 #include <algorithm>  // included for max
-#include <fprime-baremetal/Os/OverrideNewDelete/OverrideNewDelete.hpp>
 #include <fprime-baremetal/Os/MemoryIdScope/MemoryIdScope.hpp>
+#include <fprime-baremetal/Os/OverrideNewDelete/OverrideNewDelete.hpp>
 
 #if defined(__clang__) || defined(__GNUG__)
 const size_t OVERHEAD = sizeof(size_t);
@@ -70,8 +70,11 @@ void StrictMallocAllocator::setup(FwEnumStoreType numIds, FwEnumStoreType defaul
 
 StrictMallocAllocator::~StrictMallocAllocator() {}
 
-void* StrictMallocAllocator::allocate(const FwEnumStoreType identifier, FwSizeType& size, bool& recoverable, FwSizeType alignment) {
-    // FIXME: alignment is ignored right now b/c MallocAllocator::allocate() ignores it too 
+void* StrictMallocAllocator::allocate(const FwEnumStoreType identifier,
+                                      FwSizeType& size,
+                                      bool& recoverable,
+                                      FwSizeType alignment) {
+    // FIXME: alignment is ignored right now b/c MallocAllocator::allocate() ignores it too
     FW_ASSERT(this->m_allowAllocation.load() == true);
     FwEnumStoreType id = identifier;
     if (identifier == Os::Baremetal::MemoryIdScope::DEFAULT_ID) {
