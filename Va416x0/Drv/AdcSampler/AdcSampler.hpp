@@ -131,12 +131,6 @@ class AdcSampler final : public AdcSamplerComponentBase {
     void adcIrq_handler(FwIndexType portNum  //!< The port number
                         ) override;
 
-    //! Handler implementation for adcIrq
-    //!
-    //! timer isr
-    void timerIsr_handler(FwIndexType portNum  //!< The port number
-                        ) override;
-
     //! Handler implementation for checkRead
     //!
     //! Check whether ADC read request list is done

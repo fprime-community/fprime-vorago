@@ -29,6 +29,7 @@
 #include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
 #include "Va416x0/Mmio/IrqRouter/IrqRouter.hpp"
 #include "lib/fprime/Os/RawTime.hpp"
+#include "Va416x0/Mmio/Amba/Amba.hpp"
 
 namespace Va416x0 {
 
@@ -90,26 +91,16 @@ void AdcSampler ::setup(AdcConfig& config, U32 interrupt_priority, U32 adc_delay
     // Convert microseconds to ticks
     U32 timer_freq = Va416x0Mmio::ClkTree::getActiveTimerFreq(timer);
     U64 rstValueScaled = U64(timer_freq) * adc_delay_microseconds;
-    // TODO: I dont think this is the correct assert
-    // FW_ASSERT((rstValueScaled % MICROSECONDS_PER_SECOND) == 0, timer_freq, adc_delay_microseconds, rstValueScaled,
-    //           MICROSECONDS_PER_SECOND);
 
     this->m_adcDelayTicks = rstValueScaled / MICROSECONDS_PER_SECOND;
     timer.write_csd_ctrl(0);
     Va416x0Mmio::Nvic::InterruptControl interrupt = 
         Va416x0Mmio::Nvic::InterruptControl(timer.get_timer_done_exception());
     interrupt.set_interrupt_pending(false);
-    // FIXME (CY): What priority do we want this?
     interrupt.set_interrupt_priority(interrupt_priority);
-    interrupt.set_interrupt_enabled(true);
-    // U32 * adcsel_addr = reinterpret_cast<U32 *>(0x40002014);
-    // *adcsel_addr = 0;
-    //Va416x0Mmio::IrqRouter::write_adcsel(0);
-    // U32 adcsel_value = Va416x0Mmio::IrqRouter::read_adcsel(); 
-    // printf("CPP: ADCSEL VALUE BEFORE WRITE %d\n", *adcsel_addr);
-    // Va416x0Mmio::IrqRouter::write_adcsel(timer_peripheral_index);
-    // adcsel_value = Va416x0Mmio::IrqRouter::read_adcsel();
-    // FW_ASSERT(adcsel_value == timer_peripheral_index, adcsel_value, timer_peripheral_index);
+    Va416x0Mmio::SysConfig::set_clk_enabled(Va416x0Mmio::SysConfig::IRQ_ROUTER, true);
+    Va416x0Mmio::Amba::memory_barrier();
+    Va416x0Mmio::IrqRouter::write_adcsel(timer_peripheral_index);
 
     // Enable CLK for ADC
     Va416x0Mmio::SysConfig::reset_peripheral(
@@ -179,24 +170,6 @@ U32 AdcSampler ::getNumDataValues_handler(FwIndexType portNum) {
 // ----------------------------------------------------------------------
 // Handler implementations for typed input ports
 // ----------------------------------------------------------------------
-
-void AdcSampler ::timerIsr_handler(FwIndexType portNum) {
-    // pass
-
-    U32 ctrl_val =
-        (((Va416x0Mmio::Adc::CTRL_CHAN_EN_MASK & (REQ_GET_CHAN_EN(this->m_curRequest)))
-          << Va416x0Mmio::Adc::CTRL_CHAN_EN_SHIFT) +
-         ((REQ_GET_IS_SWEEP(this->m_curRequest) == 1)
-              ? 0
-              : (Va416x0Mmio::Adc::CTRL_CONV_CNT_MASK & (this->m_curCnt << Va416x0Mmio::Adc::CTRL_CONV_CNT_SHIFT))) +
-         Va416x0Mmio::Adc::CTRL_CHAN_TAG_DIS +
-         ((REQ_GET_IS_SWEEP(this->m_curRequest) == 1) ? Va416x0Mmio::Adc::CTRL_SWEEP_EN
-                                                      : Va416x0Mmio::Adc::CTRL_SWEEP_DIS) +
-         Va416x0Mmio::Adc::CTRL_MANUAL_TRIG);
-
-    // Write control register
-    Va416x0Mmio::Adc::write_ctrl(ctrl_val);
-}
 
 void AdcSampler ::adcIrq_handler(FwIndexType portNum) {
     // asserts are low cost compared to the register read/write and adds safety, so leave in
@@ -313,19 +286,19 @@ void AdcSampler ::startReadInner() {
     // However, testing showed that setting CONV_CNT to a non-zero value resulted in the sweep read
     // being done CONV_CNT + 1 times (e.g. CHAN_EN=0x7 resulted in 9 values being read & put in FIFO_DATA)
     // So CONV_CNT is set to 0 for sweep reads
-    // U32 ctrl_val =
-    //     (((Va416x0Mmio::Adc::CTRL_CHAN_EN_MASK & (REQ_GET_CHAN_EN(this->m_curRequest)))
-    //       << Va416x0Mmio::Adc::CTRL_CHAN_EN_SHIFT) +
-    //      ((REQ_GET_IS_SWEEP(this->m_curRequest) == 1)
-    //           ? 0
-    //           : (Va416x0Mmio::Adc::CTRL_CONV_CNT_MASK & (this->m_curCnt << Va416x0Mmio::Adc::CTRL_CONV_CNT_SHIFT))) +
-    //      Va416x0Mmio::Adc::CTRL_CHAN_TAG_DIS +
-    //      ((REQ_GET_IS_SWEEP(this->m_curRequest) == 1) ? Va416x0Mmio::Adc::CTRL_SWEEP_EN
-    //                                                   : Va416x0Mmio::Adc::CTRL_SWEEP_DIS) +
-    //      Va416x0Mmio::Adc::CTRL_EXT_TRIG_EN);
+    U32 ctrl_val =
+        (((Va416x0Mmio::Adc::CTRL_CHAN_EN_MASK & (REQ_GET_CHAN_EN(this->m_curRequest)))
+          << Va416x0Mmio::Adc::CTRL_CHAN_EN_SHIFT) +
+         ((REQ_GET_IS_SWEEP(this->m_curRequest) == 1)
+              ? 0
+              : (Va416x0Mmio::Adc::CTRL_CONV_CNT_MASK & (this->m_curCnt << Va416x0Mmio::Adc::CTRL_CONV_CNT_SHIFT))) +
+         Va416x0Mmio::Adc::CTRL_CHAN_TAG_DIS +
+         ((REQ_GET_IS_SWEEP(this->m_curRequest) == 1) ? Va416x0Mmio::Adc::CTRL_SWEEP_EN
+                                                      : Va416x0Mmio::Adc::CTRL_SWEEP_DIS) +
+         Va416x0Mmio::Adc::CTRL_EXT_TRIG_EN);
 
-    // // Write control register
-    // Va416x0Mmio::Adc::write_ctrl(ctrl_val);
+    // Write control register
+    Va416x0Mmio::Adc::write_ctrl(ctrl_val);
 }
 
 U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
