@@ -89,10 +89,10 @@ void Os::Test::RawTime::assert_and_update_now(const Os::RawTime& raw_time_under_
     // the number of nanoseconds to a multiple of 1000 reduces the number of failures
     //  when calculating time intervals - uncomment the below lines to do that
     // See details in https://github.com/fprime-community/fprime-vorago/issues/8
-    // U64 rt_nano_round = 1000 * (rt_nano_raw / 1000);
-    // U64 ticks_rem = (rt_nano_raw - rt_nano_round) / APB1_NANO_SEC_PER_TICK;
-    // timespec_handle->m_val = timespec_handle->m_val + ticks_rem;
-    U64 rt_nano = rt_nano_raw;
+    U64 rt_nano_round = 1000 * (rt_nano_raw / 1000);
+    U64 ticks_rem = (rt_nano_raw - rt_nano_round) / APB1_NANO_SEC_PER_TICK;
+    timespec_handle->m_val = timespec_handle->m_val + ticks_rem;
+    U64 rt_nano = rt_nano_round;
 
     auto duration = std::chrono::seconds{rt_sec} + std::chrono::nanoseconds{rt_nano};
     shadow_time = std::chrono::system_clock::time_point(

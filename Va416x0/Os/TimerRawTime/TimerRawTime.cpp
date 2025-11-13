@@ -172,14 +172,27 @@ TimerRawTime::Status TimerRawTime::getTimeIntervalInternal(const TimerRawTimeHan
 
     // Calculate subseconds value in microseconds
     // Note: F32 types have a precision of 1.0 or lower
-    // to a value of 16,777,216 so there will be some rounding
-    // of values above this.
-    // Note: Consider an integer based version of this calculation.
-    // Would need to determine numerator and denominator values for
-    // a given clock frequency.
-    // eg. delta_us = (subsec * numerator) / denominator
-    const F32 subsec = static_cast<F32>(delta_s_rem) / timer_hz;
-    U32 delta_us = subsec * (1000.F * 1000.F);
+    // to a value of 16,777,216 - so attempt to reduce the values to 
+    // less than 16 million because doing any floating point calculations
+    U32 delta_us;
+    if (timer_hz % (1000 * 1000) == 0) {
+        // If the frequency is in megahertz, calculate the megahertz frequency and 
+        // then the number of microseconds without using floating point 
+        U32 timer_mhz = timer_hz / 1000/ 1000;
+        delta_us = delta_s_rem / timer_mhz;
+    } else if (timer_hz % 1000 == 0) {
+        // If the frequency is in kilohertz, do that division before
+        // casting to floating point 
+        U32 timer_khz = timer_hz / 1000;
+        delta_us = static_cast<U32>(static_cast<F32>(delta_s_rem) / (static_cast<F32>(timer_khz) / 1000.F));
+    } else {
+        // Note: Consider an integer based version of this calculation.
+        // Would need to determine numerator and denominator values for
+        // a given clock frequency.
+        // eg. delta_us = (subsec * numerator) / denominator
+        const F32 subsec = static_cast<F32>(delta_s_rem) / timer_hz;
+        delta_us = subsec * (1000.F * 1000.F);
+    }
     if (delta_us >= (1000 * 1000)) {
         // Round us down to below 1 s
         delta_us = 999999;

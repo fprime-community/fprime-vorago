@@ -56,9 +56,9 @@ Functionality::Functionality() : tester(get_tester_implementation()) {
         // the number of nanoseconds to a multiple of 1000 reduces the number of failures
         //  when calculating time intervals, so uncomment the below
         // See details in https://github.com/fprime-community/fprime-vorago/issues/8
-        // auto now = std::chrono::system_clock::now();
-        // tester->m_shadow_times[i] = std::chrono::time_point_cast<std::chrono::microseconds>(now);
-        tester->m_shadow_times[i] = std::chrono::system_clock::now();
+        auto now = std::chrono::system_clock::now();
+        tester->m_shadow_times[i] = std::chrono::time_point_cast<std::chrono::microseconds>(now);
+        // tester->m_shadow_times[i] = std::chrono::system_clock::now();
     }
 
     for (U32 i = 0; i < tester->TEST_TIME_COUNT; ++i) {
@@ -131,7 +131,7 @@ TEST_F(Functionality, RandomizedTesting) {
         // FIXME: Disabling the get_time_rule because it increases the number of time stamps retrieved from 5
         // per test to 100s which increases the probability of the failure documented in
         // https://github.com/fprime-community/fprime-vorago/issues/8
-        /*&get_time_rule,*/ &diff_zero_rule,
+        &get_time_rule, &diff_zero_rule,
         &get_diff_rule,
         &get_interval_rule,
         &serialization_rule,
