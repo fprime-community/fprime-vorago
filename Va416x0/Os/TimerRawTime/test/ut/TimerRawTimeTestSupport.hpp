@@ -27,6 +27,9 @@
 
 #include <Fw/FPrimeBasicTypes.hpp>
 
+constexpr U64 APB1_FREQ = 50 * 1000 * 1000UL;
+constexpr bool UT_DEBUG_OUTPUT = false;
+
 namespace Va416x0Os {
 
 enum TimerCountsMode { DERIVE_SYSTEM_CLOCK, COUNT_QUEUE };

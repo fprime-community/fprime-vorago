@@ -63,7 +63,9 @@ IsrSafeQueue::~IsrSafeQueue() {
     delete[] this->m_handle.m_sizes;
 }
 
-Os::QueueInterface::Status IsrSafeQueue::create(const Fw::StringBase& name, FwSizeType depth, FwSizeType messageSize) {
+Os::QueueInterface::Status IsrSafeQueue::create(const Fw::ConstStringBase& name,
+                                                FwSizeType depth,
+                                                FwSizeType messageSize) {
     // Ensure we are created exactly once
     FW_ASSERT(this->m_handle.m_indices == nullptr);
     FW_ASSERT(this->m_handle.m_sizes == nullptr);

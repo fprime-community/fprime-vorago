@@ -69,7 +69,11 @@ void StrictMallocAllocator::setup(FwEnumStoreType numIds, FwEnumStoreType defaul
 
 StrictMallocAllocator::~StrictMallocAllocator() {}
 
-void* StrictMallocAllocator::allocate(const FwEnumStoreType identifier, FwSizeType& size, bool& recoverable) {
+void* StrictMallocAllocator::allocate(const FwEnumStoreType identifier,
+                                      FwSizeType& size,
+                                      bool& recoverable,
+                                      FwSizeType alignment) {
+    // FIXME: alignment is ignored right now b/c MallocAllocator::allocate() ignores it too
     FW_ASSERT(this->m_allowAllocation.load() == true);
     FwEnumStoreType id = identifier;
     if (identifier == Os::Baremetal::MemoryIdScope::DEFAULT_ID) {
