@@ -84,13 +84,21 @@ void Os::Test::RawTime::assert_and_update_now(const Os::RawTime& raw_time_under_
 
     U64 rt_elapsed = std::numeric_limits<U64>::max() - raw_time;
     U64 rt_sec = rt_elapsed / APB1_FREQ;
-    U64 rt_nano = (rt_elapsed - rt_sec * APB1_FREQ) * APB1_NANO_SEC_PER_TICK;
+    U64 rt_nano_raw = (rt_elapsed - rt_sec * APB1_FREQ) * APB1_NANO_SEC_PER_TICK;
+    // FIXME: If the Os::Test::RawTime::Tester::Now  rule is enabled, then rounding 
+    // the number of nanoseconds to a multiple of 1000 reduces the number of failures
+    //  when calculating time intervals - uncomment the below lines to do that 
+    // See details in https://github.com/fprime-community/fprime-vorago/issues/8
+    // U64 rt_nano_round = 1000 * (rt_nano_raw / 1000);
+    // U64 ticks_rem = (rt_nano_raw - rt_nano_round) / APB1_NANO_SEC_PER_TICK;
+    // timespec_handle->m_val = timespec_handle->m_val + ticks_rem;
+    U64 rt_nano = rt_nano_raw;
 
     auto duration = std::chrono::seconds{rt_sec} + std::chrono::nanoseconds{rt_nano};
     shadow_time = std::chrono::system_clock::time_point(
         std::chrono::duration_cast<std::chrono::system_clock::duration>(duration));
     if (UT_DEBUG_OUTPUT) {
-        printf("assert_and_update_now: mval = %lu (elapsed: %lu, sec %ld (%d), nsec %ld) & shadow ns = %ld\n", raw_time,
+        printf("assert_and_update_now: mval = %lu (elapsed: %lu, sec %ld (%d), nsec %ld) & shadow ns = %ld\n", timespec_handle->m_val,
                rt_elapsed, rt_sec, rt_sec > std::numeric_limits<U32>::max(), rt_nano,
                std::chrono::duration_cast<std::chrono::microseconds>(shadow_time.time_since_epoch()).count());
     }
