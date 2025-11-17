@@ -24,7 +24,6 @@
 
 #include <atomic>
 #include "Va416x0/Drv/AdcSampler/AdcSamplerComponentAc.hpp"
-#include "Va416x0/Mmio/Gpio/Pin.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Types/AdcTypes.hpp"
@@ -70,7 +69,7 @@ struct AdcConfig {
     // Value of index 1 is the bit of the pin that sets (1<<1) when selecting the MUX channel
     // Value of index 2 is the bit of the pin that sets (1<<2) when selecting the MUX channel
     // etc.
-    Va416x0Mmio::Gpio::Pin mux_addr_output[ADC_MUX_PINS_ADDR_MAX];
+    U8 mux_addr_output[ADC_MUX_PINS_ADDR_MAX];
 };
 
 // Declared as final to comply with JPL-C++-Rule32
@@ -95,13 +94,13 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! \brief Pointer to config value from setup()
     AdcConfig* m_pConfig;
     //! \brief GPIO port used by pins for controlling MUXes
-    Va416x0Types::Optional<Va416x0Mmio::Gpio::Port> m_muxEnaGpioPort;
+    Va416x0Types::Optional<Va416x0Mmio::Gpio::Port> m_gpioPort;
     //! \brief  Bit mask for all pins set for MUXes (enable + address)
-    U32 m_muxPinsMask[Va416x0Mmio::Gpio::NUM_PORTS];
+    U32 m_muxPinsMask;
     //! \brief  Bit mask for all pins set to enable MUXes
     U32 m_muxEnPinsMask;
     //! \brief previous value set for pins to control MUXes
-    U32 m_lastPinsValue[Va416x0Mmio::Gpio::NUM_PORTS];
+    U32 m_lastPinsValue;
     //! \brief Number of requests provided by startRead_handler()
     U32 m_numReads;
     //! \brief Pointer to requests provided by startRead_handler()
@@ -140,7 +139,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
                            Va416x0::AdcData& data) override;
 
     //! Calculate the value to set the ADDR & EN pins to read a MUX channel
-    U32 calculateGpioPinsValue(U32 request, U32 port);
+    U32 calculateGpioPinsValue(U32 request);
 
     //! Handler implementation for getNumDataValues
     U32 getNumDataValues_handler(FwIndexType portNum  //!< The port number

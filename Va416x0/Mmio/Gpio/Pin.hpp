@@ -93,9 +93,6 @@ class Pin final {
     bool operator==(const Pin& other) const;
     bool operator!=(const Pin& other) const;
 
-    U8 get_pin_number() const;
-    U32 get_gpio_port_number() const;
-
   private:
     Gpio::Port gpio_port;
     U8 gpio_pin;

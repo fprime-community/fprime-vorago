@@ -32,7 +32,8 @@ namespace Va416x0Drv {
 // ----------------------------------------------------------------------
 constexpr U32 MICROSECONDS_PER_SECOND = 1000 * 1000;
 
-TimerDriver ::TimerDriver(const char* const compName) : TimerDriverComponentBase(compName), m_tickIndex(0) {}
+TimerDriver ::TimerDriver(const char* const compName)
+    : TimerDriverComponentBase(compName), m_wait(true), m_tickIndex(0) {}
 
 void TimerDriver::setup(U8 timer_peripheral_index, U32 cycle_time_microseconds) {
     Va416x0Mmio::Timer timer(timer_peripheral_index);
@@ -62,15 +63,23 @@ void TimerDriver::setup(U8 timer_peripheral_index, U32 cycle_time_microseconds) 
 }
 
 void TimerDriver::timer_isr_handler(FwIndexType portNum) {
-    for (FwIndexType port = 0; port < NUM_CYCLE_OUTPUT_PORTS; port++) {
-        if (this->isConnected_cycle_OutputPort(port)) {
-            this->cycle_out(port, 0 /* context not supported by this component */);
+    // TODO Remove this hack, if we start the timer isr too
+    // early then AdcCollector asserts
+    if (this->m_tickIndex < 100 && this->m_wait) {
+        // Pass
+    } else {
+        // Dont wait if m_tickIndex rolls over
+        this->m_wait = false;
+        for (FwIndexType port = 0; port < NUM_CYCLE_OUTPUT_PORTS; port++) {
+            if (this->isConnected_cycle_OutputPort(port)) {
+                this->cycle_out(port, 0 /* context not supported by this component */);
+            }
         }
-    }
 
-    if (this->m_exception.is_interrupt_pending()) {
-        // We've overrun this interrupt handler
-        FW_ASSERT(0, static_cast<FwAssertArgType>(reinterpret_cast<PlatformPointerCastType>(this)));
+        if (this->m_exception.is_interrupt_pending()) {
+            // We've overrun this interrupt handler
+            FW_ASSERT(0, static_cast<FwAssertArgType>(reinterpret_cast<PlatformPointerCastType>(this)));
+        }
     }
 
     ++this->m_tickIndex;

@@ -5,7 +5,6 @@
 # MOD_DEPS: (optional) module dependencies
 #
 ####
-if(FPRIME_BAREMENTAL_OVERRIDE_NEW_DELETE)
 
 register_fprime_module(
     Va416x0_Svc_StrictMallocAllocator
@@ -17,4 +16,3 @@ register_fprime_module(
         Fw_Types
         Os_Baremetal_OverrideNewDelete
 )
-endif()
