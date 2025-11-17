@@ -345,11 +345,11 @@ Fw::Logic Pin::in() const {
     return (gpio_port.read_datainraw() & (1 << gpio_pin)) != 0 ? Fw::Logic::HIGH : Fw::Logic::LOW;
 }
 
-U8 Pin::get_pin_number() const {
+U8 Pin::getPinNumber() const {
     return this->gpio_pin;
 }
 
-U32 Pin::get_gpio_port_number() const {
+U32 Pin::getGpioPortNumber() const {
     return this->gpio_port.get_gpio_port();
 }
 
