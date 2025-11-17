@@ -86,8 +86,8 @@ void Os::Test::RawTime::assert_and_update_now(const Os::RawTime& raw_time_under_
     U64 rt_sec = rt_elapsed / APB1_FREQ;
     U64 rt_nano_raw = (rt_elapsed - rt_sec * APB1_FREQ) * APB1_NANO_SEC_PER_TICK;
     // FIXME: If the Os::Test::RawTime::Tester::Now  rule is enabled, then rounding
-    // the number of nanoseconds to a multiple of 1000 reduces the number of failures
-    //  when calculating time intervals - uncomment the below lines to do that
+    // the number of nanoseconds to a multiple of 1000 prevents failures
+    // when calculating time intervals
     // See details in https://github.com/fprime-community/fprime-vorago/issues/8
     U64 rt_nano_round = 1000 * (rt_nano_raw / 1000);
     U64 ticks_rem = (rt_nano_raw - rt_nano_round) / APB1_NANO_SEC_PER_TICK;
