@@ -70,9 +70,10 @@ class SpiController final : public SpiControllerComponentBase {
               SpiSsMode ss_mode,
               Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> sck_pin,
               Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> miso_pin,
-              Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> mosi_pin,
-              Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> ssn_pin,
-              U32 ssn_idx);
+              Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> mosi_pin);
+
+    //! Configure Subordinate SPI function on SSn pin
+    void enableSubordinatePin(U32 ssnIndex, Va416x0Mmio::Gpio::Pin ssnPin);
 
   private:
     Va416x0Types::Optional<Va416x0Mmio::Spi> m_spiDevice;
