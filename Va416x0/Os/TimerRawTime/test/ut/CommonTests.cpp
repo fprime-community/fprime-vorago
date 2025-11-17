@@ -35,7 +35,6 @@ std::unique_ptr<Os::Test::RawTime::Tester> get_tester_implementation() {
 }
 
 Functionality::Functionality() : tester(get_tester_implementation()) {
-    const U64 APB1_FREQ = 50 * 1000 * 1000UL;
     Va416x0Os::TimerRawTime::clearConfiguration();
 
     // Configure the TimerRawTime for this run
@@ -53,7 +52,13 @@ Functionality::Functionality() : tester(get_tester_implementation()) {
 
     for (U32 i = 0; i < tester->TEST_TIME_COUNT; ++i) {
         tester->m_shadow_times.emplace_back();
-        tester->m_shadow_times[i] = std::chrono::system_clock::now();
+        // FIXME: If the Os::Test::RawTime::Tester::Now  rule is enabled, then rounding
+        // the number of nanoseconds to a multiple of 1000 prevents failures
+        // when calculating time intervals
+        // See details in https://github.com/fprime-community/fprime-vorago/issues/8
+        auto now = std::chrono::system_clock::now();
+        tester->m_shadow_times[i] = std::chrono::time_point_cast<std::chrono::microseconds>(now);
+        // tester->m_shadow_times[i] = now;
     }
 
     for (U32 i = 0; i < tester->TEST_TIME_COUNT; ++i) {
