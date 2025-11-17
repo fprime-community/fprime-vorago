@@ -273,11 +273,6 @@ void AdcSampler ::startReadInner() {
         }
     }
 
-    // Setup and start timer
-    Va416x0Mmio::Timer timer(this->m_timerIdx);
-    timer.write_cnt_value(this->m_adcDelayTicks);
-    timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_AUTO_DISABLE |
-                     Va416x0Mmio::Timer::CTRL_IRQ_ENB | Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
     // Clear FIFO & previous interrupt
     Va416x0Mmio::Adc::write_fifo_clr(Va416x0Mmio::Adc::FIFO_CLR_FIFO_CLR);
 
@@ -299,6 +294,12 @@ void AdcSampler ::startReadInner() {
 
     // Write control register
     Va416x0Mmio::Adc::write_ctrl(ctrl_val);
+
+    // Setup and start timer
+    Va416x0Mmio::Timer timer(this->m_timerIdx);
+    timer.write_cnt_value(this->m_adcDelayTicks);
+    timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_AUTO_DISABLE |
+                     Va416x0Mmio::Timer::CTRL_IRQ_ENB | Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
 }
 
 U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
