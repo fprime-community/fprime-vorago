@@ -172,17 +172,17 @@ TimerRawTime::Status TimerRawTime::getTimeIntervalInternal(const TimerRawTimeHan
 
     // Calculate subseconds value in microseconds
     // Note: F32 types have a precision of 1.0 or lower
-    // to a value of 16,777,216 - so attempt to reduce the values to 
+    // to a value of 16,777,216 - so attempt to reduce the values to
     // less than 16 million because doing any floating point calculations
     U32 delta_us;
     if (timer_hz % (1000 * 1000) == 0) {
-        // If the frequency is in megahertz, calculate the megahertz frequency and 
-        // then the number of microseconds without using floating point 
-        U32 timer_mhz = timer_hz / 1000/ 1000;
+        // If the frequency is in megahertz, calculate the megahertz frequency and
+        // then the number of microseconds without using floating point
+        U32 timer_mhz = timer_hz / 1000 / 1000;
         delta_us = delta_s_rem / timer_mhz;
     } else if (timer_hz % 1000 == 0) {
         // If the frequency is in kilohertz, do that division before
-        // casting to floating point 
+        // casting to floating point
         U32 timer_khz = timer_hz / 1000;
         delta_us = static_cast<U32>(static_cast<F32>(delta_s_rem) / (static_cast<F32>(timer_khz) / 1000.F));
     } else {

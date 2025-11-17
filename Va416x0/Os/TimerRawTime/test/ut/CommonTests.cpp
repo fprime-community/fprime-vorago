@@ -128,12 +128,7 @@ TEST_F(Functionality, RandomizedTesting) {
 
     // Place these rules into a list of rules
     STest::Rule<Os::Test::RawTime::Tester>* rules[] = {
-        &get_time_rule, 
-        &diff_zero_rule,
-        &get_diff_rule,
-        &get_interval_rule,
-        &serialization_rule,
-        &overflow_rule,
+        &get_time_rule, &diff_zero_rule, &get_diff_rule, &get_interval_rule, &serialization_rule, &overflow_rule,
     };
 
     // Take the rules and place them into a random scenario
