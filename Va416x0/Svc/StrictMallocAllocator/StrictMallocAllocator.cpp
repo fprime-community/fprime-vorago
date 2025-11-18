@@ -9,6 +9,7 @@
 #include "StrictMallocAllocator.hpp"
 #include <malloc.h>  // for mallinfo()
 #include <stdio.h>
+#include <unistd.h>  // For sbrk()
 #include <Fw/Types/Assert.hpp>
 #include <algorithm>  // included for max
 #include <fprime-baremetal/Os/MemoryIdScope/MemoryIdScope.hpp>
@@ -27,6 +28,9 @@ void* operator new[](size_t n, void* p, size_t bufsize) {
     FW_ASSERT(n <= bufsize, n, bufsize);
     return p;
 }
+
+// End of heap (used to calculate free memory)
+extern char __heap_end[];
 
 namespace Va416x0Svc {
 
@@ -123,6 +127,7 @@ FwSizeType StrictMallocAllocator::getSystemAllocation() {
 void StrictMallocAllocator::disableAllocation() {
     this->m_allowAllocation.store(false);
 }
+
 void StrictMallocAllocator::reportAllocation() {
     // FIXME: This should be reported in EVRs (IMO. Although on clipper this was a DP or serial output)
     struct mallinfo mi = mallinfo();
@@ -137,11 +142,18 @@ void StrictMallocAllocator::reportAllocation() {
             total += val;
         }
     }
+    // Calculate remainder
+    // FIXME: This is a pretty naive method for calculating free space, but it works as a
+    // decent approximation and mallinfo.fordblks is always reporting zero
+    void* heap_current = sbrk(0);
+    size_t remaining_heap = static_cast<size_t>(__heap_end - static_cast<char*>(heap_current));
+
     printf("MEM: pre-tracking allocated  %10d bytes\n", preReg - this->m_internalAllocation);
     printf("MEM: internally allocated    %10d bytes\n", this->m_internalAllocation);
     printf("MEM: total allocated         %10d bytes\n", total);
     printf("MEM: stdlib allocated        %10d bytes\n", mi.uordblks);
     printf("MEM: unaccounted for         %10d bytes\n", mi.uordblks - total);
+    printf("MEM: remaining               %10d bytes\n", remaining_heap);
     printf("End of MEM report\n");
 }
 }  // namespace Va416x0Svc
