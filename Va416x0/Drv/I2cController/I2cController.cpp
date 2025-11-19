@@ -134,7 +134,7 @@ Drv::I2cStatus I2cController ::read_helper(U32 addr,              //!< I2C subor
 
     // Drain FIFO buffer to serBuffer
     U8* p_read_data = serBuffer.getData();
-    FW_ASSERT(p_read_data != NULL);
+    FW_ASSERT(p_read_data != nullptr);
     for (U32 i = 0; i < num_bytes_to_read; i++) {
         p_read_data[i] = U8(i2c_p.read_data() & Va416x0Mmio::I2c::DATA_VALUE_MASK);
     }
