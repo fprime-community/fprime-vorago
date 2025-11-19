@@ -21,15 +21,15 @@
 
 #include "Va416x0/Drv/AdcSampler/AdcSampler.hpp"
 #include "Va416x0/Mmio/Adc/Adc.hpp"
+#include "Va416x0/Mmio/Amba/Amba.hpp"
+#include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
 #include "Va416x0/Mmio/Gpio/Pin.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
+#include "Va416x0/Mmio/IrqRouter/IrqRouter.hpp"
 #include "Va416x0/Mmio/Lock/Lock.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
-#include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
-#include "Va416x0/Mmio/IrqRouter/IrqRouter.hpp"
 #include "lib/fprime/Os/RawTime.hpp"
-#include "Va416x0/Mmio/Amba/Amba.hpp"
 
 namespace Va416x0 {
 
@@ -72,7 +72,6 @@ constexpr U32 MICROSECONDS_PER_SECOND = 1000 * 1000;
 // Component construction and destruction
 // ----------------------------------------------------------------------
 
-
 AdcSampler ::AdcSampler(const char* const compName) : AdcSamplerComponentBase(compName) {
     this->m_pRequests = nullptr;
     this->m_pData = nullptr;
@@ -82,8 +81,10 @@ AdcSampler ::AdcSampler(const char* const compName) : AdcSamplerComponentBase(co
     this->m_adcDelayTicks = 0;
 }
 
-void AdcSampler ::setup(AdcConfig& config, U32 interrupt_priority, U32 adc_delay_microseconds, U8 timer_peripheral_index) {
-
+void AdcSampler ::setup(AdcConfig& config,
+                        U32 interrupt_priority,
+                        U32 adc_delay_microseconds,
+                        U8 timer_peripheral_index) {
     this->m_timerIdx = timer_peripheral_index;
     Va416x0Mmio::Timer timer(this->m_timerIdx);
     Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
@@ -94,7 +95,7 @@ void AdcSampler ::setup(AdcConfig& config, U32 interrupt_priority, U32 adc_delay
 
     this->m_adcDelayTicks = rstValueScaled / MICROSECONDS_PER_SECOND;
     timer.write_csd_ctrl(0);
-    Va416x0Mmio::Nvic::InterruptControl interrupt = 
+    Va416x0Mmio::Nvic::InterruptControl interrupt =
         Va416x0Mmio::Nvic::InterruptControl(timer.get_timer_done_exception());
     interrupt.set_interrupt_pending(false);
     interrupt.set_interrupt_priority(interrupt_priority);

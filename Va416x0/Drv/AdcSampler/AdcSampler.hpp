@@ -27,10 +27,10 @@
 #include "Va416x0/Mmio/Gpio/Pin.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
+#include "Va416x0/Mmio/Timer/Timer.hpp"
 #include "Va416x0/Types/AdcTypes.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
 #include "Va416x0/Types/Optional.hpp"
-#include "Va416x0/Mmio/Timer/Timer.hpp"
 
 /// @brief Combine channel mask, count, and other ADC request information into a U32 value
 /// @param chan_en Channel mask for the read (1 to 0xffff)
@@ -150,7 +150,6 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! Handler implementation for getNumDataValues
     U32 getNumDataValues_handler(FwIndexType portNum  //!< The port number
                                  ) override;
-
 };
 
 }  // namespace Va416x0
