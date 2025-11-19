@@ -69,6 +69,9 @@ set(VA416X0_COMMON_C_CXX_FLAGS "\
 ")
 
 if (DEFINED VA416X0_ENABLE_PROFILER)
+    # Functions can be excluded from instrumentation for the profiler either on a per-file basis
+    # via -finstruent-functions-exclude-file-list or on a per-function (using de-mangled names)
+    # basis via -finstrument-functions-exclude-function-list
     set(VA416X0_COMMON_C_CXX_FLAGS "\
         ${VA416X0_COMMON_C_CXX_FLAGS} \
         -finstrument-functions-after-inlining \

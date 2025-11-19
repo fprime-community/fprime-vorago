@@ -22,13 +22,15 @@
 #ifndef Scythe_Profiler_HPP
 #define Scythe_Profiler_HPP
 
-#include <Fw/FPrimeBasicTypes.hpp>
+#include "Va416x0/Svc/Profiler/ProfilerComponentAc.hpp"
 
 namespace Va416x0Svc {
 
-class Profiler {
+class Profiler : public ProfilerComponentBase {
   public:
-    Profiler();
+    //! Construct Profiler object
+    Profiler(const char* const compName  //!< Component name
+    );
 
   public:
     // ----------------------------------------------------------------------
@@ -49,14 +51,21 @@ class Profiler {
     //! Function exit hook
     void funcExit(void* function);
 
-    //! Dump collected profile data via printf
-    //! This is left in place for debugging purposes but the configured memory region should
-    //! instead be dumped using the JLink connection
-    void dump();
-
     // Deleted copy constructor and equality operator
     Profiler(Profiler const&) = delete;
     void operator=(Profiler const&) = delete;
+
+  private:
+    // ----------------------------------------------------------------------
+    // Handler implementations for commands
+    // ----------------------------------------------------------------------
+
+    //! Handler implementation for command ENABLE
+    //!
+    //! Enable the profiler
+    void ENABLE_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+                           U32 cmdSeq            //!< The command sequence number
+                           ) override;
 
   private:
     // ----------------------------------------------------------------------
@@ -76,7 +85,7 @@ class Profiler {
 };
 
 //! Global singleton profiler instance
-extern Profiler profilerInstance;
+extern Va416x0Svc::Profiler& profiler;
 
 }  // namespace Va416x0Svc
 

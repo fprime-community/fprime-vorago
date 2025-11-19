@@ -24,9 +24,6 @@
 #include "Va416x0/Mmio/SysTick/SysTick.hpp"
 #include "config/ProfilerCfg.hpp"
 
-#include <arm_acle.h>
-#include <cstdio>
-
 namespace Va416x0Svc {
 
 constexpr U32 PROFILER_MEMORY_REGION_END = PROFILER_MEMORY_REGION_START + PROFILER_MEMORY_REGION_SIZE;
@@ -38,7 +35,8 @@ constexpr U32 getPhase(U32 functionAddress) {
     return (functionAddress & PHASE_FUNC_EXIT) >> 31;
 }
 
-__attribute__((no_instrument_function)) Profiler::Profiler() {
+__attribute__((no_instrument_function)) Profiler::Profiler(const char* const compName)
+    : ProfilerComponentBase(compName) {
     FW_ASSERT(PROFILER_MEMORY_REGION_START > 0);
     // Profiler is initially disabled, set the index to the end
     this->m_index = reinterpret_cast<Event*>(PROFILER_MEMORY_REGION_END);
@@ -94,22 +92,13 @@ __attribute__((no_instrument_function)) void Profiler::funcExit(void* function) 
     this->m_index = index + 1;
 }
 
-__attribute__((no_instrument_function)) void Profiler::dump() {
-    // Do not dump while enabled
-    if (this->m_index != reinterpret_cast<Event*>(PROFILER_MEMORY_REGION_END)) {
-        return;
-    }
+// ----------------------------------------------------------------------
+// Handler implementations for commands
+// ----------------------------------------------------------------------
 
-    Event* index = reinterpret_cast<Event*>(PROFILER_MEMORY_REGION_START);
-    for (; index < reinterpret_cast<Event*>(PROFILER_MEMORY_REGION_END); index++) {
-        if (index->functionAddress == 0) {
-            break;
-        }
-        // Function address is in thumb mode but symbol table is not, convert before dumping
-        U32 functionAddress = index->functionAddress & THUMB_MASK;
-        U32 phase = getPhase(index->functionAddress);
-        printf("P:%X,%u,%X\n", functionAddress, phase, index->ticks);
-    }
+__attribute__((no_instrument_function)) void Profiler::ENABLE_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
+    this->enable();
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
 }  // namespace Va416x0Svc
@@ -117,10 +106,10 @@ __attribute__((no_instrument_function)) void Profiler::dump() {
 extern "C" {
 
 __attribute__((used, no_instrument_function)) void __cyg_profile_func_enter(void* function, void* call_site) {
-    Va416x0Svc::profilerInstance.funcEnter(function);
+    Va416x0Svc::profiler.funcEnter(function);
 }
 
 __attribute__((used, no_instrument_function)) void __cyg_profile_func_exit(void* function, void* call_site) {
-    Va416x0Svc::profilerInstance.funcExit(function);
+    Va416x0Svc::profiler.funcExit(function);
 }
 }

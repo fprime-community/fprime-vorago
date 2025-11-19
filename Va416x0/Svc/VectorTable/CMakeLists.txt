@@ -48,10 +48,6 @@ set(MOD_DEPS
     Va416x0/Mmio/SysControl
     Os
 )
-# Conditionally include the profiler here, VectorTable is responsible for "housing" the instance
-if (DEFINED VA416X0_ENABLE_PROFILER)
-    list(APPEND MOD_DEPS Va416x0/Svc/Profiler)
-endif ()
 
 register_fprime_module()
 
