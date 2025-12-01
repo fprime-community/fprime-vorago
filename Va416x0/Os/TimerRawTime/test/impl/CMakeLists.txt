@@ -14,30 +14,33 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# FIXME: If the FW_DIRECT_PORT_CALLS macro is defined, then only deployments can be built
+if (CMAKE_FW_DIRECT_PORT_CALLS)
+    restrict_platforms("va416x0-baremetal")
 
-restrict_platforms("va416x0-baremetal")
+    register_fprime_executable(
+        SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/TimerRawTimeTest.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/VectorTableIsr.cpp"
+        DEPENDS
+            Va416x0_Os_TimerRawTime
+            Va416x0_Svc_VectorTable
+            Va416x0_Mmio_SysTick
+        CHOOSES_IMPLEMENTATIONS
+            Va416x0_Os_TimerRawTime
+    )
 
-register_fprime_executable(
-    SOURCES
-        "${CMAKE_CURRENT_LIST_DIR}/TimerRawTimeTest.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/VectorTableIsr.cpp"
-    DEPENDS
-        Va416x0_Os_TimerRawTime
-        Va416x0_Svc_VectorTable
-        Va416x0_Mmio_SysTick
-    CHOOSES_IMPLEMENTATIONS
-        Va416x0_Os_TimerRawTime
-)
+    target_include_directories(${FPRIME_CURRENT_MODULE} PUBLIC
+                            ${CMAKE_CURRENT_LIST_DIR})
 
-target_include_directories(${FPRIME_CURRENT_MODULE} PUBLIC
-                           ${CMAKE_CURRENT_LIST_DIR})
+    install(TARGETS ${FPRIME_CURRENT_MODULE}
+            RUNTIME DESTINATION ${TOOLCHAIN_NAME}/${FPRIME_CURRENT_MODULE}/bin
+            COMPONENT ${FPRIME_CURRENT_MODULE}
+    )
 
-install(TARGETS ${FPRIME_CURRENT_MODULE}
-        RUNTIME DESTINATION ${TOOLCHAIN_NAME}/${FPRIME_CURRENT_MODULE}/bin
-        COMPONENT ${FPRIME_CURRENT_MODULE}
-)
+    add_custom_command(TARGET "${FPRIME_CURRENT_MODULE}" POST_BUILD COMMAND "${CMAKE_COMMAND}"
+        -DCMAKE_INSTALL_COMPONENT=${FPRIME_CURRENT_MODULE} -P ${CMAKE_BINARY_DIR}/cmake_install.cmake)
 
-add_custom_command(TARGET "${FPRIME_CURRENT_MODULE}" POST_BUILD COMMAND "${CMAKE_COMMAND}"
-    -DCMAKE_INSTALL_COMPONENT=${FPRIME_CURRENT_MODULE} -P ${CMAKE_BINARY_DIR}/cmake_install.cmake)
+    register_with_bsp("${FPRIME_CURRENT_MODULE}")
 
-register_with_bsp("${FPRIME_CURRENT_MODULE}")
+endif()
