@@ -114,7 +114,7 @@ void ClkTree::assertClkTreeValid() const {
     FW_ASSERT(m_adc_clk_div == 1 || m_adc_clk_div == 2 || m_adc_clk_div == 4 || m_adc_clk_div == 8, m_adc_clk_div);
     FW_ASSERT(m_sysclk_div == 1 || m_sysclk_div == 2 || m_sysclk_div == 4 || m_sysclk_div == 8, m_sysclk_div);
 
-    #ifndef VA416X0_ENABLE_PROFILER
+#ifndef VA416X0_ENABLE_PROFILER
     //! Confirm the sysclk frequency is between 2.5 MHz and 100 MHz
     //! 2.5 MHz lower bound is selected as that is the minimum ADC clock speed
     //! not a lower bound for the Va416x0 uC
@@ -124,7 +124,7 @@ void ClkTree::assertClkTreeValid() const {
     //! Confirm ADC clock frequency is between 2.5 MHz and 12.5 MHz
     FW_ASSERT(m_adc_sample_freq >= (2500 * 1000), m_adc_sample_freq);
     FW_ASSERT(m_adc_sample_freq <= (12500 * 1000), m_adc_sample_freq);
-    #endif
+#endif
 }
 
 U32 ClkTree::getSysclkFreq() const {
