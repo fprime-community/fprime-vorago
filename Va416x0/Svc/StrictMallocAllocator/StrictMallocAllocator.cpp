@@ -9,9 +9,9 @@
 #include "StrictMallocAllocator.hpp"
 #include <malloc.h>  // for mallinfo()
 #include <stdio.h>
-#include <unistd.h>  // For sbrk()
+#include <unistd.h> // For sbrk()
 #include <Fw/Types/Assert.hpp>
-#include <algorithm> // included for max
+#include <algorithm>  // included for max
 #include <fprime-baremetal/Os/MemoryIdScope/MemoryIdScope.hpp>
 #include <fprime-baremetal/Os/OverrideNewDelete/OverrideNewDelete.hpp>
 
