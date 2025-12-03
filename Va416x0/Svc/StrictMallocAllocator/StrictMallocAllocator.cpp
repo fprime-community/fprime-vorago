@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <unistd.h>  // For sbrk()
 #include <Fw/Types/Assert.hpp>
-#include <algorithm>  // included for max
+#include <algorithm> // included for max
 #include <fprime-baremetal/Os/MemoryIdScope/MemoryIdScope.hpp>
 #include <fprime-baremetal/Os/OverrideNewDelete/OverrideNewDelete.hpp>
 
@@ -158,7 +158,7 @@ void StrictMallocAllocator::reportAllocation() {
     printf("MEM: unaccounted for         %10d bytes\n", mi.uordblks - total);
     printf("MEM: unused heap             %10d bytes\n", remaining_heap);
     printf("MEM: total heap              %10d bytes\n", total_heap);
-
+    
     printf("End of MEM report\n");
 }
 }  // namespace Va416x0Svc
