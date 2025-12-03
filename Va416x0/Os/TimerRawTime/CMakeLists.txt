@@ -60,7 +60,10 @@ register_fprime_implementation(
         Va416x0_Os_TimerRawTime_Implementation
 )
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/test/impl")
+# FIXME: If the FW_DIRECT_PORT_CALLS macro is set to 1, then only deployments can be built
+if ((NOT DEFINED CMAKE_FW_DIRECT_PORT_CALLS) OR (NOT CMAKE_FW_DIRECT_PORT_CALLS EQUAL 1))
+    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/test/impl")
+endif()
 
 register_fprime_ut(
         TimerRawTimeTest
@@ -78,4 +81,3 @@ register_fprime_ut(
         Va416x0_Os_TimerRawTime
 
 )
-
