@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+
 restrict_platforms("va416x0-baremetal")
 
 register_fprime_executable(
