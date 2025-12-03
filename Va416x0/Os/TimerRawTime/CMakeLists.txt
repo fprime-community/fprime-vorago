@@ -60,7 +60,10 @@ register_fprime_implementation(
         Va416x0_Os_TimerRawTime_Implementation
 )
 
-# FIXME: If the FW_DIRECT_PORT_CALLS macro is set to 1, then only deployments can be built
+# FIXME: If the FW_DIRECT_PORT_CALLS macro is set to 1 (used by 
+# https://github.com/nasa/fpp/tree/topology-code-for-direct-port-calls), then only deployments can be built
+# This if assumes projects are not setting FW_DIRECT_PORT_CALLS unless also setting a 
+# cmake variable (CMAKE_FW_DIRECT_PORT_CALLS) to 1
 if ((NOT DEFINED CMAKE_FW_DIRECT_PORT_CALLS) OR (NOT CMAKE_FW_DIRECT_PORT_CALLS EQUAL 1))
     add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/test/impl")
 endif()
