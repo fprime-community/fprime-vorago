@@ -21,7 +21,12 @@
 
 #include "IsrSafeQueue.hpp"
 #include <Fw/Types/Assert.hpp>
+#include <Fw/Types/ByteArray.hpp>
+#include <Fw/Types/MemAllocator.hpp>
+#include <Va416x0/Svc/StrictMallocAllocator/StrictMallocAllocator.hpp>
+#include <cstdio>
 #include <cstring>
+#include <fprime-baremetal/Os/MemoryIdScope/MemoryIdScope.hpp>
 #include <new>
 #include "Os/Delegate.hpp"
 #include "Os/Queue.hpp"
@@ -62,14 +67,16 @@ IsrSafeQueue::~IsrSafeQueue() {
     delete[] this->m_handle.m_indices;
     delete[] this->m_handle.m_sizes;
 }
-
-Os::QueueInterface::Status IsrSafeQueue::create(const Fw::ConstStringBase& name,
+Os::QueueInterface::Status IsrSafeQueue::create(FwEnumStoreType id,
+                                                const Fw::ConstStringBase& name,
                                                 FwSizeType depth,
                                                 FwSizeType messageSize) {
     // Ensure we are created exactly once
     FW_ASSERT(this->m_handle.m_indices == nullptr);
     FW_ASSERT(this->m_handle.m_sizes == nullptr);
     FW_ASSERT(this->m_handle.m_data == nullptr);
+    printf("IsrSafeQueue id = %d\n", id);
+    Os::Baremetal::MemoryIdScope tmp = Os::Baremetal::MemoryIdScope(id);
 
     // Allocate indices list
     FwSizeType* indices = new (std::nothrow) FwSizeType[depth];
@@ -90,13 +97,21 @@ Os::QueueInterface::Status IsrSafeQueue::create(const Fw::ConstStringBase& name,
         return QueueInterface::Status::ALLOCATION_FAILED;
     }
     // Allocate max heap or clean-up
-    bool created = this->m_handle.m_heap.create(depth);
-    if (not created) {
+    Fw::MemAllocatorRegistry& registry = Fw::MemAllocatorRegistry::getInstance();
+    Fw::MemAllocator& allocator = registry.getAllocator(Fw::MemoryAllocation::MemoryAllocatorType::SYSTEM);
+
+    FwSizeType expSize = Types::MaxHeap::ELEMENT_SIZE * depth;
+    FwSizeType size = expSize;
+    void* memory = allocator.allocate(id, size, Types::MaxHeap::ALIGNMENT);
+
+    if (nullptr == memory || size != expSize) {
         delete[] indices;
         delete[] sizes;
         delete[] data;
         return QueueInterface::Status::ALLOCATION_FAILED;
     }
+    this->m_handle.m_heap.create(depth, Fw::ByteArray(static_cast<U8*>(memory), size));
+
     // Assign initial indices and sizes
     for (FwSizeType i = 0; i < depth; i++) {
         indices[i] = i;
