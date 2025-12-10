@@ -64,6 +64,8 @@ register_fprime_implementation(
 # https://github.com/nasa/fpp/tree/topology-code-for-direct-port-calls), then only deployments can be built
 # This if assumes projects are not setting FW_DIRECT_PORT_CALLS unless also setting a 
 # cmake variable (CMAKE_FW_DIRECT_PORT_CALLS) to 1
+# The long term solution to this issue is to convert the test/impl directory to be a full deployment, 
+# see https://github.com/fprime-community/fprime-vorago/issues/15
 if ((NOT DEFINED CMAKE_FW_DIRECT_PORT_CALLS) OR (NOT CMAKE_FW_DIRECT_PORT_CALLS EQUAL 1))
     add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/test/impl")
 endif()
