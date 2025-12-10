@@ -60,7 +60,15 @@ register_fprime_implementation(
         Va416x0_Os_TimerRawTime_Implementation
 )
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/test/impl")
+# FIXME: If the FW_DIRECT_PORT_CALLS macro is set to 1 (used by 
+# https://github.com/nasa/fpp/tree/topology-code-for-direct-port-calls), then only deployments can be built
+# This if assumes projects are not setting FW_DIRECT_PORT_CALLS unless also setting a 
+# cmake variable (CMAKE_FW_DIRECT_PORT_CALLS) to 1
+# The long term solution to this issue is to convert the test/impl directory to be a full deployment, 
+# see https://github.com/fprime-community/fprime-vorago/issues/15
+if ((NOT DEFINED CMAKE_FW_DIRECT_PORT_CALLS) OR (NOT CMAKE_FW_DIRECT_PORT_CALLS EQUAL 1))
+    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/test/impl")
+endif()
 
 register_fprime_ut(
         TimerRawTimeTest
@@ -78,4 +86,3 @@ register_fprime_ut(
         Va416x0_Os_TimerRawTime
 
 )
-
