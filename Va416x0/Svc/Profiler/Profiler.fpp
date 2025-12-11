@@ -18,8 +18,22 @@ module Va416x0Svc {
 
     passive component Profiler {
 
+        @ Rate group handler input port
+        sync input port run: Svc.Sched
+
+        @ Interface to get the current RTI
+        output port getRtiTime: Va416x0Svc.GetRtiTime
+
         @ Enable the profiler
-        sync command ENABLE() opcode 0
+        sync command ENABLE(
+            rti: U32  @< RTI on which to start the profile trace
+        ) opcode 0
+
+        @ Received a request to start capture on an invalid RTI
+        event InvalidRTI(rti: U32, rtis_per_cycle: U32) \
+            severity warning high \
+            id 0x00 \
+            format "Invalid start RTI: {}: RTIs per cycle: {}"
 
         ##############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters #
@@ -36,5 +50,11 @@ module Va416x0Svc {
 
         @ Port for sending command responses
         command resp port cmdResponseOut
+
+        @ Port for sending textual representation of events
+        text event port logTextOut
+
+        @ Port for sending events to downlink
+        event port logOut
     }
 }

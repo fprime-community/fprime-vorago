@@ -37,6 +37,10 @@ class Profiler : public ProfilerComponentBase {
     // Public interface
     // ----------------------------------------------------------------------
 
+    //! Configure the profiler. The component needs to know the number of RTIs per cycle so that it
+    //! can enable trace captures on the appropriate RTI
+    void configure(U32 rtis_per_second);
+
     //! Enable profiler data collection
     void enable(U32 irq_freq = 1,          //!< SysTick IRQ frequency
                 U32 clock_freq = 0xFFFFFF  //!< SysTick clock frequency
@@ -57,6 +61,17 @@ class Profiler : public ProfilerComponentBase {
 
   private:
     // ----------------------------------------------------------------------
+    // Handler implementations for typed input ports
+    // ----------------------------------------------------------------------
+
+    //! Handler implementation for run
+    //!
+    //! Rate group handler input port
+    void run_handler(FwIndexType portNum,  //!< The port number
+                     U32 context           //!< The call order
+                     ) override;
+
+    // ----------------------------------------------------------------------
     // Handler implementations for commands
     // ----------------------------------------------------------------------
 
@@ -64,7 +79,8 @@ class Profiler : public ProfilerComponentBase {
     //!
     //! Enable the profiler
     void ENABLE_cmdHandler(FwOpcodeType opCode,  //!< The opcode
-                           U32 cmdSeq            //!< The command sequence number
+                           U32 cmdSeq,           //!< The command sequence number
+                           U32 rti               //!< RTI on which to start the profile trace
                            ) override;
 
   private:
@@ -82,6 +98,11 @@ class Profiler : public ProfilerComponentBase {
     //! Pointer to the current index in the profiler memory region; encapsulates enable/disable
     //! functionality and is set to the end of the memory region when disabled
     Event* m_index;
+
+    //! RTIs per second, as configured for the microscheduler
+    U32 m_rtis_per_second;
+    //! RTI on which the profiler should be enabled; set to ??? by the ENABLE command
+    U32 m_rti;
 };
 
 //! Global singleton profiler instance
