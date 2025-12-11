@@ -103,6 +103,7 @@ class MainLoop : public MainLoopComponentBase {
     void invoke_start_ports();
     void wait_for_next_rti();
     void ensure_rti_not_elapsed();
+    void execute_main_loop();
 
     Va416x0Types::Optional<Va416x0Mmio::ClkTree> m_systemClkConfiguration;
     std::atomic<U32> m_readyToRun;
