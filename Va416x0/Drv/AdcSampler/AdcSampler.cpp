@@ -114,6 +114,11 @@ void AdcSampler ::setup(AdcConfig& config,
     adc_interrupt.set_interrupt_enabled(true);
     adc_interrupt.set_interrupt_priority(interrupt_priority);
 
+    // Configure the mux enable disable delay
+    U32 sys_clock_rate = Va416x0Mmio::ClkTree::getActiveSysclkFreq();
+    this->m_muxEnaDisDelay = sys_clock_rate / 10000000;  // 100 ns
+    FW_ASSERT(this->m_muxEnaDisDelay > 0, this->m_muxEnaDisDelay);
+
     // FIXME: switch back to copy if no objects are in config
     this->m_pConfig = &config;
 
@@ -155,6 +160,9 @@ void AdcSampler ::setup(AdcConfig& config,
     for (U32 i = 0; i < Va416x0Mmio::Gpio::NUM_PORTS; i++) {
         this->m_lastPinsValue[i] = 0xffffffff;
     }
+
+    // Dummy value to trigger delay on the first mux setup
+    this->m_lastMuxRequest = adc_sampler_request(0, 0, 0, 1, ADC_MUX_PINS_EN_MAX, 0);
 
     // This only enables the DONE interrupt (not overflow or underflow or error b/c those _shouldn't_ happen)
     // If AdcSamplerStatus is updated to include a FAILURE status, we could also enable
@@ -238,6 +246,7 @@ bool AdcSampler ::startRead_handler(FwIndexType portNum,
 }
 
 void AdcSampler ::startReadInner() {
+    bool mux_delay_required = false;
     // asserts are low cost compared to the register read/write and adds safety, so leave in
     FW_ASSERT(
         this->m_pRequests != nullptr && this->m_numReads > 0 && this->m_requestIdx.load() < this->m_pRequests->SIZE,
@@ -247,9 +256,34 @@ void AdcSampler ::startReadInner() {
     FW_ASSERT(this->m_curRequest != 0, this->m_curRequest, this->m_requestIdx.load(), this->m_numReads);
 
     // Handle MUX setup
-    //
-    // FIXME: If test shows a longer delay is required, the setup() function should be updated to
-    // accept a number of cycles to delay after changing MUX configuration
+    U8 cur_mux_en_index = REQ_GET_MUX_ENABLE(this->m_curRequest);
+    U8 last_mux_en_index = REQ_GET_MUX_ENABLE(this->m_lastMuxRequest);
+
+    // The intention of this is to only enter this logic
+    // if the last recorded mux enable pin and the current requests
+    // mux enable pin are different AND the current request uses a mux
+    // (cur_mux_en_index != ADC_MUX_PINS_EN_MAX)
+    if ((cur_mux_en_index < ADC_MUX_PINS_EN_MAX) && (this->m_pConfig->mux_en_output[last_mux_en_index] != this->m_pConfig->mux_en_output[cur_mux_en_index])) {
+        Va416x0Mmio::Gpio::Port gpioPort = this->m_pConfig->gpio_port;
+        // Disable all MUX enable pins by setting them to 1
+        // Artificial block scope for scope lock
+        {
+            Va416x0Mmio::Lock::CriticalSectionLock lock;
+            gpioPort.write_datamask(this->m_muxEnPinsMask);
+            gpioPort.write_dataout(0xFFFFFFFF);
+        }
+
+        // Wait 100ns
+        Va416x0Mmio::Amba::memory_barrier();
+        // Va416X0::Mmio::Cpu::delay_ns(100)
+        for (U32 i = 0; i < this->m_muxEnaDisDelay; i++) {
+            Va416x0Mmio::Cpu::nop();
+        }
+        printf("Mux disabled completed, data mask %08X, delay value %d\n", this->m_muxEnPinsMask, this->m_muxEnaDisDelay);
+        printf("current request mux pin 0x%08X, last request mux pin 0x%08X\n", cur_mux_en_index, last_mux_en_index);
+        this->m_lastMuxRequest = this->m_curRequest;
+    }
+
     // See AdcCollector's SDD for more info.
     if (REQ_GET_IS_MUX(this->m_curRequest)) {
         // NOTE: This only works as expected if all MUX enable pins come from the same GPIO port group.

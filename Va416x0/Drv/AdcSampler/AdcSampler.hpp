@@ -117,6 +117,11 @@ class AdcSampler final : public AdcSamplerComponentBase {
     U32 m_adcDelayTicks;
     //! \brief Timer used to perform the sampling delay
     Va416x0Types::Optional<Va416x0Mmio::Timer> m_timer;
+    //! \brief 100ns delay in clock ticks for the mux disable/enable delay
+    U32 m_muxEnaDisDelay;
+    //! \brief Last request which used a mux
+    U32 m_lastMuxRequest;
+    
 
     //! Starts the next read in the this->m_pRequests list
     void startReadInner();
