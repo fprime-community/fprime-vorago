@@ -85,8 +85,8 @@ void AdcSampler ::setup(AdcConfig& config,
                         U32 interrupt_priority,
                         U32 adc_delay_microseconds,
                         U8 timer_peripheral_index) {
-    this->m_timerIdx = timer_peripheral_index;
-    Va416x0Mmio::Timer timer(this->m_timerIdx);
+    Va416x0Mmio::Timer timer(timer_peripheral_index);
+    this->m_timer = timer;
     Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
     Va416x0Mmio::SysConfig::reset_peripheral(timer);
     // Convert microseconds to ticks
@@ -95,10 +95,10 @@ void AdcSampler ::setup(AdcConfig& config,
 
     this->m_adcDelayTicks = rstValueScaled / MICROSECONDS_PER_SECOND;
     timer.write_csd_ctrl(0);
-    Va416x0Mmio::Nvic::InterruptControl interrupt =
+    Va416x0Mmio::Nvic::InterruptControl timer_interrupt =
         Va416x0Mmio::Nvic::InterruptControl(timer.get_timer_done_exception());
-    interrupt.set_interrupt_pending(false);
-    interrupt.set_interrupt_priority(interrupt_priority);
+    timer_interrupt.set_interrupt_pending(false);
+    timer_interrupt.set_interrupt_priority(interrupt_priority);
     Va416x0Mmio::SysConfig::set_clk_enabled(Va416x0Mmio::SysConfig::IRQ_ROUTER, true);
     Va416x0Mmio::Amba::memory_barrier();
     Va416x0Mmio::IrqRouter::write_adcsel(timer_peripheral_index);
@@ -109,10 +109,11 @@ void AdcSampler ::setup(AdcConfig& config,
     Va416x0Mmio::SysConfig::set_clk_enabled(Va416x0Mmio::SysConfig::ADC, true);
 
     // setup interrupt (I could make interrupt static, but I don't see a reason too yet)
-    interrupt = Va416x0Mmio::Nvic::InterruptControl(Va416x0Types::ExceptionNumber::INTERRUPT_ADC);
-    interrupt.set_interrupt_pending(false);
-    interrupt.set_interrupt_enabled(true);
-    interrupt.set_interrupt_priority(interrupt_priority);
+    Va416x0Mmio::Nvic::InterruptControl adc_interrupt =
+        Va416x0Mmio::Nvic::InterruptControl(Va416x0Types::ExceptionNumber::INTERRUPT_ADC);
+    adc_interrupt.set_interrupt_pending(false);
+    adc_interrupt.set_interrupt_enabled(true);
+    adc_interrupt.set_interrupt_priority(interrupt_priority);
 
     // FIXME: switch back to copy if no objects are in config
     this->m_pConfig = &config;
@@ -297,10 +298,9 @@ void AdcSampler ::startReadInner() {
     Va416x0Mmio::Adc::write_ctrl(ctrl_val);
 
     // Setup and start timer
-    Va416x0Mmio::Timer timer(this->m_timerIdx);
-    timer.write_cnt_value(this->m_adcDelayTicks);
-    timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_AUTO_DISABLE |
-                     Va416x0Mmio::Timer::CTRL_IRQ_ENB | Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
+    this->m_timer.write_cnt_value(this->m_adcDelayTicks);
+    this->m_timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_AUTO_DISABLE |
+                             Va416x0Mmio::Timer::CTRL_IRQ_ENB | Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
 }
 
 U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {

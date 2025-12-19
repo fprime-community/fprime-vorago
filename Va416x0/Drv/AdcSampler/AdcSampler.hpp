@@ -115,8 +115,8 @@ class AdcSampler final : public AdcSamplerComponentBase {
     U32 m_dataIdx;
     //! \brief The timer delay in timer ticks before triggering the adc conversion
     U32 m_adcDelayTicks;
-    //! \brief Timer peripheral index
-    U8 m_timerIdx;
+    //! \brief Timer used to perform the sampling delay
+    Va416x0Mmio::Timer m_timer;
 
     //! Starts the next read in the this->m_pRequests list
     void startReadInner();
