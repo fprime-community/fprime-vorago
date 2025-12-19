@@ -77,8 +77,7 @@ AdcSampler ::AdcSampler(const char* const compName) : AdcSamplerComponentBase(co
     this->m_pData = nullptr;
     this->m_curRequest = 0;
     this->m_numReads = 0;
-    this->m_req
-    uestIdx.store(0);
+    this->m_requestIdx.store(0);
     this->m_adcDelayTicks = 0;
 }
 
@@ -298,6 +297,7 @@ void AdcSampler ::startReadInner() {
     Va416x0Mmio::Adc::write_ctrl(ctrl_val);
 
     // Setup and start timer
+    FW_ASSERT(this->m_timer.has_value());
     this->m_timer.value().write_cnt_value(this->m_adcDelayTicks);
     this->m_timer.value().write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_AUTO_DISABLE |
                                      Va416x0Mmio::Timer::CTRL_IRQ_ENB | Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
