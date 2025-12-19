@@ -27,6 +27,7 @@
 #include "Va416x0/Mmio/Gpio/Pin.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
+#include "Va416x0/Mmio/Timer/Timer.hpp"
 #include "Va416x0/Types/AdcTypes.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
 #include "Va416x0/Types/Optional.hpp"
@@ -85,7 +86,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     );
 
     //! Setup
-    void setup(AdcConfig& config, U32 interrupt_priority);
+    void setup(AdcConfig& config, U32 interrupt_priority, U32 adc_delay_microseconds, Va416x0Mmio::Timer timer);
 
   private:
     //! ADC read request in progress (set by startRead())
@@ -112,6 +113,10 @@ class AdcSampler final : public AdcSamplerComponentBase {
     std::atomic<U32> m_requestIdx;
     //! \brief Index to store data into when current read completes
     U32 m_dataIdx;
+    //! \brief The timer delay in timer ticks before triggering the adc conversion
+    U32 m_adcDelayTicks;
+    //! \brief Timer used to perform the sampling delay
+    Va416x0Types::Optional<Va416x0Mmio::Timer> m_timer;
 
     //! Starts the next read in the this->m_pRequests list
     void startReadInner();
