@@ -86,7 +86,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     );
 
     //! Setup
-    void setup(AdcConfig& config, U32 interrupt_priority, U32 adc_delay_microseconds, U8 timer_peripheral_index);
+    void setup(AdcConfig& config, U32 interrupt_priority, U32 adc_delay_microseconds, Va416x0Mmio::Timer timer);
 
   private:
     //! ADC read request in progress (set by startRead())
@@ -116,7 +116,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! \brief The timer delay in timer ticks before triggering the adc conversion
     U32 m_adcDelayTicks;
     //! \brief Timer used to perform the sampling delay
-    Va416x0Mmio::Timer m_timer;
+    Va416x0Types::Optional<Va416x0Mmio::Timer> m_timer;
 
     //! Starts the next read in the this->m_pRequests list
     void startReadInner();

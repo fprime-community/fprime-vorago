@@ -77,15 +77,15 @@ AdcSampler ::AdcSampler(const char* const compName) : AdcSamplerComponentBase(co
     this->m_pData = nullptr;
     this->m_curRequest = 0;
     this->m_numReads = 0;
-    this->m_requestIdx.store(0);
+    this->m_req
+    uestIdx.store(0);
     this->m_adcDelayTicks = 0;
 }
 
 void AdcSampler ::setup(AdcConfig& config,
                         U32 interrupt_priority,
                         U32 adc_delay_microseconds,
-                        U8 timer_peripheral_index) {
-    Va416x0Mmio::Timer timer(timer_peripheral_index);
+                        Va416x0Mmio::Timer timer) {
     this->m_timer = timer;
     Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
     Va416x0Mmio::SysConfig::reset_peripheral(timer);
@@ -101,7 +101,7 @@ void AdcSampler ::setup(AdcConfig& config,
     timer_interrupt.set_interrupt_priority(interrupt_priority);
     Va416x0Mmio::SysConfig::set_clk_enabled(Va416x0Mmio::SysConfig::IRQ_ROUTER, true);
     Va416x0Mmio::Amba::memory_barrier();
-    Va416x0Mmio::IrqRouter::write_adcsel(timer_peripheral_index);
+    Va416x0Mmio::IrqRouter::write_adcsel(timer.get_timer_peripheral_index());
 
     // Enable CLK for ADC
     Va416x0Mmio::SysConfig::reset_peripheral(
@@ -298,9 +298,9 @@ void AdcSampler ::startReadInner() {
     Va416x0Mmio::Adc::write_ctrl(ctrl_val);
 
     // Setup and start timer
-    this->m_timer.write_cnt_value(this->m_adcDelayTicks);
-    this->m_timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_AUTO_DISABLE |
-                             Va416x0Mmio::Timer::CTRL_IRQ_ENB | Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
+    this->m_timer.value().write_cnt_value(this->m_adcDelayTicks);
+    this->m_timer.value().write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_AUTO_DISABLE |
+                                     Va416x0Mmio::Timer::CTRL_IRQ_ENB | Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
 }
 
 U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
