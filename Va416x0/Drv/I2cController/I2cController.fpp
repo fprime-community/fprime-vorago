@@ -14,6 +14,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 module Va416x0Drv {
+    @ Number of I2C subordinates (set less than theoretical I2C subordinate max to reduce memory usage)
+    constant NUM_I2C_SUBORDINATES = 4
+
     @ Maximum size of the read/write FIFO buffer
     constant I2C_MAX_BUFFER_SIZE = 16
 
@@ -21,13 +24,13 @@ module Va416x0Drv {
     passive component I2cController {
 
         @ Port for synchronous write to I2C
-        sync input port write: Drv.I2c
+        sync input port write: [NUM_I2C_SUBORDINATES] Drv.I2c
 
         @ Port for synchronous read from I2C
-        sync input port read: Drv.I2c
+        sync input port read: [NUM_I2C_SUBORDINATES] Drv.I2c
 
         @ Port for synchronous write then read from I2C
-        sync input port writeRead: Drv.I2cWriteRead
+        sync input port writeRead: [NUM_I2C_SUBORDINATES] Drv.I2cWriteRead
 
     }
 }
