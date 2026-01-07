@@ -76,6 +76,8 @@ struct AdcConfig {
 
 // Declared as final to comply with JPL-C++-Rule32
 class AdcSampler final : public AdcSamplerComponentBase {
+    friend class AdcSamplerTester;
+
   public:
     // ----------------------------------------------------------------------
     // Component construction and destruction

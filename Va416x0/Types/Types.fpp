@@ -16,6 +16,8 @@
 
 module Va416x0Types {
 
+    port ExceptionHandler()
+
     port GetTickIndex() -> U32
 
     constant NUM_DMA_CHANNELS = 4

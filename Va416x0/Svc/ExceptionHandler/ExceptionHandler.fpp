@@ -9,7 +9,7 @@ module Va416x0Svc {
         constant EXCEPTION_COUNT = EXCEPTION_END - EXCEPTION_START + 1
 
         @ Input ports to receive exceptions from the vector table
-        sync input port exceptions: [EXCEPTION_COUNT] Va416x0Svc.ExceptionHandler
+        sync input port exceptions: [EXCEPTION_COUNT] Va416x0Types.ExceptionHandler
 
         # Generic exception event
         # TODO: expand to include callee-saved registers R4-R11 if they can be captured as well

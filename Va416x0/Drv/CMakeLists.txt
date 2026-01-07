@@ -16,8 +16,8 @@
 
 add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/I2cController")
 add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SpiController")
+add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/AdcSampler")
 if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/AdcSampler")
     add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/DmaDriver")
     add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SeggerByteStream")
     add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SysTickCycler")

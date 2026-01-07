@@ -21,7 +21,8 @@ module Va416x0Drv {
     @ Fixed rate executor using hardware timers
     passive component TimerDriver {
 
-        sync input port timer_isr: Va416x0Svc.ExceptionHandler
+
+        sync input port timer_isr: Va416x0Types.ExceptionHandler
         output port cycle: [MAX_SCHED_CLIENTS] Svc.Sched
         sync input port getTickIndex : Va416x0Types.GetTickIndex
 

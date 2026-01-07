@@ -14,11 +14,22 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-register_fprime_library(
-    SOURCES
-        Cpu.cpp
-    HEADERS
-        Cpu.hpp
-    DEPENDS
-        Fw_Types
-)
+if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    register_fprime_library(
+        SOURCES
+            Cpu.cpp
+        HEADERS
+            Cpu.hpp
+        DEPENDS
+            Fw_Types
+    )
+else ()
+    register_fprime_library(
+        SOURCES
+            CpuStubs.cpp
+        HEADERS
+            Cpu.hpp
+        DEPENDS
+            Fw_Types
+    )
+endif ()
