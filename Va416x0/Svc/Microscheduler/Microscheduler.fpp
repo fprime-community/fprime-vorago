@@ -15,7 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 module Va416x0Svc {
-    constant MAX_CLIENTS = 10
+    constant MAX_CLIENTS = 25
 
     port UpdateDuration(micros: U32)
     port GetRtiTime() -> Va416x0Types.RtiTime
