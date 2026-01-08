@@ -123,7 +123,6 @@ class AdcSampler final : public AdcSamplerComponentBase {
     U32 m_muxEnaDisDelay;
     //! \brief Last request which used a mux
     U32 m_lastMuxRequest;
-    
 
     //! Starts the next read in the this->m_pRequests list
     void startReadInner();

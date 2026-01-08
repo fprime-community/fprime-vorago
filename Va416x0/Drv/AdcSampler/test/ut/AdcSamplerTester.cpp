@@ -5,7 +5,7 @@
 // ======================================================================
 
 #include "AdcSamplerTester.hpp"
-#include  "Va416x0/Mmio/Amba/Amba.hpp"
+#include "Va416x0/Mmio/Amba/Amba.hpp"
 
 namespace Va416x0 {
 
@@ -65,7 +65,7 @@ enum {
     EDGE_STATUS = 0x04C,
 };
 
-static U32 read_gpio_dataout(U32 gpio_port)  {
+static U32 read_gpio_dataout(U32 gpio_port) {
     return Va416x0Mmio::Amba::read_u32(GPIO_ADDRESS | (gpio_port * GPIO_PORT_STRIDE) | DATAOUT);
 }
 
@@ -88,7 +88,7 @@ AdcSamplerTester ::~AdcSamplerTester() {}
 // // Configuration for a muxless adc sample config
 // Va416x0::AdcConfig no_mux_config = {
 //     0,
-//     9,  
+//     9,
 //     Va416x0Mmio::Gpio::PORTA,
 //     {8, 7, 6, 5, 0, 1, 2, 3, 4},
 //     // Address Pins
@@ -132,7 +132,7 @@ AdcSamplerTester ::~AdcSamplerTester() {}
 
 Va416x0::AdcConfig three_mux_pin_config = {
     5,
-    3,  
+    3,
     Va416x0Mmio::Gpio::PORTA,
     {1, 5, 3, 0, 0, 0, 0, 0, 0, 0},
     // Address Pins
@@ -176,7 +176,6 @@ Va416x0::AdcRequests three_mux_pin_config_requests = {
     0};
 
 void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
-   
     this->component.setup(three_mux_pin_config, 0xe0, 20, Va416x0Mmio::Timer(18));
     printf("Testing MUX index 0, pin 1, port A\n");
     {
@@ -258,7 +257,8 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
     printf("Testing address indexing\n");
     {
         for (U32 idx = 0; idx < three_mux_pin_config.num_en_pins; idx++) {
-            Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(three_mux_pin_config.mux_addr_output[idx].getGpioPortNumber());
+            Va416x0Mmio::Gpio::Port gpioPort =
+                Va416x0Mmio::Gpio::Port(three_mux_pin_config.mux_addr_output[idx].getGpioPortNumber());
             gpioPort.write_dataout(0);
         }
         this->component.startRead_handlerBase(0, 8, three_mux_pin_config_requests, this->m_data);
@@ -266,18 +266,12 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
         for (U32 idx = 0; idx < three_mux_pin_config.num_en_pins; idx++) {
             U32 pin_number = three_mux_pin_config.mux_addr_output[idx].getPinNumber();
 
-            EXPECT_TRUE(read_gpio_dataout(three_mux_pin_config.mux_addr_output[idx].getGpioPortNumber()) & static_cast<U32>(1 << pin_number));
+            EXPECT_TRUE(read_gpio_dataout(three_mux_pin_config.mux_addr_output[idx].getGpioPortNumber()) &
+                        static_cast<U32>(1 << pin_number));
         }
-
     }
 }
 
-void AdcSamplerTester ::testSetup() {
-}
-
-
-
-
-
+void AdcSamplerTester ::testSetup() {}
 
 }  // namespace Va416x0

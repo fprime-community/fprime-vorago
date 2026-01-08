@@ -27,26 +27,19 @@
 namespace Va416x0Mmio {
 namespace Cpu {
 
+void nop() {}
 
-void nop() {
-}
+void waitForInterrupt() {}
 
-void waitForInterrupt() {
-}
+void disable_interrupts() {}
 
-
-void disable_interrupts() {
-}
-
-void enable_interrupts() {
-}
+void enable_interrupts() {}
 
 U32 save_disable_interrupts() {
     return 0xDEADC0DE;
 }
 
-void restore_interrupts(U32 primask) {
-}
+void restore_interrupts(U32 primask) {}
 
 }  // namespace Cpu
 }  // namespace Va416x0Mmio

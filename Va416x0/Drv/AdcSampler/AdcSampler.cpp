@@ -262,15 +262,9 @@ void AdcSampler ::startReadInner() {
     // The intention of this is to only enter this logic
     // if the last recorded mux enable pin and the current requests
     // mux enable pin are different AND the current request uses a mux
-<<<<<<< HEAD
-    // (cur_mux_en_index != ADC_MUX_PINS_EN_MAX)
-    if ((cur_mux_en_index < ADC_MUX_PINS_EN_MAX) &&
-        (this->m_pConfig->mux_en_output[last_mux_en_index] != this->m_pConfig->mux_en_output[cur_mux_en_index])) {
-=======
     // last_mux_en_index == ADC_MUX_PINS_EN_MAX is used to catch the
     // dummy value then short circuit the logic before invalid array indexing
     if ((cur_mux_en_index < ADC_MUX_PINS_EN_MAX) && ((last_mux_en_index == ADC_MUX_PINS_EN_MAX) || (this->m_pConfig->mux_en_output[last_mux_en_index] != this->m_pConfig->mux_en_output[cur_mux_en_index]))) {
->>>>>>> 1c1ba06 (Add configurable delay after mux disable.)
         Va416x0Mmio::Gpio::Port gpioPort = this->m_pConfig->gpio_port;
         // Disable all MUX enable pins by setting them to 1
         // Artificial block scope for scope lock
@@ -286,12 +280,6 @@ void AdcSampler ::startReadInner() {
         for (U32 i = 0; i < this->m_muxEnaDisDelay; i++) {
             Va416x0Mmio::Cpu::nop();
         }
-<<<<<<< HEAD
-        printf("Mux disabled completed, data mask %08X, delay value %d\n", this->m_muxEnPinsMask,
-               this->m_muxEnaDisDelay);
-        printf("current request mux pin 0x%08X, last request mux pin 0x%08X\n", cur_mux_en_index, last_mux_en_index);
-=======
->>>>>>> 1c1ba06 (Add configurable delay after mux disable.)
         this->m_lastMuxRequest = this->m_curRequest;
     }
 
