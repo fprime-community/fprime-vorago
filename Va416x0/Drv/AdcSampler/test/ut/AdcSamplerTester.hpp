@@ -49,7 +49,6 @@ class AdcSamplerTester final : public AdcSamplerGTestBase {
     //! Test setup conditions
     void testSetup();
 
-
   private:
     // ----------------------------------------------------------------------
     // Helper functions
