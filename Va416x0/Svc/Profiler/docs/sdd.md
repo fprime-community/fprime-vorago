@@ -42,11 +42,9 @@ The `Profiler` component is designed as a standard F-Prime component which
 should be included in the target deployment.
 
 The `Profiler` component defines the `Profiler.ENABLE` command which is used to
-trigger a profile capture. This command accepts the RTI as an argument. The
-profiler will begin capturing its trace prior to the specified RTI in order to
-capture the full RTI. Once it starts capturing, the profiler will continue to
-log function entry/exit events from instrumented functions until the configured
-data region fills up.
+trigger a profile capture. Once the command is sent, the profiler will begin to
+log function entry/exit events from instrumented functions which are called
+until the configured data region fills up.
 
 Once the profile has been captured, the events must be extracted from the data
 region. The implementation of this is left up to the discretion of the user.
@@ -66,3 +64,7 @@ entry to or exit from an instrumented function.
  | Phase | Function Address (Thumb) |        Timestamp (cycles)        |
  +-------+--------------------------+----------------------------------+
 ```
+
+## Idiosyncracies
+
+- The profiler will not work correct for any function address that have bit 31 set since it uses bit 31 to store the phase for each event. See [Data Format](#data-format) for more details.

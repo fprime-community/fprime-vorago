@@ -35,6 +35,12 @@ module Va416x0Svc {
             id 0x00 \
             format "Invalid start RTI: {}: RTIs per cycle: {}"
 
+        @ Received a request to start capture while the profiler is already active
+        event ProfilerAlreadyActive(rti: U32) \
+            severity warning high \
+            id 0x01 \
+            format "Profiler is already active, starting on RTI: {}"
+
         ##############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters #
         ##############################################################################

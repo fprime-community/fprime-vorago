@@ -25,7 +25,6 @@ register_fprime_executable(
         Va416x0_Os_TimerRawTime
         Va416x0_Svc_VectorTable
         Va416x0_Mmio_SysTick
-        Va416x0_Svc_Profiler
     CHOOSES_IMPLEMENTATIONS
         Va416x0_Os_TimerRawTime
 )

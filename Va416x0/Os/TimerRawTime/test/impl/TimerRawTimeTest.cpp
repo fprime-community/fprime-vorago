@@ -25,15 +25,11 @@
 #include "Va416x0/Mmio/Cpu/Cpu.hpp"
 #include "Va416x0/Mmio/SysTick/SysTick.hpp"
 #include "Va416x0/Os/TimerRawTime/TimerRawTime.hpp"
-#include "Va416x0/Svc/Profiler/Profiler.hpp"
 #include "Va416x0/Svc/VectorTable/VectorTable.hpp"
 
 #include "Os/IntervalTimer.hpp"
 
 static Va416x0Svc::VectorTable g_vectorTable("VT");
-
-static Va416x0Svc::Profiler g_profiler("P");
-Va416x0Svc::Profiler& Va416x0Svc::profiler = g_profiler;
 
 namespace Va416x0Mmio {
 namespace StaticClkTree {

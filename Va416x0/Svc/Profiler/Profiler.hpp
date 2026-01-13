@@ -28,11 +28,18 @@ namespace Va416x0Svc {
 
 class Profiler : public ProfilerComponentBase {
   public:
+    //! Represents a function entry/exit event
+    struct Event {
+        // the most-significant bit of the function address is used to indicate the phase
+        // set to 0 for entry, set to 1 for exit
+        U32 functionAddress;
+        U32 ticks;
+    };
+
     //! Construct Profiler object
     Profiler(const char* const compName  //!< Component name
     );
 
-  public:
     // ----------------------------------------------------------------------
     // Public interface
     // ----------------------------------------------------------------------
@@ -60,6 +67,9 @@ class Profiler : public ProfilerComponentBase {
     void operator=(Profiler const&) = delete;
 
   private:
+    //! Common code for funcEnter and funcExit used to store events to the memory region
+    void trace(U32 functionAndPhase);
+
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------
@@ -88,20 +98,13 @@ class Profiler : public ProfilerComponentBase {
     // Member variables
     // ----------------------------------------------------------------------
 
-    struct Event {
-        // the most-significant bit of the function address is used to indicate the phase
-        // set to 0 for entry, set to 1 for exit
-        U32 functionAddress;
-        U32 ticks;
-    };
-
     //! Pointer to the current index in the profiler memory region; encapsulates enable/disable
     //! functionality and is set to the end of the memory region when disabled
-    Event* m_index;
+    Event* m_writePtr;
 
     //! RTIs per second, as configured for the microscheduler
-    U32 m_rtis_per_second;
-    //! RTI on which the profiler should be enabled; set to ??? by the ENABLE command
+    U32 m_rtisPerSecond;
+    //! RTI on which the profiler should be enabled; set by the ENABLE command
     U32 m_rti;
 };
 
