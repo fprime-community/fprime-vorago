@@ -68,6 +68,17 @@ set(VA416X0_COMMON_C_CXX_FLAGS "\
     -fstack-usage \
 ")
 
+if ((DEFINED VA416X0_ENABLE_PROFILER) AND VA416X0_ENABLE_PROFILER)
+    # Functions can be excluded from instrumentation for the profiler either on a per-file basis
+    # via -finstrument-functions-exclude-file-list or on a per-function (using de-mangled names)
+    # basis via -finstrument-functions-exclude-function-list
+    set(VA416X0_COMMON_C_CXX_FLAGS "\
+        ${VA416X0_COMMON_C_CXX_FLAGS} \
+        -finstrument-functions-after-inlining \
+        -DVA416X0_ENABLE_PROFILER \
+    ")
+endif()
+
 if (NOT DEFINED VA416X0_DISABLE_LTO)
     set(VA416X0_COMMON_C_CXX_FLAGS "\
         ${VA416X0_COMMON_C_CXX_FLAGS} \
@@ -151,8 +162,8 @@ function(register_with_bsp TARGET_NAME)
         list(APPEND BUILD_INFO_AC_CMD ${AC_CXX_FLAG})
     endforeach()
     # Add (a) all build directories as include paths and (b) special directories from CMAKE_BINARY_DIR
-    # The way in which the include paths in CMAKE_BINARY_DIR are added is a little ugly, but the 
-    # '${CMAKE_BINARY_DIR}/F-Prime/${_FP_PACKAGE_DIR}' paths aren't added to any global variables 
+    # The way in which the include paths in CMAKE_BINARY_DIR are added is a little ugly, but the
+    # '${CMAKE_BINARY_DIR}/F-Prime/${_FP_PACKAGE_DIR}' paths aren't added to any global variables
     # accessible here, same for the platform headers
     list(APPEND BUILD_INFO_AC_CMD "-I${CMAKE_BINARY_DIR}/F-Prime/default/")
     list(APPEND BUILD_INFO_AC_CMD "-I${CMAKE_BINARY_DIR}/cmake/platform/va416x0/")

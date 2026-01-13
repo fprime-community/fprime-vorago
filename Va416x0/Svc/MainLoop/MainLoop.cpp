@@ -66,23 +66,7 @@ void MainLoop ::reset_vector_handler(FwIndexType portNum) {
     // Flight software main loop for the main thread
     while (true) {
         this->wait_for_next_rti();
-
-        Os::RawTime raw_time;
-        auto status = raw_time.now();
-        FW_ASSERT(status == Os::RawTime::Status::OP_OK, status);
-
-        if (isConnected_cycle_OutputPort(0)) {
-            this->cycle_out(0, raw_time);
-        }
-
-        // Need to run tasks multiple times, or they'll only be able to handle a single message.
-        // FIXME: Is this really the best approach?
-        FW_ASSERT(this->m_dispatchPerRti > 0);
-        for (U32 i = 0; i < this->m_dispatchPerRti; i++) {
-            Os::Baremetal::TaskRunner::getSingleton().runAll();
-        }
-
-        this->ensure_rti_not_elapsed();
+        this->execute_main_loop();
     }
 }
 
@@ -181,7 +165,8 @@ void MainLoop ::ensure_rti_not_elapsed() {
     FW_ASSERT(ready_to_run_value == 0, ready_to_run_value);
 }
 
-void MainLoop ::wait_for_next_rti() {
+// NOTE: marked with noinline so that it appears in profile traces
+__attribute__((noinline)) void MainLoop ::wait_for_next_rti() {
     if (this->m_enablePerformanceTest) {
         U32 i = 0;
         do {
@@ -230,6 +215,26 @@ void MainLoop ::wait_for_next_rti() {
         // Maybe it should just be a FATAL.
         FW_ASSERT(ready_to_run_value == 1, ready_to_run_value);
     }
+}
+
+// NOTE: marked with noinline so that it appears in profile traces
+__attribute__((noinline)) void MainLoop ::execute_main_loop() {
+    Os::RawTime raw_time;
+    auto status = raw_time.now();
+    FW_ASSERT(status == Os::RawTime::Status::OP_OK, status);
+
+    if (isConnected_cycle_OutputPort(0)) {
+        this->cycle_out(0, raw_time);
+    }
+
+    // Need to run tasks multiple times, or they'll only be able to handle a single message.
+    // FIXME: Is this really the best approach?
+    FW_ASSERT(this->m_dispatchPerRti > 0);
+    for (U32 i = 0; i < this->m_dispatchPerRti; i++) {
+        Os::Baremetal::TaskRunner::getSingleton().runAll();
+    }
+
+    this->ensure_rti_not_elapsed();
 }
 
 }  // namespace Va416x0Svc

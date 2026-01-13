@@ -14,5 +14,5 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/config")
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/Va416x0")
+set(VA416X0_ENABLE_PROFILER ON)
+include("${CMAKE_CURRENT_LIST_DIR}/va416x0-baremetal.cmake")

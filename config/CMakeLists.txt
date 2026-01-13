@@ -14,5 +14,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/config")
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/Va416x0")
+register_fprime_config(
+        config-fprime-vorago
+    HEADERS
+        "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
+    INTERFACE
+    BASE_CONFIG
+)
+
