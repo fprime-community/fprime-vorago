@@ -52,8 +52,6 @@ MEMORY
 	 */
   DATA_SRAM0 (rwx) : ORIGIN = 0x1FFF8000, LENGTH = 32K
   DATA_SRAM1 (rw)  : ORIGIN = 0x20000000, LENGTH = 32K
-  /* External SRAM mapped to the VA416x0 external instruction base address */
-  EXTI_SRAM (rwx)  : ORIGIN = 0x10000000, LENGTH = 16M
 }
 
 SECTIONS
@@ -256,17 +254,6 @@ SECTIONS
 	.stack (NOLOAD) : {
 		. += (DEFINED(__stack_size) ? __stack_size : 4K);
 	} >DATA_SRAM1 AT>DATA_SRAM1 :DATA_SRAM1
-
-	/* External SRAM section */
-	.EXTI_SRAM : ALIGN(8)
-	{
-	  	__extsram_exec_start = .;
-	  	KEEP(*(.EXTI_SRAM))
-	  	__extsram_exec_end = .;
-	} > EXTI_SRAM AT > CODE_SRAM
-
-	/* Define where in CODE_SRAM the original code is located */
-	__extsram_load_start = LOADADDR(.EXTI_SRAM);
 
 	/* Throw away C++ exception handling information */
 	/DISCARD/ : {
