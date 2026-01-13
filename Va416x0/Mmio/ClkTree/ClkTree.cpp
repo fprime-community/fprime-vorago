@@ -115,7 +115,7 @@ void ClkTree::assertClkTreeValid() const {
     FW_ASSERT(m_sysclk_div == 1 || m_sysclk_div == 2 || m_sysclk_div == 4 || m_sysclk_div == 8, m_sysclk_div);
 
     //! NOTE: Disable the frequency bounds checks when profiling is enabled. Due to the overhead of
-    //! the profiler hooks, the clock tree might need to be constructed with a larger frequency
+    //! the profiler hooks, the clock tree might need to be constructed with a higher frequency
     //! than normal to avoid overruns.
 #ifndef VA416X0_ENABLE_PROFILER
     //! Confirm the sysclk frequency is between 2.5 MHz and 100 MHz

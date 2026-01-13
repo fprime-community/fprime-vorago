@@ -67,4 +67,4 @@ entry to or exit from an instrumented function.
 
 ## Idiosyncracies
 
-- The profiler will not work correct for any function address that have bit 31 set since it uses bit 31 to store the phase for each event. See [Data Format](#data-format) for more details.
+- The profiler will not work correctly for any function address that have bit 31 set since it uses bit 31 to store the phase for each event. See [Data Format](#data-format) for more details.

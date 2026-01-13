@@ -43,6 +43,11 @@ constexpr U32 PHASE_FUNC_EXIT = 1 << 31;
 __attribute__((no_instrument_function)) Profiler::Profiler(const char* const compName)
     : ProfilerComponentBase(compName), m_rtisPerSecond(0), m_rti(RTI_DISABLED) {
     FW_ASSERT(START_ADDRESS() != nullptr);
+    // Assert that the memory region starting address is U32-aligned
+    FW_ASSERT((PROFILER_MEMORY_REGION_START % sizeof(U32)) == 0, PROFILER_MEMORY_REGION_START);
+    // Assert that the memory region size is a multiple of the Event size
+    FW_ASSERT((PROFILER_MEMORY_REGION_SIZE % sizeof(Event)) == 0, PROFILER_MEMORY_REGION_SIZE, sizeof(Event));
+
     // Profiler is initially disabled, set the index to the end
     this->m_writePtr = END_ADDRESS();
     // Initialize the memory region
@@ -76,9 +81,7 @@ __attribute__((no_instrument_function)) void Profiler::disable() {
     // First check that there is room for an Event to be written, if the profiler memory region has
     // already been filled (or if the profiler was never enabled), the write pointer will be
     // pointing to the end of the memory region so it cannot be safely written to
-    // Note that this check is this->m_writePtr + 1 <= END instead of this->m_writePtr < END
-    // because there is no requirement that the memory region is sizeof(Event)-aligned
-    if ((this->m_writePtr + 1) <= END_ADDRESS()) {
+    if (this->m_writePtr < END_ADDRESS()) {
         this->m_writePtr->functionAddress = 0xFFFFFFFF;
         this->m_writePtr->ticks = 0xFFFFFFFF;
     }
@@ -104,7 +107,7 @@ __attribute__((no_instrument_function)) void Profiler::funcExit(void* function) 
 }
 
 __attribute__((no_instrument_function)) void Profiler::trace(U32 functionAndPhase) {
-    if (this->m_writePtr != END_ADDRESS()) {
+    if (this->m_writePtr < END_ADDRESS()) {
         U32 ticks = Va416x0Mmio::SysTick::read_cvr();
 
         auto index = this->m_writePtr;
