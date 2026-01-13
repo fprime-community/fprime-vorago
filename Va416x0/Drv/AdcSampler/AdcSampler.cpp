@@ -264,7 +264,9 @@ void AdcSampler ::startReadInner() {
     // mux enable pin are different AND the current request uses a mux
     // last_mux_en_index == ADC_MUX_PINS_EN_MAX is used to catch the
     // dummy value then short circuit the logic before invalid array indexing
-    if ((cur_mux_en_index < ADC_MUX_PINS_EN_MAX) && ((last_mux_en_index == ADC_MUX_PINS_EN_MAX) || (this->m_pConfig->mux_en_output[last_mux_en_index] != this->m_pConfig->mux_en_output[cur_mux_en_index]))) {
+    if ((cur_mux_en_index < ADC_MUX_PINS_EN_MAX) &&
+        ((last_mux_en_index == ADC_MUX_PINS_EN_MAX) ||
+         (this->m_pConfig->mux_en_output[last_mux_en_index] != this->m_pConfig->mux_en_output[cur_mux_en_index]))) {
         Va416x0Mmio::Gpio::Port gpioPort = this->m_pConfig->gpio_port;
         // Disable all MUX enable pins by setting them to 1
         // Artificial block scope for scope lock
