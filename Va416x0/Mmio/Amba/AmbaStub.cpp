@@ -46,7 +46,7 @@ static void readBeforeWriteNotSupported(U32 bus_address) {
 
 U8 read_u8(U32 bus_address) {
     U8 bit_shift = (bus_address & 0b11) * bits_per_byte;  // Get the bit offset within the word,
-    U8 word_address = bus_address & ~0b11;  // Get the word aligned address
+    U8 word_address = bus_address & ~0b11;                // Get the word aligned address
     auto iter = bus_map.find(word_address);
     if (iter != bus_map.end()) {
         return ((iter->second >> bit_shift) & 0xFF);
@@ -64,7 +64,8 @@ void write_u8(U32 bus_address, U8 value) {
         // Clear byte then replace
         bus_map[word_address] = (iter->second & ~(0xFF << bit_shift)) | (value << bit_shift);
     } else {
-        std::pair<std::map<U32, U32>::iterator, bool> insert_status = bus_map.insert({word_address, (value << bit_shift)});
+        std::pair<std::map<U32, U32>::iterator, bool> insert_status =
+            bus_map.insert({word_address, (value << bit_shift)});
         // Assert status is success?
     }
 }

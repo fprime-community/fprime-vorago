@@ -50,8 +50,7 @@ U32 save_disable_interrupts() {
     return 0xDEADC0DE;
 }
 
-void restore_interrupts(U32 primask) {
-}
+void restore_interrupts(U32 primask) {}
 
 void delay_cycles(U32 num_cycles_delay) {}
 
