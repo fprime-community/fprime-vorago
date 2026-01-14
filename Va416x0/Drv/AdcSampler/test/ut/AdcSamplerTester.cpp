@@ -1,3 +1,19 @@
+// Copyright 2026 California Institute of Technology
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // ======================================================================
 // \title  AdcSamplerTester.cpp
 // \author root
@@ -6,6 +22,8 @@
 
 #include "AdcSamplerTester.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
+#include "Va416x0/Mmio/Gpio/Port.hpp"
+#include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
 
 namespace Va416x0 {
 
@@ -34,6 +52,7 @@ static inline U32 REQ_GET_IS_SWEEP(U32 request) {
     return ((request) & 0x1);
 }
 
+// FIXME Find a better way to get these values and not copy paste them from port.cpp
 constexpr U32 GPIO_ADDRESS = 0x40012000;
 
 enum {
@@ -85,51 +104,6 @@ AdcSamplerTester ::~AdcSamplerTester() {}
 // Tests
 // ----------------------------------------------------------------------
 
-// // Configuration for a muxless adc sample config
-// Va416x0::AdcConfig no_mux_config = {
-//     0,
-//     9,
-//     Va416x0Mmio::Gpio::PORTA,
-//     {8, 7, 6, 5, 0, 1, 2, 3, 4},
-//     // Address Pins
-//     {Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTA, 0), Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTA, 0),
-//      Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTA, 0), Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTA, 0),
-//      Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTA, 0)}};
-
-// Va416x0::AdcRequests no_mux_requests = {
-//     adc_sampler_request(1 << 0, 15, 0, 0, 0, 0),
-//     adc_sampler_request(1 << 1, 15, 0, 0, 1, 1),
-//     adc_sampler_request(1 << 2, 15, 0, 0, 2, 2),
-//     adc_sampler_request(1 << 3, 15, 0, 0, 3, 3),
-//     adc_sampler_request(1 << 4, 15, 0, 0, 4, 4),
-//     adc_sampler_request(1 << 5, 15, 0, 0, 5, 5),
-//     adc_sampler_request(1 << 6, 15, 0, 0, 6, 6),
-//     adc_sampler_request(1 << 7, 15, 0, 0, 7, 7),
-//     adc_sampler_request(1 << 8, 15, 0, 0, 8, 8),
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0,
-//     0};
-
 Va416x0::AdcConfig three_mux_pin_config = {
     5,
     3,
@@ -176,6 +150,22 @@ Va416x0::AdcRequests three_mux_pin_config_requests = {
     0};
 
 void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
+    // Initalize memory addresses before access
+    Va416x0Mmio::SysConfig::write_tim_clk_enables(0);
+    Va416x0Mmio::SysConfig::write_peripheral_clk_enable(0);
+    for (U32 port_idx = 0; port_idx < Va416x0Mmio::Gpio::NUM_PORTS; ++port_idx) {
+        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(port_idx);
+        gpioPort.write_dir(0);
+        gpioPort.write_pulse(0);
+        gpioPort.write_pulsebase(0);
+        gpioPort.write_delay1(0);
+        gpioPort.write_delay2(0);
+        gpioPort.write_irq_sen(0);
+        gpioPort.write_irq_edge(0);
+        gpioPort.write_irq_evt(0);
+        gpioPort.write_irq_enb(0);
+    }
+
     this->component.setup(three_mux_pin_config, 0xe0, 20, Va416x0Mmio::Timer(18));
     printf("Testing MUX index 0, pin 1, port A\n");
     {
@@ -253,6 +243,21 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
 }
 
 void AdcSamplerTester ::testStartReadGpioConfiguration() {
+    Va416x0Mmio::SysConfig::write_tim_clk_enables(0);
+    Va416x0Mmio::SysConfig::write_peripheral_clk_enable(0);
+    for (U32 port_idx = 0; port_idx < Va416x0Mmio::Gpio::NUM_PORTS; ++port_idx) {
+        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(port_idx);
+        gpioPort.write_dir(0);
+        gpioPort.write_pulse(0);
+        gpioPort.write_pulsebase(0);
+        gpioPort.write_delay1(0);
+        gpioPort.write_delay2(0);
+        gpioPort.write_irq_sen(0);
+        gpioPort.write_irq_edge(0);
+        gpioPort.write_irq_evt(0);
+        gpioPort.write_irq_enb(0);
+    }
+
     this->component.setup(three_mux_pin_config, 0xe0, 20, Va416x0Mmio::Timer(18));
     printf("Testing address indexing\n");
     {

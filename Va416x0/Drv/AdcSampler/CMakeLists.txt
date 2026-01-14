@@ -65,16 +65,3 @@ set(UT_MOD_DEPS
 )
 set(UT_AUTO_HELPERS ON)
 register_fprime_ut()
-# register_fprime_ut(
-#     SOURCES
-#         "${CMAKE_CURRENT_LIST_DIR}/AdcSampler.cpp"
-#         "${CMAKE_CURRENT_LIST_DIR}/test/ut/AdcSamplerMain.cpp"
-#         "${CMAKE_CURRENT_LIST_DIR}/test/ut/AdcSamplerTester.cpp"
-#     AUTOCODER_INPUTS
-#         "${CMAKE_CURRENT_LIST_DIR}/AdcSampler.fpp"
-#     HEADERS
-#         "${CMAKE_CURRENT_LIST_DIR}/AdcSampler.hpp"
-#         "${CMAKE_CURRENT_LIST_DIR}/test/ut/AdcSamplerTester.hpp"
-#     DEPENDS
-#         STest        
-# )

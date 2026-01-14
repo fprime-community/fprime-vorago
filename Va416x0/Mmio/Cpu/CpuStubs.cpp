@@ -27,19 +27,33 @@
 namespace Va416x0Mmio {
 namespace Cpu {
 
+static void notSupported() {
+    fputs("CPU functionality not supported in unit tests.\n", stderr);
+    abort();
+}
+
 void nop() {}
 
-void waitForInterrupt() {}
+void waitForInterrupt() {
+    notSupported();
+}
 
-void disable_interrupts() {}
+void disable_interrupts() {
+    notSupported();
+}
 
-void enable_interrupts() {}
+void enable_interrupts() {
+    notSupported();
+}
 
 U32 save_disable_interrupts() {
     return 0xDEADC0DE;
 }
 
-void restore_interrupts(U32 primask) {}
+void restore_interrupts(U32 primask) {
+}
+
+void delay_cycles(U32 num_cycles_delay) {}
 
 }  // namespace Cpu
 }  // namespace Va416x0Mmio

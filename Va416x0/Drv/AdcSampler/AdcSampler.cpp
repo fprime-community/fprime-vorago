@@ -67,6 +67,8 @@ static inline U32 REQ_GET_IS_SWEEP(U32 request) {
 }
 
 constexpr U32 MICROSECONDS_PER_SECOND = 1000 * 1000;
+constexpr U32 NANOSECONDS_PER_SECOND = 1000000000;
+constexpr U32 MULTIPLEXER_BREAK_BEFORE_MAKE_DELAY_NS = 100;
 
 // ----------------------------------------------------------------------
 // Component construction and destruction
@@ -116,7 +118,7 @@ void AdcSampler ::setup(AdcConfig& config,
 
     // Configure the mux enable disable delay
     U32 sys_clock_rate = Va416x0Mmio::ClkTree::getActiveSysclkFreq();
-    this->m_muxEnaDisDelay = sys_clock_rate / 10000000;  // 100 ns
+    this->m_muxEnaDisDelay = sys_clock_rate * MULTIPLEXER_BREAK_BEFORE_MAKE_DELAY_NS / NANOSECONDS_PER_SECOND;
     FW_ASSERT(this->m_muxEnaDisDelay > 0, this->m_muxEnaDisDelay);
 
     // FIXME: switch back to copy if no objects are in config
@@ -246,7 +248,6 @@ bool AdcSampler ::startRead_handler(FwIndexType portNum,
 }
 
 void AdcSampler ::startReadInner() {
-    bool mux_delay_required = false;
     // asserts are low cost compared to the register read/write and adds safety, so leave in
     FW_ASSERT(
         this->m_pRequests != nullptr && this->m_numReads > 0 && this->m_requestIdx.load() < this->m_pRequests->SIZE,
@@ -265,7 +266,7 @@ void AdcSampler ::startReadInner() {
     // last_mux_en_index == ADC_MUX_PINS_EN_MAX is used to catch the
     // dummy value then short circuit the logic before invalid array indexing
     if ((cur_mux_en_index < ADC_MUX_PINS_EN_MAX) &&
-        ((last_mux_en_index == ADC_MUX_PINS_EN_MAX) ||
+        ((last_mux_en_index >= ADC_MUX_PINS_EN_MAX) ||
          (this->m_pConfig->mux_en_output[last_mux_en_index] != this->m_pConfig->mux_en_output[cur_mux_en_index]))) {
         Va416x0Mmio::Gpio::Port gpioPort = this->m_pConfig->gpio_port;
         // Disable all MUX enable pins by setting them to 1
@@ -278,10 +279,7 @@ void AdcSampler ::startReadInner() {
 
         // Wait 100ns
         Va416x0Mmio::Amba::memory_barrier();
-        // Va416X0::Mmio::Cpu::delay_ns(100)
-        for (U32 i = 0; i < this->m_muxEnaDisDelay; i++) {
-            Va416x0Mmio::Cpu::nop();
-        }
+        Va416x0Mmio::Cpu::delay_cycles(this->m_muxEnaDisDelay);
         this->m_lastMuxRequest = this->m_curRequest;
     }
 
