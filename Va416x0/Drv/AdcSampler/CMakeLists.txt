@@ -29,6 +29,7 @@
 set(SOURCE_FILES
   "${CMAKE_CURRENT_LIST_DIR}/AdcSampler.fpp"
   "${CMAKE_CURRENT_LIST_DIR}/AdcSampler.cpp"
+
 )
 
 # Uncomment and add any modules that this component depends on, else
@@ -47,19 +48,20 @@ set(MOD_DEPS
     Va416x0/Mmio/SysConfig
     Va416x0/Mmio/Cpu
     Va416x0/Mmio/IrqRouter
+    Va416x0/Mmio/ClkTree
 )
 
 register_fprime_module()
 
 
 ### Unit Tests ###
-# set(UT_SOURCE_FILES
-#   "${CMAKE_CURRENT_LIST_DIR}/AdcSampler.fpp"
-#   "${CMAKE_CURRENT_LIST_DIR}/test/ut/AdcSamplerTestMain.cpp"
-#   "${CMAKE_CURRENT_LIST_DIR}/test/ut/AdcSamplerTester.cpp"
-# )
-# set(UT_MOD_DEPS
-#   STest
-# )
-# set(UT_AUTO_HELPERS ON)
-# register_fprime_ut()
+set(UT_SOURCE_FILES
+  "${CMAKE_CURRENT_LIST_DIR}/AdcSampler.fpp"
+  "${CMAKE_CURRENT_LIST_DIR}/test/ut/AdcSamplerTestMain.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/test/ut/AdcSamplerTester.cpp"
+)
+set(UT_MOD_DEPS
+  STest
+)
+set(UT_AUTO_HELPERS ON)
+register_fprime_ut()

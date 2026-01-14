@@ -26,8 +26,8 @@ module Va416x0Svc {
         sync input port start_scheduler: Fw.Ready
         output port start_rti: Svc.Sched
 
-        sync input port main_timer_isr: Va416x0Svc.ExceptionHandler
-        sync input port proxy_timer_isr: Va416x0Svc.ExceptionHandler
+        sync input port main_timer_isr: Va416x0Types.ExceptionHandler
+        sync input port proxy_timer_isr: Va416x0Types.ExceptionHandler
 
         sync input port update_duration: UpdateDuration
         sync input port getRtiTime: GetRtiTime

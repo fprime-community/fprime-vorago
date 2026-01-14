@@ -26,7 +26,7 @@ module Va416x0 {
         sync input port checkRead: Va416x0.AdcCheckRead
 
         @ ADC IRQ
-        sync input port adcIrq: Va416x0Svc.ExceptionHandler
+        sync input port adcIrq: Va416x0Types.ExceptionHandler
 
         @ Returns number of values stored into the AdcData array by the last request
         sync input port getNumDataValues: Va416x0.GetAdcDataNum

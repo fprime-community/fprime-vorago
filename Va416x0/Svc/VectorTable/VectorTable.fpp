@@ -15,10 +15,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 module Va416x0Svc {
-    port ExceptionHandler()
-
     @ Vector table describing reset and exception addresses
     passive component VectorTable {
-        output port exceptions: [Va416x0Types.NUMBER_OF_EXCEPTIONS] ExceptionHandler
+        output port exceptions: [Va416x0Types.NUMBER_OF_EXCEPTIONS] Va416x0Types.ExceptionHandler
     }
 }

@@ -18,7 +18,7 @@ module Va416x0Svc {
     @ Common initialization code for VA416X0 deployments
     passive component CommonInit {
 
-        sync input port mcu_reset: Va416x0Svc.ExceptionHandler
+        sync input port mcu_reset: Va416x0Types.ExceptionHandler
 
         output port start: [10] Fw.Ready
 

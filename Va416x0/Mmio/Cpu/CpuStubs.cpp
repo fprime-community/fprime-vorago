@@ -15,33 +15,44 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // ======================================================================
-// \title  Cpu.hpp
-// \brief  hpp file for Cpu library implementation
+// \title  Cpu.cpp
+// \brief  cpp file for Cpu library implementation
 // ======================================================================
 
-#ifndef Components_Va416x0_Cpu_HPP
-#define Components_Va416x0_Cpu_HPP
+#include "Cpu.hpp"
 
-#include "Fw/Types/BasicTypes.h"
+#include <cstdio>
+#include <cstdlib>
 
 namespace Va416x0Mmio {
 namespace Cpu {
 
-void nop();
-void waitForInterrupt();
+static void notSupported() {
+    fputs("CPU functionality not supported in unit tests.\n", stderr);
+    abort();
+}
 
-void disable_interrupts();
-void enable_interrupts();
+void nop() {}
 
-// Save primask and disable interrupts
-U32 save_disable_interrupts();
-// Restore primask state, possibly enabling interrupts
-void restore_interrupts(U32 primask);
+void waitForInterrupt() {
+    notSupported();
+}
 
-// Delay a given number of cycles
-void delay_cycles(U32 num_cycles_delay);
+void disable_interrupts() {
+    notSupported();
+}
+
+void enable_interrupts() {
+    notSupported();
+}
+
+U32 save_disable_interrupts() {
+    return 0xDEADC0DE;
+}
+
+void restore_interrupts(U32 primask) {}
+
+void delay_cycles(U32 num_cycles_delay) {}
 
 }  // namespace Cpu
 }  // namespace Va416x0Mmio
-
-#endif

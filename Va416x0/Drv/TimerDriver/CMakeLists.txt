@@ -43,6 +43,7 @@ set(MOD_DEPS
     Va416x0/Mmio/Timer
     Va416x0/Mmio/Nvic
     Va416x0/Mmio/SysConfig
+    Va416x0/Mmio/ClkTree
 )
 
 register_fprime_module()

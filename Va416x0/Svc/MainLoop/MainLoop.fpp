@@ -29,7 +29,7 @@ module Va416x0Svc {
     @ Initialization and main loop for REAPR FSW
     passive component MainLoop {
 
-        sync input port reset_vector: Va416x0Svc.ExceptionHandler
+        sync input port reset_vector: Va416x0Types.ExceptionHandler
 
         output port start: [10] Fw.Ready
 
