@@ -16,7 +16,6 @@
 
 // ======================================================================
 // \title  AdcSamplerTestMain.cpp
-// \author root
 // \brief  cpp file for AdcSampler component test main function
 // ======================================================================
 

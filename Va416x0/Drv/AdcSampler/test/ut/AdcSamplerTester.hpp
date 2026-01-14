@@ -16,7 +16,6 @@
 
 // ======================================================================
 // \title  AdcSamplerTester.hpp
-// \author root
 // \brief  hpp file for AdcSampler component test harness implementation class
 // ======================================================================
 

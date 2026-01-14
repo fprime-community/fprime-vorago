@@ -16,7 +16,6 @@
 
 // ======================================================================
 // \title  AdcSamplerTester.cpp
-// \author root
 // \brief  cpp file for AdcSampler component test harness implementation class
 // ======================================================================
 
