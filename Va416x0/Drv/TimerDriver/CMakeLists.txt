@@ -44,6 +44,7 @@ set(MOD_DEPS
     Va416x0/Mmio/Nvic
     Va416x0/Mmio/SysConfig
     Va416x0/Mmio/ClkTree
+    Os/RawTime
 )
 
 register_fprime_module()
