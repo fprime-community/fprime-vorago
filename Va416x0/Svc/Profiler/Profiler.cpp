@@ -33,7 +33,8 @@ static inline Profiler::Event* START_ADDRESS() {
 }
 
 static inline Profiler::Event* END_ADDRESS() {
-    return reinterpret_cast<Profiler::Event*>(PROFILER_MEMORY_REGION_START + PROFILER_MEMORY_REGION_SIZE);
+    return reinterpret_cast<Profiler::Event*>(PROFILER_MEMORY_REGION_START +
+                                              (PROFILER_MEMORY_REGION_SIZE / sizeof(U32)));
 }
 
 constexpr U32 RTI_DISABLED = 0xFF;
@@ -44,7 +45,8 @@ __attribute__((no_instrument_function)) Profiler::Profiler(const char* const com
     : ProfilerComponentBase(compName), m_rtisPerSecond(0), m_rti(RTI_DISABLED) {
     FW_ASSERT(START_ADDRESS() != nullptr);
     // Assert that the memory region starting address is U32-aligned
-    FW_ASSERT((PROFILER_MEMORY_REGION_START % sizeof(U32)) == 0, PROFILER_MEMORY_REGION_START);
+    U32 startAddress = reinterpret_cast<U32>(START_ADDRESS());
+    FW_ASSERT((startAddress % sizeof(U32)) == 0, startAddress);
     // Assert that the memory region size is a multiple of the Event size
     FW_ASSERT((PROFILER_MEMORY_REGION_SIZE % sizeof(Event)) == 0, PROFILER_MEMORY_REGION_SIZE, sizeof(Event));
 
