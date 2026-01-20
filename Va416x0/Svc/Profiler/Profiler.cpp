@@ -44,6 +44,9 @@ constexpr U32 PHASE_FUNC_EXIT = 1 << 31;
 __attribute__((no_instrument_function)) Profiler::Profiler(const char* const compName)
     : ProfilerComponentBase(compName), m_rtisPerSecond(0), m_rti(RTI_DISABLED) {
     FW_ASSERT(START_ADDRESS() != nullptr);
+    // Assert that the memory region starting address is U32-aligned
+    U32 startAddress = reinterpret_cast<U32>(START_ADDRESS());
+    FW_ASSERT((startAddress % sizeof(U32)) == 0, startAddress);
     // Assert that the memory region size is a multiple of the Event size
     FW_ASSERT((PROFILER_MEMORY_REGION_SIZE % sizeof(Event)) == 0, PROFILER_MEMORY_REGION_SIZE, sizeof(Event));
 
