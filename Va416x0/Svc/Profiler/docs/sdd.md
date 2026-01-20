@@ -27,9 +27,9 @@ are set to 0 by default so they must be overridden in a project-specific
 configuration file.
 
 ```cpp
-//! Starting address of the memory region used to store profiler data
+//! Pointer to the start of the memory region used to store profiler data
 //! NOTE: this must be overridden when using the Profiler
-constexpr U32 PROFILER_MEMORY_REGION_START = 0;
+constexpr U32* PROFILER_MEMORY_REGION_START = nullptr;
 
 //! Size of the memory region used to store profiler data, in bytes
 //! NOTE: this must be overridden when using the Profiler
