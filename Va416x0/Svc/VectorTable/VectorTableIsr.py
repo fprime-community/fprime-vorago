@@ -30,7 +30,7 @@ extern uint8_t __stack[];
 for isr_index in range(2, NUMBER_OF_EXCEPTIONS):
     print(f"""
 void arm_isr_{isr_index}(void) {{
-    va416x0_vector_table_instance->handle_exception({isr_index});
+    [[clang::always_inline]] va416x0_vector_table_instance->handle_exception({isr_index});
 }}""")
 print("""
 // Based on picolibc vector table.
