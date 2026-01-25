@@ -47,10 +47,10 @@ void VectorTable::handle_exception(U8 exception) {
     // re-enables it, we can't accidentally clear it when we shouldn't.
     if (exception >= Va416x0Types::BASE_NVIC_INTERRUPT) {
         // FIXME: This is probably slower than it should be.
-        Va416x0Mmio::Nvic::set_interrupt_pending(
+        [[clang::always_inline]] Va416x0Mmio::Nvic::set_interrupt_pending(
             Va416x0Types::ExceptionNumber(static_cast<const Va416x0Types::ExceptionNumber::T>(exception)), false);
     }
-    this->exceptions_out(exception);
+    [[clang::always_inline]] this->exceptions_out(exception);
 }
 
 }  // namespace Va416x0Svc
@@ -100,7 +100,8 @@ extern "C" void _start(void) {
     // port call.
     initialize_deployment();
     // This pointer will be optimized out at compile time.
-    va416x0_vector_table_instance->handle_exception(Va416x0Types::ExceptionNumber::EXCEPTION_RESET);
+    [[clang::always_inline]] va416x0_vector_table_instance->handle_exception(
+        Va416x0Types::ExceptionNumber::EXCEPTION_RESET);
 
     // If the port call returns, halt.
     _exit(0);
