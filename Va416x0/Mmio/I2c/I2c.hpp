@@ -46,7 +46,7 @@ class I2c final {
         NONE,
         // Recommended values from the Vorago I2C VA108x0 document
         // Digital filter enabled if sysclk >= 50 MHz
-        // Analog filter enabled if syclk <= 20 MHz
+        // Analog filter enabled if sysclk <= 20 MHz
         // TODO: Confirm with vendor that these recommendations are valid
         // for the Va416x0
         RECOMMENDED,

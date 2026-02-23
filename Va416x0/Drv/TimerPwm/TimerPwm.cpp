@@ -43,7 +43,7 @@ void TimerPwm::initTimer() {
 void TimerPwm::setPwmConfig(const TimerPwm::Config& config) {
     //! Note: This method of updating the PWM registers
     //! is likely not suitable for controlling hardware peripherals
-    //! due to the possiblity of output glitches
+    //! due to the possibility of output glitches
 
     if (!config.enable) {
         //! Disable the timer

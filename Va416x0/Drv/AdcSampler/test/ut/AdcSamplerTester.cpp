@@ -149,11 +149,11 @@ Va416x0::AdcRequests three_mux_pin_config_requests = {
     0};
 
 void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
-    // Initalize memory addresses before access
+    // Initialize memory addresses before access
     Va416x0Mmio::SysConfig::write_tim_clk_enables(0);
     Va416x0Mmio::SysConfig::write_peripheral_clk_enable(0);
-    for (U32 port_idx = 0; port_idx < Va416x0Mmio::Gpio::NUM_PORTS; ++port_idx) {
-        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(port_idx);
+    for (U32 portIndex = 0; portIndex < Va416x0Mmio::Gpio::NUM_PORTS; ++portIndex) {
+        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(portIndex);
         gpioPort.write_dir(0);
         gpioPort.write_pulse(0);
         gpioPort.write_pulsebase(0);
@@ -174,28 +174,28 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         EXPECT_TRUE(REQ_GET_MUX_ENABLE(this->component.m_lastMuxRequest) == ADC_MUX_PINS_EN_MAX);
 
         this->component.startRead_handlerBase(0, 8, three_mux_pin_config_requests, this->m_data);
-        EXPECT_TRUE(this->component.m_requestIdx == 0);
+        EXPECT_TRUE(this->component.m_requestIndex == 0);
 
         // Read in the port pin values
         U32 pin_values = read_gpio_dataout(three_mux_pin_config.gpio_port.get_gpio_port());
         printf("pin values 0x%08x\n", pin_values);
         // For the current request get the enable channel pin, in this case request index 0 uses mux enable 0
-        U32 req_mux_ena = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
-        printf("Mux enable pin %d\n", req_mux_ena);
+        U32 req_mux_enable = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
+        printf("Mux enable pin %d\n", req_mux_enable);
         // Confirm that only a single mux is enabled (0) and all others are 1
-        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_ena])) == 0);
+        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_enable])) == 0);
         EXPECT_TRUE((pin_values & (1 << 5)));
         EXPECT_TRUE((pin_values & (1 << 3)));
         // Confirm the requests match as expected
-        EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIdx]);
+        EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIndex]);
         // Confirm the last mux request changed
         EXPECT_TRUE(this->component.m_lastMuxRequest == this->component.m_curRequest);
     }
 
     // Go to next request
     printf("Testing MUX index 1, pin 5, port A\n");
-    this->component.m_requestIdx.fetch_add(1);
-    EXPECT_TRUE(this->component.m_requestIdx == 1);
+    this->component.m_requestIndex.fetch_add(1);
+    EXPECT_TRUE(this->component.m_requestIndex == 1);
     this->component.startReadInner();
     {
         // Get the mux enable gpio port
@@ -204,22 +204,22 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         U32 pin_values = read_gpio_dataout(three_mux_pin_config.gpio_port.get_gpio_port());
         printf("pin values 0x%08x\n", pin_values);
         // For the current request get the enable channel pin, in this case request index 0 uses mux enable 0
-        U32 req_mux_ena = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
-        printf("Mux enable pin %d\n", req_mux_ena);
+        U32 req_mux_enable = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
+        printf("Mux enable pin %d\n", req_mux_enable);
         // Confirm that only a single mux is enabled (0) and all others are 1
-        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_ena])) == 0);
+        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_enable])) == 0);
         EXPECT_TRUE((pin_values & (1 << 1)));
         EXPECT_TRUE((pin_values & (1 << 3)));
         // Confirm the requests match as expected
-        EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIdx]);
+        EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIndex]);
         // Confirm the last mux request changed
         EXPECT_TRUE(this->component.m_lastMuxRequest == this->component.m_curRequest);
     }
 
     // Go to next request
     printf("Testing MUX index 2, pin 3, port A\n");
-    this->component.m_requestIdx.fetch_add(1);
-    EXPECT_TRUE(this->component.m_requestIdx == 2);
+    this->component.m_requestIndex.fetch_add(1);
+    EXPECT_TRUE(this->component.m_requestIndex == 2);
     this->component.startReadInner();
     {
         // Get the mux enable gpio port
@@ -228,14 +228,14 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         U32 pin_values = read_gpio_dataout(three_mux_pin_config.gpio_port.get_gpio_port());
         printf("pin values 0x%08x\n", pin_values);
         // For the current request get the enable channel pin, in this case request index 0 uses mux enable 0
-        U32 req_mux_ena = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
-        printf("Mux enable pin %d\n", req_mux_ena);
+        U32 req_mux_enable = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
+        printf("Mux enable pin %d\n", req_mux_enable);
         // Confirm that only a single mux is enabled (0) and all others are 1
-        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_ena])) == 0);
+        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_enable])) == 0);
         EXPECT_TRUE((pin_values & (1 << 1)));
         EXPECT_TRUE((pin_values & (1 << 5)));
         // Confirm the requests match as expected
-        EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIdx]);
+        EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIndex]);
         // Confirm the last mux request changed
         EXPECT_TRUE(this->component.m_lastMuxRequest == this->component.m_curRequest);
     }
@@ -244,8 +244,8 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
 void AdcSamplerTester ::testStartReadGpioConfiguration() {
     Va416x0Mmio::SysConfig::write_tim_clk_enables(0);
     Va416x0Mmio::SysConfig::write_peripheral_clk_enable(0);
-    for (U32 port_idx = 0; port_idx < Va416x0Mmio::Gpio::NUM_PORTS; ++port_idx) {
-        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(port_idx);
+    for (U32 portIndex = 0; portIndex < Va416x0Mmio::Gpio::NUM_PORTS; ++portIndex) {
+        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(portIndex);
         gpioPort.write_dir(0);
         gpioPort.write_pulse(0);
         gpioPort.write_pulsebase(0);
@@ -260,17 +260,17 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
     this->component.setup(three_mux_pin_config, 0xe0, 20, Va416x0Mmio::Timer(18));
     printf("Testing address indexing\n");
     {
-        for (U32 idx = 0; idx < three_mux_pin_config.num_en_pins; idx++) {
+        for (U32 index = 0; index < three_mux_pin_config.num_en_pins; index++) {
             Va416x0Mmio::Gpio::Port gpioPort =
-                Va416x0Mmio::Gpio::Port(three_mux_pin_config.mux_addr_output[idx].getGpioPortNumber());
+                Va416x0Mmio::Gpio::Port(three_mux_pin_config.mux_addr_output[index].getGpioPortNumber());
             gpioPort.write_dataout(0);
         }
         this->component.startRead_handlerBase(0, 8, three_mux_pin_config_requests, this->m_data);
-        EXPECT_TRUE(this->component.m_requestIdx == 0);
-        for (U32 idx = 0; idx < three_mux_pin_config.num_en_pins; idx++) {
-            U32 pin_number = three_mux_pin_config.mux_addr_output[idx].getPinNumber();
+        EXPECT_TRUE(this->component.m_requestIndex == 0);
+        for (U32 index = 0; index < three_mux_pin_config.num_en_pins; index++) {
+            U32 pin_number = three_mux_pin_config.mux_addr_output[index].getPinNumber();
 
-            EXPECT_TRUE(read_gpio_dataout(three_mux_pin_config.mux_addr_output[idx].getGpioPortNumber()) &
+            EXPECT_TRUE(read_gpio_dataout(three_mux_pin_config.mux_addr_output[index].getGpioPortNumber()) &
                         static_cast<U32>(1 << pin_number));
         }
     }

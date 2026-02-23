@@ -39,7 +39,7 @@ namespace Va416x0Mmio {
 
 //! Represent a Clock Tree for Va416x0 and provide functions for
 //! - Validate clock tree conforms with frequency ranges in datasheet
-//! - Query periphal clock frequencies
+//! - Query peripheral clock frequencies
 //! - Apply Clock Tree to the ClkGen module
 //! - Static global in ClkTree.cpp holds a ClkTree object that
 //!   matches the current ClkGen peripheral. Allows current clock
@@ -64,10 +64,10 @@ class ClkTree {
     //! - Validates clock tree with FW_ASSERT statements
     //! - Arguments:
     //!   - ext_clk_freq: Frequency for the external XTAL_N oscillator, or 0 if unused
-    //!   - crystal_osc_freq: Frequency for the external XTAL crystal, or 0 if unused
-    //!   - pll_ref_div: PLL Reference clock divder [0,15]
-    //!   - pll_fb_div: PLL Feedback clock divder [0,63]
-    //!   - pll_out_div: PLL Output clock divder [0,15]
+    //!   - crystal_oscillator_freq: Frequency for the external XTAL crystal, or 0 if unused
+    //!   - pll_ref_div: PLL Reference clock divider [0,15]
+    //!   - pll_fb_div: PLL Feedback clock divider [0,63]
+    //!   - pll_out_div: PLL Output clock divider [0,15]
     //!   - pll_lpf_div: PLL Bandwidth adjustment (Low-Pass Filter) [0,63]
     //!   - sysclk_div: Sysclk divider before deriving APB and ADC clocks. 1, 2, 4 or 8
     //!                 Note: Listed as CLK_DIV_SEL in datasheet. Applies to all clock sources
@@ -75,7 +75,7 @@ class ClkTree {
     //!   - pll_src: Clock source of pll input. See PllSource enum
     //!   - adc_clk_div: ADC sampling clock divider. 1, 2, 4 or 8
     static ClkTree createClockTree(const U32 ext_clk_freq,
-                                   const U32 crystal_osc_freq,
+                                   const U32 crystal_oscillator_freq,
                                    const U32 pll_ref_div,
                                    const U32 pll_fb_div,
                                    const U32 pll_out_div,
@@ -86,13 +86,13 @@ class ClkTree {
                                    const U32 adc_clk_div);
 
     //! Factory method to create a ClkTree
-    //! Only use this method if FW_ASSERTS are undesireable. Otherwise
+    //! Only use this method if FW_ASSERTS are undesirable. Otherwise
     //! it is recommended to use "createClockTree"
     //! - Derives the sysclk, apb1/2 and adc sample clock frequencies
     //! - Does not validation on the tree. Does not assert
     //! - See createClockTree for arguments
     static ClkTree createClockTreeUnvalidated(const U32 ext_clk_freq,
-                                              const U32 crystal_osc_freq,
+                                              const U32 crystal_oscillator_freq,
                                               const U32 pll_ref_div,
                                               const U32 pll_fb_div,
                                               const U32 pll_out_div,
@@ -143,7 +143,7 @@ class ClkTree {
   private:
     //! Private constructor
     ClkTree(const U32 ext_clk_freq,
-            const U32 crystal_osc_freq,
+            const U32 crystal_oscillator_freq,
             const U32 pll_ref_div,
             const U32 pll_fb_div,
             const U32 pll_out_div,
@@ -162,7 +162,7 @@ class ClkTree {
     //! Calculate expected sysclk frequency. May be used
     //  at compile time with C++14
     constexpr U32 static calcSysclkFreq(const U32 ext_clk_freq,
-                                        const U32 crystal_osc_freq,
+                                        const U32 crystal_oscillator_freq,
                                         const U32 pll_ref_div,
                                         const U32 pll_fb_div,
                                         const U32 pll_out_div,
@@ -176,7 +176,7 @@ class ClkTree {
                 pll_in_freq = ext_clk_freq;
                 break;
             case PllSource::CRYSTAL_OSC:
-                pll_in_freq = crystal_osc_freq;
+                pll_in_freq = crystal_oscillator_freq;
                 break;
             case PllSource::NONE:
             default:
@@ -197,7 +197,7 @@ class ClkTree {
             case SysclkSource::PLL:
                 return pll_freq / sysclk_div;
             case SysclkSource::CRYSTAL_OSC:
-                return crystal_osc_freq / sysclk_div;
+                return crystal_oscillator_freq / sysclk_div;
             default:
                 return 0;
         }
@@ -206,7 +206,7 @@ class ClkTree {
   private:
     //! Provided input state to ClkTree
     U32 m_ext_clk_freq;
-    U32 m_crystal_osc_freq;
+    U32 m_crystal_oscillator_freq;
     U32 m_pll_ref_div;
     U32 m_pll_fb_div;
     U32 m_pll_out_div;

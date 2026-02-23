@@ -39,7 +39,7 @@ static ClkTree s_activeClkTree =
     ClkTree::createClockTree(0, 0, 0, 0, 0, 0, 1, SysclkSource::HEARTBEAT_OSC, PllSource::NONE, 8);
 
 ClkTree::ClkTree(const U32 ext_clk_freq,
-                 const U32 crystal_osc_freq,
+                 const U32 crystal_oscillator_freq,
                  const U32 pll_ref_div,
                  const U32 pll_fb_div,
                  const U32 pll_out_div,
@@ -49,7 +49,7 @@ ClkTree::ClkTree(const U32 ext_clk_freq,
                  const PllSource pll_src,
                  const U32 adc_clk_div)
     : m_ext_clk_freq(ext_clk_freq),
-      m_crystal_osc_freq(crystal_osc_freq),
+      m_crystal_oscillator_freq(crystal_oscillator_freq),
       m_pll_ref_div(pll_ref_div),
       m_pll_fb_div(pll_fb_div),
       m_pll_out_div(pll_out_div),
@@ -58,7 +58,7 @@ ClkTree::ClkTree(const U32 ext_clk_freq,
       m_sysclk_src(sysclk_src),
       m_pll_src(pll_src),
       m_adc_clk_div(adc_clk_div) {
-    m_sysclk_freq = calcSysclkFreq(ext_clk_freq, crystal_osc_freq, pll_ref_div, pll_fb_div, pll_out_div, pll_lpf_div,
+    m_sysclk_freq = calcSysclkFreq(ext_clk_freq, crystal_oscillator_freq, pll_ref_div, pll_fb_div, pll_out_div, pll_lpf_div,
                                    sysclk_div, sysclk_src, pll_src);
     m_apb1_freq = m_sysclk_freq / 2;
     m_apb2_freq = m_sysclk_freq / 4;
@@ -66,7 +66,7 @@ ClkTree::ClkTree(const U32 ext_clk_freq,
 }
 
 ClkTree ClkTree::createClockTree(const U32 ext_clk_freq,
-                                 const U32 crystal_osc_freq,
+                                 const U32 crystal_oscillator_freq,
                                  const U32 pll_ref_div,
                                  const U32 pll_fb_div,
                                  const U32 pll_out_div,
@@ -75,7 +75,7 @@ ClkTree ClkTree::createClockTree(const U32 ext_clk_freq,
                                  const SysclkSource sysclk_src,
                                  const PllSource pll_src,
                                  const U32 adc_clk_div) {
-    auto ct = ClkTree(ext_clk_freq, crystal_osc_freq, pll_ref_div, pll_fb_div, pll_out_div, pll_lpf_div, sysclk_div,
+    auto ct = ClkTree(ext_clk_freq, crystal_oscillator_freq, pll_ref_div, pll_fb_div, pll_out_div, pll_lpf_div, sysclk_div,
                       sysclk_src, pll_src, adc_clk_div);
 
     ct.assertClkTreeValid();
@@ -84,7 +84,7 @@ ClkTree ClkTree::createClockTree(const U32 ext_clk_freq,
 }
 
 ClkTree ClkTree::createClockTreeUnvalidated(const U32 ext_clk_freq,
-                                            const U32 crystal_osc_freq,
+                                            const U32 crystal_oscillator_freq,
                                             const U32 pll_ref_div,
                                             const U32 pll_fb_div,
                                             const U32 pll_out_div,
@@ -93,7 +93,7 @@ ClkTree ClkTree::createClockTreeUnvalidated(const U32 ext_clk_freq,
                                             const SysclkSource sysclk_src,
                                             const PllSource pll_src,
                                             const U32 adc_clk_div) {
-    auto ct = ClkTree(ext_clk_freq, crystal_osc_freq, pll_ref_div, pll_fb_div, pll_out_div, pll_lpf_div, sysclk_div,
+    auto ct = ClkTree(ext_clk_freq, crystal_oscillator_freq, pll_ref_div, pll_fb_div, pll_out_div, pll_lpf_div, sysclk_div,
                       sysclk_src, pll_src, adc_clk_div);
 
     return ct;
