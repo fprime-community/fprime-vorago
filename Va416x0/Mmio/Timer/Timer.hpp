@@ -53,6 +53,7 @@ class Timer final {
         : timer_address(timer_index_to_address(timer_peripheral_index)),
           timer_peripheral_index(timer_peripheral_index) {}
 
+    static constexpr U32 CTRL_DISABLE = 0;
     static constexpr U32 CTRL_ENABLE = (1 << 0);
     static constexpr U32 CTRL_ACTIVE = (1 << 1);
     static constexpr U32 CTRL_AUTO_DISABLE = (1 << 2);
