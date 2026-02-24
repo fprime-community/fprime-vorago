@@ -227,7 +227,7 @@ void AdcSampler ::adcIrq_handler(FwIndexType portNum) {
 
 Va416x0::AdcSamplerStatus AdcSampler ::checkRead_handler(FwIndexType portNum) {
     return this->m_requestIndex.load() < this->m_numReads ? Va416x0::AdcSamplerStatus::BUSY
-                                                        : Va416x0::AdcSamplerStatus::SUCCESS;
+                                                          : Va416x0::AdcSamplerStatus::SUCCESS;
 }
 bool AdcSampler ::startRead_handler(FwIndexType portNum,
                                     U8 numReads,
