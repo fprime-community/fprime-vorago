@@ -86,7 +86,7 @@ Fw::Success ClkTree::applyClkTree() const {
         //! Set CTRL1 PLL_RESET to 0
         //! Wait an additional 500 divided reference clock cycles
         //! Note: Vorago HAL libraries always enable the PLL_INTFB bit but
-        //!       the programmers manualy doesn't discuss the behavior of this bit
+        //!       the programmers manual doesn't discuss the behavior of this bit
         //!       Can confirm it is necessary for the PLL to lock
 
         ctrl0_base |= (m_pll_src == PllSource::CRYSTAL_OSC ? Va416x0Mmio::ClkGen::CTRL0_REF_CLK_SEL_XTAL_OSC
@@ -170,7 +170,7 @@ Fw::Success ClkTree::applyClkTree() const {
             break;
     }
 
-    //! At this point the sysclock source is guaranteed to be stable.
+    //! At this point the SYSCLK source is guaranteed to be stable.
     //! Enable it
     U32 ctrl0_sysclk_en = ctrl0_base | ctrl0_sysclk_src;
     Va416x0Mmio::ClkGen::write_ctrl0(ctrl0_sysclk_en);

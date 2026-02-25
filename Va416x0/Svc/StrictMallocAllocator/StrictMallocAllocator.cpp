@@ -146,7 +146,7 @@ void StrictMallocAllocator::disableAllocation() {
     this->m_allowAllocation.store(false);
 }
 void StrictMallocAllocator::reportAllocation() {
-    // FIXME: This should be reported in EVRs (IMO. Although on clipper this was a DP or serial output)
+    // FIXME: This should be reported in EVRs (In my opinion. Although on clipper this was a DP or serial output)
     struct mallinfo mi = mallinfo();
     FwSizeType total = 0;
     FwSizeType preReg = this->m_preRegisterAllocation;

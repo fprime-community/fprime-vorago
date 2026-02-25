@@ -79,7 +79,7 @@ __attribute__((no_instrument_function)) void Profiler::disable() {
     // Disable interrupts for the duration of this function to ensure atomicity
     Va416x0Mmio::Lock::CriticalSectionLock lock;
 
-    // Mark the current location with all FFs so the parser knows where to terminate
+    // Mark the current location with all 0xFF's so the parser knows where to terminate
     // First check that there is room for an Event to be written, if the profiler memory region has
     // already been filled (or if the profiler was never enabled), the write pointer will be
     // pointing to the end of the memory region so it cannot be safely written to

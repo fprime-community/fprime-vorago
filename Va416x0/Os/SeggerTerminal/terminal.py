@@ -104,7 +104,7 @@ async def copy_stream_to_stream(
     output: Union[asyncio.StreamWriter, OutputStreamWriter],
 ):
     # When there's a long running JLink command executed by another
-    # program (such as loadbin), the stream read can hang instead of
+    # program (such as loadfile), the stream read can hang instead of
     # accepting new input
     # So use a timeout and keep running the loop until a successful
     # read returns no data

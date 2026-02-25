@@ -94,9 +94,9 @@ U32 read_perid();
 void write_perid(U32 value);
 
 void set_clk_enabled(Timer timer, bool enabled);
-void set_clk_enabled(const ClockedPeripheral& periph, bool enabled);
+void set_clk_enabled(const ClockedPeripheral& peripheral, bool enabled);
 bool get_clk_enabled(Timer timer);
-bool get_clk_enabled(const ClockedPeripheral& periph);
+bool get_clk_enabled(const ClockedPeripheral& peripheral);
 void reset_peripheral(Timer timer);
 void reset_peripheral(const ClockedPeripheral& peripheral);
 
