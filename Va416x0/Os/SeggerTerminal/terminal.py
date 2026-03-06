@@ -158,7 +158,10 @@ class JLinkRTT:
 
     def _sync_connect_to_daemon(self):
         # Establish TCP connection to J-Link daemon via 127.0.0.1:19020
-        self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
+        try:
+            self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
+        except jlinksdk.JLinkError:
+            pass 
 
     def _sync_connect_to_target(self):
         print(f"Connect JLink with speed {self.speed}")
