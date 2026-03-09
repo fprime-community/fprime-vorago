@@ -94,7 +94,7 @@ TimerRawTime::Status TimerRawTime::now() {
 
         // Note: In this case the timer reading is a few cycles behind
         // the first read. Future work could apply a fixed offset to this
-        // time to correct for the offset. Tests using the implmentation
+        // time to correct for the offset. Tests using the implementation
         // test suggest this should be a constant 14 APB1 cycles
     } else {
         return OTHER_ERROR;
@@ -105,7 +105,7 @@ TimerRawTime::Status TimerRawTime::now() {
         return OTHER_ERROR;
     }
 
-    // Timers are downcounters. Invert the values because
+    // Timers are down counters. Invert the values because
     // up counters are easier to work with;
     const U32 hi = s_timer_hi_reset - hi_raw;
     const U32 lo = s_timer_lo_reset - lo_raw;
@@ -138,7 +138,7 @@ TimerRawTime::Status TimerRawTime::getTimeIntervalInternal(const TimerRawTimeHan
     const U32 timer_hz = Va416x0Mmio::ClkTree::getActiveTimerFreq(Va416x0Mmio::Timer(s_timer_lo));
     FW_ASSERT(timer_hz != 0, timer_hz);
 
-    // Calculate seconds directly from the sysclock hz value
+    // Calculate seconds directly from the timer rate
     // Try to use U32 value
     U32 delta_s;
     U32 delta_s_rem;
@@ -155,8 +155,8 @@ TimerRawTime::Status TimerRawTime::getTimeIntervalInternal(const TimerRawTimeHan
         // __aeabi_uldivmod because armv7-m doesn't support 64-bit division instructions
 
         // Note: Should be possible to beat the performance of __aeabi_uldivmod and
-        // use mdiv instructions to divide a U64 by a U32 using long division.
-        // Howeever writing this is outside the scope of this module for now
+        // use udiv instructions to divide a U64 by a U32 using long division.
+        // However writing this is outside the scope of this module for now
         const U64 delta_s_64 = delta_tick / timer_hz;
         const U64 delta_s_rem_64 = delta_tick % timer_hz;
 
@@ -189,9 +189,9 @@ TimerRawTime::Status TimerRawTime::getTimeIntervalInternal(const TimerRawTimeHan
         // Note: Consider an integer based version of this calculation.
         // Would need to determine numerator and denominator values for
         // a given clock frequency.
-        // eg. delta_us = (subsec * numerator) / denominator
-        const F32 subsec = static_cast<F32>(delta_s_rem) / timer_hz;
-        delta_us = subsec * (1000.F * 1000.F);
+        // eg. delta_us = (subseconds * numerator) / denominator
+        const F32 subseconds = static_cast<F32>(delta_s_rem) / timer_hz;
+        delta_us = subseconds * (1000.F * 1000.F);
     }
     if (delta_us >= (1000 * 1000)) {
         // Round us down to below 1 s

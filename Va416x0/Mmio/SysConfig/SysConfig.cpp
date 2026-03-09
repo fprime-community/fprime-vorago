@@ -348,8 +348,8 @@ void set_clk_enabled(Timer timer, bool enabled) {
     }
 }
 
-void set_clk_enabled(const ClockedPeripheral& periph, bool enabled) {
-    U32 bit = 1 << periph.peripheral_index;
+void set_clk_enabled(const ClockedPeripheral& peripheral, bool enabled) {
+    U32 bit = 1 << peripheral.peripheral_index;
     if (enabled) {
         write_peripheral_clk_enable(read_peripheral_clk_enable() | bit);
     } else {
@@ -362,8 +362,8 @@ bool get_clk_enabled(Timer timer) {
     return (read_tim_clk_enables() & bit) != 0;
 }
 
-bool get_clk_enabled(const ClockedPeripheral& periph) {
-    U32 bit = 1 << periph.peripheral_index;
+bool get_clk_enabled(const ClockedPeripheral& peripheral) {
+    U32 bit = 1 << peripheral.peripheral_index;
     return (read_peripheral_clk_enable() & bit) != 0;
 }
 
@@ -375,8 +375,8 @@ void reset_peripheral(Timer timer) {
     write_tim_resets(~0);
 }
 
-void reset_peripheral(const ClockedPeripheral& periph) {
-    U32 bit = 1 << periph.peripheral_index;
+void reset_peripheral(const ClockedPeripheral& peripheral) {
+    U32 bit = 1 << peripheral.peripheral_index;
     // Set this bit low, but everything else high.
     write_peripheral_reset(~bit);
     // Set this bit high.

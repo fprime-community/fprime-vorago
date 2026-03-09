@@ -57,7 +57,7 @@ constexpr Va416x0Mmio::PllSource::T PLL_SOURCE = Va416x0Mmio::PllSource::NONE;
 //! ADC clock divider. Set to 1, 2, 4 or 8
 //! ADC clock limits 2.5 MHz - 12.5 MHz
 //! Note: Vorago HAL says /1 and /2 have issues with
-//! triggering in REVA silicon
+//! triggering in Revision A silicon
 constexpr U32 ADC_CLK_DIV = 8;
 }  // namespace Cfg
 }  // namespace StaticClkTree

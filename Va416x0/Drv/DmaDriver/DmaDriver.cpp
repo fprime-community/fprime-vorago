@@ -177,16 +177,16 @@ U32 DmaDriver::stop_dma_transaction_handler(FwIndexType channel) {
     }
 }
 
-U32 DmaDriver::build_channel_cfg(const DmaTransaction& txn) {
+U32 DmaDriver::build_channel_cfg(const DmaTransaction& transaction) {
     // Make sure that the transfer count fits within the designated field.
-    FW_ASSERT(((txn.get_transfer_count() - 1) &
+    FW_ASSERT(((transaction.get_transfer_count() - 1) &
                ~(DmaControlStructure::TRANSFERS_PER_CYCLE_MASK >> DmaControlStructure::TRANSFERS_PER_CYCLE_SHIFT)) == 0,
-              txn.get_transfer_count());
+              transaction.get_transfer_count());
     // FIXME: Should the arbitration count be configured?
     U32 channel_cfg = DmaControlStructure::CYCLE_BASIC | DmaControlStructure::ARBITRATE_AFTER_1_TRANSFER |
-                      (((txn.get_transfer_count() - 1) << DmaControlStructure::TRANSFERS_PER_CYCLE_SHIFT) &
+                      (((transaction.get_transfer_count() - 1) << DmaControlStructure::TRANSFERS_PER_CYCLE_SHIFT) &
                        DmaControlStructure::TRANSFERS_PER_CYCLE_MASK);
-    switch (txn.get_source_increment()) {
+    switch (transaction.get_source_increment()) {
         case DmaIncrement::INC_NONE:
             channel_cfg |= DmaControlStructure::SRC_INCREMENT_NONE;
             break;
@@ -200,9 +200,9 @@ U32 DmaDriver::build_channel_cfg(const DmaTransaction& txn) {
             channel_cfg |= DmaControlStructure::SRC_INCREMENT_U32;
             break;
         default:
-            FW_ASSERT(false, txn.get_source_increment());
+            FW_ASSERT(false, transaction.get_source_increment());
     }
-    switch (txn.get_destination_increment()) {
+    switch (transaction.get_destination_increment()) {
         case DmaIncrement::INC_NONE:
             channel_cfg |= DmaControlStructure::DST_INCREMENT_NONE;
             break;
@@ -216,9 +216,9 @@ U32 DmaDriver::build_channel_cfg(const DmaTransaction& txn) {
             channel_cfg |= DmaControlStructure::DST_INCREMENT_U32;
             break;
         default:
-            FW_ASSERT(false, txn.get_destination_increment());
+            FW_ASSERT(false, transaction.get_destination_increment());
     }
-    switch (txn.get_transfer_size()) {
+    switch (transaction.get_transfer_size()) {
         case DmaTransferSize::TXFR_U8:
             channel_cfg |= DmaControlStructure::DATA_SIZE_U8;
             break;
@@ -229,7 +229,7 @@ U32 DmaDriver::build_channel_cfg(const DmaTransaction& txn) {
             channel_cfg |= DmaControlStructure::DATA_SIZE_U32;
             break;
         default:
-            FW_ASSERT(false, txn.get_transfer_size());
+            FW_ASSERT(false, transaction.get_transfer_size());
     }
     return channel_cfg;
 }
@@ -262,16 +262,16 @@ U32 DmaDriver::get_transfer_size(const DmaTransferSize& transfer_size) {
     }
 }
 
-U32 DmaDriver::calc_transaction_src_ptr(const DmaTransaction& txn, U32 index) {
-    FW_ASSERT(index < txn.get_transfer_count());
-    U32 source_stride = get_increment_offset(txn.get_source_increment());
-    return txn.get_source_address() + source_stride * index;
+U32 DmaDriver::calc_transaction_src_ptr(const DmaTransaction& transaction, U32 index) {
+    FW_ASSERT(index < transaction.get_transfer_count());
+    U32 source_stride = get_increment_offset(transaction.get_source_increment());
+    return transaction.get_source_address() + source_stride * index;
 }
 
-U32 DmaDriver::calc_transaction_dst_ptr(const DmaTransaction& txn, U32 index) {
-    FW_ASSERT(index < txn.get_transfer_count());
-    U32 dest_stride = get_increment_offset(txn.get_destination_increment());
-    return txn.get_destination_address() + dest_stride * index;
+U32 DmaDriver::calc_transaction_dst_ptr(const DmaTransaction& transaction, U32 index) {
+    FW_ASSERT(index < transaction.get_transfer_count());
+    U32 dest_stride = get_increment_offset(transaction.get_destination_increment());
+    return transaction.get_destination_address() + dest_stride * index;
 }
 
 }  // namespace Va416x0Drv

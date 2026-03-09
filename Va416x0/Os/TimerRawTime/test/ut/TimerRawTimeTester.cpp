@@ -92,7 +92,7 @@ TEST_F(TimerRawTimeTest, Retries) {
     /// Tests of nominal timer counts, where reads
     /// of timer hi are different, but valid
 
-    // Overflow occurs with lo having just rolled over. Use the b value
+    // Overflow occurs with lo having just rolled over. Use the B value
     pushTimerRawTimeCounts(TIMER_HI_RESET, TIMER_HI_RESET - 1, TIMER_HI_RESET - 1, TIMER_LO_RESET - 1,
                            TIMER_LO_RESET - 9);
     ok = raw_timer.now();
@@ -100,14 +100,14 @@ TEST_F(TimerRawTimeTest, Retries) {
     ASSERT_EQ(raw_timer.getRawTicks(), 0x100000009);
     ASSERT_EQ(getCountsQSize(), 0);
 
-    // Overflow occurs with lo about to roll over, use the a value
+    // Overflow occurs with lo about to roll over, use the A value
     pushTimerRawTimeCounts(TIMER_HI_RESET, TIMER_HI_RESET - 1, TIMER_HI_RESET - 1, 1, TIMER_LO_RESET - 1);
     ok = raw_timer.now();
     ASSERT_EQ(ok, TimerRawTime::Status::OP_OK);
     ASSERT_EQ(raw_timer.getRawTicks(), 0x100000001);
     ASSERT_EQ(getCountsQSize(), 0);
 
-    // Overflow occurs with lo about to roll over, use the a value
+    // Overflow occurs with lo about to roll over, use the A value
     // TODO: Confirm on the Vorago that this is the configuration
     // on rollover.
     pushTimerRawTimeCounts(TIMER_HI_RESET, TIMER_HI_RESET - 1, TIMER_HI_RESET - 1, 0, TIMER_LO_RESET - 5);

@@ -124,7 +124,7 @@ def get_build_identifier(project_root: str) -> str:
         # if some characters are truncated) is identification _enough_
         # The goal is to make life easier for developers, because GIT branch
         # names are often long enough that the build ID exceeds
-        # BUILD_ID_MAX_LEN. Fatal'ing on that requires either developers rename
+        # BUILD_ID_MAX_LEN. Fataling on that requires either developers rename
         # the branches (and loose information there) or set the build ID via
         # environment variable (which also results in loss of information)
         date = get_date()

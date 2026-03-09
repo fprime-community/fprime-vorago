@@ -26,7 +26,7 @@ You will need to be running a JLink Remote Server accessible via port 19020 on 1
 
 Note that, currently, the communication adapter assumes that you are using a SeggerByteStream on Channel 1. Output from Channel 0 is interpreted as stdio and logged to `comm.py.log`, which can be viewed from the F Prime webapp.
 
-Also note that the very first events received over the communication interface may not be shown, because the GDS webpage does not load instantly, and it does not show any events that appeared before it loaded.
+Also note that the very first events received over the communication interface may not be shown, because the GDS web page does not load instantly, and it does not show any events that appeared before it loaded.
 We have a workaround available at https://github.com/nasa/fprime-gds/commit/059e848748cccce63c8f319f481f1fdc9cdbab1a, but you will have to manually install it.
 
 ### Diagrams

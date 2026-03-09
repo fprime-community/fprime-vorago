@@ -51,11 +51,11 @@ class DmaDriver final : public DmaDriverComponentBase {
     // No need for synchronization; each bool is only accessed by a single ISR!
     bool currently_executing[Va416x0Types::NUM_DMA_CHANNELS];
 
-    static U32 build_channel_cfg(const DmaTransaction& txn);
+    static U32 build_channel_cfg(const DmaTransaction& transaction);
     static U32 get_increment_offset(const DmaIncrement& increment);
     static U32 get_transfer_size(const DmaTransferSize& transfer_size);
-    static U32 calc_transaction_src_ptr(const DmaTransaction& txn, U32 index);
-    static U32 calc_transaction_dst_ptr(const DmaTransaction& txn, U32 index);
+    static U32 calc_transaction_src_ptr(const DmaTransaction& transaction, U32 index);
+    static U32 calc_transaction_dst_ptr(const DmaTransaction& transaction, U32 index);
 };
 
 }  // namespace Va416x0Drv

@@ -32,7 +32,7 @@ namespace StaticClkTree {
 
 //! Validate a ClkTree structure at compile-time
 //! Usage:
-//! - Define comptime parameters that define the clock tree
+//! - Define compile-time parameters that define the clock tree
 //! - Instantiate a ClkTree object named "g_staticClkTree"
 //!   This object must be initialized with "buildStaticClockTree"
 //!   ie. static ClkTree g_staticClkTree = buildStaticClockTree();
@@ -75,8 +75,8 @@ static_assert(Cfg::SYSCLK_SOURCE != SysclkSource::PLL ? Cfg::PLL_SOURCE == PllSo
 //! Derive static clock frequencies. Intended for use
 //! with the below static_asserts. Recommended to query the
 //! active clock tree at runtime to get clock frequencies.
-//! However, these definitions may be used in comptime version
-//! of these constants are required
+//! However, these definitions may be used in compile-time
+//! version of these constants.
 constexpr U32 STATIC_SYSCLK_FREQ = ClkTree::calcSysclkFreq(Cfg::EXT_CLK_FREQ,
                                                            Cfg::CRYSTAL_OSC_FREQ,
                                                            Cfg::PLL_REF_DIV,
@@ -97,8 +97,8 @@ static_assert(STATIC_SYSCLK_FREQ >= (2500 * 1000), "Sysclk frequence below minim
 static_assert(STATIC_SYSCLK_FREQ <= (100 * 1000 * 1000), "Sysclk frequency above maximum value");
 
 //! Confirm ADC clock frequency is between 2.5 MHz and 12.5 MHz
-static_assert(STATIC_ADC_SAMPLE_FREQ >= (2500 * 1000), "Adcclk frequency low. Must be between 2.5 MHz and 12.5 MHz");
-static_assert(STATIC_ADC_SAMPLE_FREQ <= (12500 * 1000), "Adcclk frequency high. Must be between 2.5 MHz and 12.5 MHz");
+static_assert(STATIC_ADC_SAMPLE_FREQ >= (2500 * 1000), "ADCCLK frequency low. Must be between 2.5 MHz and 12.5 MHz");
+static_assert(STATIC_ADC_SAMPLE_FREQ <= (12500 * 1000), "ADCCLK frequency high. Must be between 2.5 MHz and 12.5 MHz");
 
 }  // namespace StaticClkTree
 }  // namespace Va416x0Mmio

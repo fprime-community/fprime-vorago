@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef TYPES_STRICTMALLOCALLOCATOR_HPP_
-#define TYPES_STRICTMALLOCALLOCATOR_HPP_
+#ifndef Va416x0_Svc_StrictMallocAllocator_HPP
+#define Va416x0_Svc_StrictMallocAllocator_HPP
 
 #include <Fw/FPrimeBasicTypes.hpp>
 #include <Fw/Types/MemAllocator.hpp>
@@ -101,4 +101,4 @@ class StrictMallocAllocator : public Fw::MemAllocator {
 
 } /* namespace Va416x0Svc */
 
-#endif /* TYPES_STRICTMALLOCALLOCATOR_HPP_ */
+#endif /* Va416x0_Svc_StrictMallocAllocator_HPP */

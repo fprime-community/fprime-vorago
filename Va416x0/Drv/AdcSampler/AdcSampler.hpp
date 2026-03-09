@@ -112,9 +112,9 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! \brief Pointer to struct to store the results from the m_pRequests
     Va416x0::AdcData* m_pData;
     //! \brief Index of the current read request
-    std::atomic<U32> m_requestIdx;
+    std::atomic<U32> m_requestIndex;
     //! \brief Index to store data into when current read completes
-    U32 m_dataIdx;
+    U32 m_dataIndex;
     //! \brief The timer delay in timer ticks before triggering the adc conversion
     U32 m_adcDelayTicks;
     //! \brief Timer used to perform the sampling delay

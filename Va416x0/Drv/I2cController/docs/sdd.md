@@ -57,7 +57,7 @@ Assuming the I2C bus is operating at 400KHz, Vorago System Clock is 80Mhz, and t
  * Send 8-bit Register Address - 8 ticks
  * Send 8-bit Write data 1 - 8 ticks
  * Send 8-bit Write data 2 - 8 ticks
- * Acks on all byte sends - 4 ticks
+ * Acknowledgements on all byte sends - 4 ticks
 
 That amounts to 36 SCL ticks or 3600 40MHz ticks (90us).
 

@@ -79,7 +79,7 @@ AdcSampler ::AdcSampler(const char* const compName) : AdcSamplerComponentBase(co
     this->m_pData = nullptr;
     this->m_curRequest = 0;
     this->m_numReads = 0;
-    this->m_requestIdx.store(0);
+    this->m_requestIndex.store(0);
     this->m_adcDelayTicks = 0;
 }
 
@@ -176,7 +176,7 @@ void AdcSampler ::setup(AdcConfig& config,
 }
 
 U32 AdcSampler ::getNumDataValues_handler(FwIndexType portNum) {
-    return this->m_numReads == 0 ? 0 : this->m_dataIdx + 1;
+    return this->m_numReads == 0 ? 0 : this->m_dataIndex + 1;
 }
 // ----------------------------------------------------------------------
 // Handler implementations for typed input ports
@@ -198,36 +198,36 @@ void AdcSampler ::adcIrq_handler(FwIndexType portNum) {
 
     // If reading a single channel multiple times,
     if (REQ_GET_IS_SWEEP(this->m_curRequest) == 0 && this->m_curCnt > 0) {
-        FW_ASSERT((this->m_dataIdx) < this->m_pData->SIZE, this->m_requestIdx.load(), this->m_curRequest,
-                  this->m_dataIdx, this->m_curCnt);
+        FW_ASSERT((this->m_dataIndex) < this->m_pData->SIZE, this->m_requestIndex.load(), this->m_curRequest,
+                  this->m_dataIndex, this->m_curCnt);
         // Sum up all the values & then store that sum in data[i]
         U32 sum = 0;
         for (U32 n = 0; n < (this->m_curCnt + 1); n++) {
             sum += Va416x0Mmio::Adc::read_fifo_data();
         }
-        (*this->m_pData)[this->m_dataIdx] = sum;
-        this->m_dataIdx += 1;
+        (*this->m_pData)[this->m_dataIndex] = sum;
+        this->m_dataIndex += 1;
         // Otherwise, handle a sweep read OR a 1 time read of a single channel
     } else {
-        FW_ASSERT((this->m_dataIdx + this->m_curCnt) < this->m_pData->SIZE, this->m_requestIdx.load(),
-                  this->m_curRequest, this->m_dataIdx, this->m_curCnt);
+        FW_ASSERT((this->m_dataIndex + this->m_curCnt) < this->m_pData->SIZE, this->m_requestIndex.load(),
+                  this->m_curRequest, this->m_dataIndex, this->m_curCnt);
         for (U32 n = 0; n < (this->m_curCnt + 1); n++) {
-            (*this->m_pData)[this->m_dataIdx] = Va416x0Mmio::Adc::read_fifo_data();
-            this->m_dataIdx++;
+            (*this->m_pData)[this->m_dataIndex] = Va416x0Mmio::Adc::read_fifo_data();
+            this->m_dataIndex++;
         }
     }
-    this->m_requestIdx.fetch_add(1);
+    this->m_requestIndex.fetch_add(1);
     // Start the next read if available
-    if (this->m_requestIdx.load() < this->m_numReads) {
+    if (this->m_requestIndex.load() < this->m_numReads) {
         this->startReadInner();
     } else {
-        FW_ASSERT(this->m_requestIdx.load() == this->m_numReads, this->m_requestIdx.load(), this->m_numReads);
+        FW_ASSERT(this->m_requestIndex.load() == this->m_numReads, this->m_requestIndex.load(), this->m_numReads);
     }
 }
 
 Va416x0::AdcSamplerStatus AdcSampler ::checkRead_handler(FwIndexType portNum) {
-    return this->m_requestIdx.load() < this->m_numReads ? Va416x0::AdcSamplerStatus::BUSY
-                                                        : Va416x0::AdcSamplerStatus::SUCCESS;
+    return this->m_requestIndex.load() < this->m_numReads ? Va416x0::AdcSamplerStatus::BUSY
+                                                          : Va416x0::AdcSamplerStatus::SUCCESS;
 }
 bool AdcSampler ::startRead_handler(FwIndexType portNum,
                                     U8 numReads,
@@ -239,8 +239,8 @@ bool AdcSampler ::startRead_handler(FwIndexType portNum,
     this->m_pRequests = &requests;
     this->m_pData = &data;
     this->m_numReads = numReads;
-    this->m_requestIdx.store(0);
-    this->m_dataIdx = 0;
+    this->m_requestIndex.store(0);
+    this->m_dataIndex = 0;
     // FIXME: There's a potential issue here if we get a spurious interrupt before the call to startReadInner
     this->startReadInner();
 
@@ -250,11 +250,11 @@ bool AdcSampler ::startRead_handler(FwIndexType portNum,
 void AdcSampler ::startReadInner() {
     // asserts are low cost compared to the register read/write and adds safety, so leave in
     FW_ASSERT(
-        this->m_pRequests != nullptr && this->m_numReads > 0 && this->m_requestIdx.load() < this->m_pRequests->SIZE,
+        this->m_pRequests != nullptr && this->m_numReads > 0 && this->m_requestIndex.load() < this->m_pRequests->SIZE,
         this->m_numReads);
-    this->m_curRequest = (*this->m_pRequests)[this->m_requestIdx];
+    this->m_curRequest = (*this->m_pRequests)[this->m_requestIndex];
     this->m_curCnt = REQ_GET_CNT(this->m_curRequest);
-    FW_ASSERT(this->m_curRequest != 0, this->m_curRequest, this->m_requestIdx.load(), this->m_numReads);
+    FW_ASSERT(this->m_curRequest != 0, this->m_curRequest, this->m_requestIndex.load(), this->m_numReads);
 
     // Handle MUX setup
     U8 cur_mux_en_index = REQ_GET_MUX_ENABLE(this->m_curRequest);
@@ -287,7 +287,7 @@ void AdcSampler ::startReadInner() {
     if (REQ_GET_IS_MUX(this->m_curRequest)) {
         // NOTE: This only works as expected if all MUX enable pins come from the same GPIO port group.
         // Otherwise this logic should be updated to first disable the previous MUX, then enable the next MUX,
-        // and then calulate the other pins to be set for the address pins.
+        // and then calculate the other pins to be set for the address pins.
         for (U32 i = 0; i < Va416x0Mmio::Gpio::NUM_PORTS; i++) {
             Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(i);
             U32 pin_values = this->calculateGpioPinsValue(this->m_curRequest, gpioPort.get_gpio_port());

@@ -98,7 +98,7 @@ void Os::Test::RawTime::assert_and_update_now(const Os::RawTime& raw_time_under_
     shadow_time = std::chrono::system_clock::time_point(
         std::chrono::duration_cast<std::chrono::system_clock::duration>(duration));
     if (UT_DEBUG_OUTPUT) {
-        printf("assert_and_update_now: mval = %lu (elapsed: %lu, sec %ld (%d), nsec %ld) & shadow ns = %ld\n",
+        printf("assert_and_update_now: m_val = %lu (elapsed: %lu, sec %ld (%d), nsec %ld) & shadow ns = %ld\n",
                timespec_handle->m_val, rt_elapsed, rt_sec, rt_sec > std::numeric_limits<U32>::max(), rt_nano,
                std::chrono::duration_cast<std::chrono::microseconds>(shadow_time.time_since_epoch()).count());
     }
@@ -129,7 +129,7 @@ void TimerRawTime::clearConfiguration() {
     }
 }
 
-// Set the counter values to retun in readRawCounts to support
+// Set the counter values to return in readRawCounts to support
 // unit testing of TimerRawTime
 void pushTimerRawTimeCounts(const U32 hi_a, const U32 hi_b, const U32 hi_c, const U32 lo_a, const U32 lo_b) {
     TimerCounts t = {hi_a, hi_b, hi_c, lo_a, lo_b};
