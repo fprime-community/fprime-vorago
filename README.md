@@ -17,7 +17,7 @@ This project relies on [a Clang/LLVM ARM Toolchain specialized for the VA41630][
  [4]: https://github.com/fprime-community/llvm-vorago-arm-toolchain
 
 We suggest building a development container for your project based on the
-following prebuilt image:
+following pre-built image:
 
     FROM ghcr.io/fprime-community/llvm-vorago-arm-toolchain:lvat-20.1.0.0
 
