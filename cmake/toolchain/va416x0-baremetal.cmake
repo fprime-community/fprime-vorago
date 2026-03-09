@@ -19,8 +19,8 @@ set(FPRIME_PLATFORM va416x0-baremetal)
 set(CMAKE_SYSTEM_PROCESSOR armv7l)
 
 # This toolchain file is intended to be used with the toolchain available from:
-#   https://github.com/arm/arm-toolchain/tree/arm-software/arm-software/embedded
-# Specifically release-20.1.0-ATfE
+#   https://github.com/fprime-community/llvm-vorago-arm-toolchain
+# See README.md for suggested development container.
 set(CMAKE_C_COMPILER clang-20)
 set(CMAKE_CXX_COMPILER clang-20)
 set(CMAKE_ASM_COMPILER clang-20)
