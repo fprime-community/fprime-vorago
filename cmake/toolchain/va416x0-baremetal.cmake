@@ -33,9 +33,13 @@ set(CMAKE_ASM_COMPILER_WORKS 1)
 
 set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
 
+if (NOT DEFINED VA416X0_MCPU)
+    set(VA416X0_MCPU "cortex-m4")
+endif()
+
 set(VA416X0_COMMON_FLAGS "\
     --target=thumbv7m-unknown-none-eabi \
-    -mcpu=cortex-m4 \
+    -mcpu=${VA416X0_MCPU} \
     -mthumb \
     -ggdb3 \
     -mfpu=fpv4-sp-d16 \
