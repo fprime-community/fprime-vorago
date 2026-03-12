@@ -221,8 +221,8 @@ movt
 msr
 mthumb
 MTXPAUSE
-MUXes
 muxes
+MUXes
 mvfr
 NACKADDR
 NACKDATA
@@ -232,6 +232,7 @@ NOLOAD
 nop
 norelro
 nostartfiles
+nostrb
 nothrow
 nvic
 NVM
@@ -348,6 +349,7 @@ stdint
 stdio
 stdlib
 STest
+strb
 STREQUAL
 strftime
 strncpy
