@@ -33,6 +33,8 @@ set(CMAKE_ASM_COMPILER_WORKS 1)
 
 set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
 
+# Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
+# additional compiler features.
 if (NOT DEFINED VA416X0_MCPU)
     set(VA416X0_MCPU "cortex-m4")
 endif()
