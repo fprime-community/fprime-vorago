@@ -29,6 +29,7 @@ import Va416x0.Os.SeggerTerminal.config as config
 
 try:
     import jlinksdk
+    from jlinksdk import JLinkError
 except ImportError:
     print("\033[31m", file=sys.stderr)
     print(
@@ -158,10 +159,7 @@ class JLinkRTT:
 
     def _sync_connect_to_daemon(self):
         # Establish TCP connection to J-Link daemon via 127.0.0.1:19020
-        try:
-            self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
-        except jlinksdk.JLinkError:
-            pass 
+        self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
 
     def _sync_connect_to_target(self):
         print(f"Connect JLink with speed {self.speed}")
