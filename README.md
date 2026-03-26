@@ -9,3 +9,17 @@ This repository is maintained by a development group within JPL. Contact [Cel Sk
  [3]: mailto:cel.a.skeggs@jpl.nasa.gov
 
 Documentation may be available from the vendor. Check with your organization to see if you already have a copy of the documentation.
+
+## Development Container
+
+This project relies on [a Clang/LLVM ARM Toolchain specialized for the VA41630][4];
+
+ [4]: https://github.com/fprime-community/llvm-vorago-arm-toolchain
+
+We suggest building a development container for your project based on the
+following pre-built image:
+
+    FROM ghcr.io/fprime-community/llvm-vorago-arm-toolchain:lvat-20.1.0.0
+
+(If you do not need any additional software beyond what is already contained in
+this image, you can use it directly.)

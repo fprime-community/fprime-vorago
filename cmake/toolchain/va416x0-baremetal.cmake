@@ -19,8 +19,8 @@ set(FPRIME_PLATFORM va416x0-baremetal)
 set(CMAKE_SYSTEM_PROCESSOR armv7l)
 
 # This toolchain file is intended to be used with the toolchain available from:
-#   https://github.com/arm/arm-toolchain/tree/arm-software/arm-software/embedded
-# Specifically release-20.1.0-ATfE
+#   https://github.com/fprime-community/llvm-vorago-arm-toolchain
+# See README.md for suggested development container.
 set(CMAKE_C_COMPILER clang-20)
 set(CMAKE_CXX_COMPILER clang-20)
 set(CMAKE_ASM_COMPILER clang-20)
@@ -33,9 +33,15 @@ set(CMAKE_ASM_COMPILER_WORKS 1)
 
 set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
 
+# Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
+# additional compiler features.
+if (NOT DEFINED VA416X0_MCPU)
+    set(VA416X0_MCPU "cortex-m4")
+endif()
+
 set(VA416X0_COMMON_FLAGS "\
     --target=thumbv7m-unknown-none-eabi \
-    -mcpu=cortex-m4 \
+    -mcpu=${VA416X0_MCPU} \
     -mthumb \
     -ggdb3 \
     -mfpu=fpv4-sp-d16 \
