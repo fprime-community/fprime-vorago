@@ -53,14 +53,8 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate deployment build information source files"
     )
-    parser.add_argument(
-        "target",
-        help="Name of the CMake build target"
-    )
-    parser.add_argument(
-        "output_path",
-        help="Output path for the generated CPP file"
-    )
+    parser.add_argument("target", help="Name of the CMake build target")
+    parser.add_argument("output_path", help="Output path for the generated CPP file")
     return parser.parse_args(args)
 
 
@@ -110,8 +104,8 @@ def get_build_identifier(project_root: str) -> str:
     key = "JENKINS_BUILD_ID"
     if key in os.environ:
         value = os.environ[key]
-        # If the version is set by an environment variable, assume the entire 
-        # string is required to uniquely identify the build, and fatal if it 
+        # If the version is set by an environment variable, assume the entire
+        # string is required to uniquely identify the build, and fatal if it
         # would be truncated when reported in GDS
         if len(value) > BUILD_ID_MAX_LEN:
             sys.exit(

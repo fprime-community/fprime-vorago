@@ -437,6 +437,7 @@ wdogvalue
 weaknames
 wfi
 workaround
+workflows
 wsr
 XACT
 xpsr

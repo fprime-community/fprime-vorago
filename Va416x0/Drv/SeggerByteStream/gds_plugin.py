@@ -45,7 +45,7 @@ class SeggerRttAdapter(BaseAdapter):
         self.read_buffer_size = None
 
     def __repr__(self):
-        """ String representation for logging """
+        """String representation for logging"""
         return f"SEGGER-RTT@127.0.0.1"
 
     def stdout_thread_main(self):
@@ -55,7 +55,9 @@ class SeggerRttAdapter(BaseAdapter):
                 line = reader.readline()
                 if not line:
                     break
-                LOGGER.debug("Target: %s", line.rstrip(b"\n").decode('utf-8', 'replace'))
+                LOGGER.debug(
+                    "Target: %s", line.rstrip(b"\n").decode("utf-8", "replace")
+                )
         except JLinkError:
             LOGGER.info("STDOUT stream from target terminated due to JLinkError")
 
@@ -66,20 +68,31 @@ class SeggerRttAdapter(BaseAdapter):
         LOGGER.info("Opening SEGGER RTT connection...")
         self.rtt.open()
 
-        LOGGER.debug("%s", f"Found {len(self.rtt.up_buffers)} up buffers and {len(self.rtt.down_buffers)} down buffers:")
+        LOGGER.debug(
+            "%s",
+            f"Found {len(self.rtt.up_buffers)} up buffers and {len(self.rtt.down_buffers)} down buffers:",
+        )
         for buffer_index, up_buffer in enumerate(self.rtt.up_buffers):
             if up_buffer.SizeOfBuffer:
-                LOGGER.debug("%s", f"   Up Buffer {buffer_index} is named {up_buffer.sName} with size {up_buffer.SizeOfBuffer} and flags {up_buffer.Flags}")
+                LOGGER.debug(
+                    "%s",
+                    f"   Up Buffer {buffer_index} is named {up_buffer.sName} with size {up_buffer.SizeOfBuffer} and flags {up_buffer.Flags}",
+                )
         for buffer_index, down_buffer in enumerate(self.rtt.down_buffers):
             if down_buffer.SizeOfBuffer:
-                LOGGER.debug("%s", f" Down Buffer {buffer_index} is named {down_buffer.sName} with size {down_buffer.SizeOfBuffer} and flags {down_buffer.Flags}")
+                LOGGER.debug(
+                    "%s",
+                    f" Down Buffer {buffer_index} is named {down_buffer.sName} with size {down_buffer.SizeOfBuffer} and flags {down_buffer.Flags}",
+                )
 
         self.stdio_stream = self.rtt.stream_blocking(0)
         self.gds_stream = self.rtt.stream_blocking(1)
         self.read_buffer_size = self.rtt.up_buffers[1].SizeOfBuffer
         assert self.read_buffer_size >= 16
 
-        self.stdout_thread = threading.Thread(target=self.stdout_thread_main, daemon=True)
+        self.stdout_thread = threading.Thread(
+            target=self.stdout_thread_main, daemon=True
+        )
         self.stdout_thread.start()
 
     def close(self):
@@ -122,7 +135,9 @@ class SeggerRttAdapter(BaseAdapter):
         if self.stdout_thread is None:
             self.open()
         try:
-            data = self.gds_stream.read(self.read_buffer_size, timeout_at=time.time() + timeout)
+            data = self.gds_stream.read(
+                self.read_buffer_size, timeout_at=time.time() + timeout
+            )
             if data:
                 return data
         except JLinkError as e:
@@ -141,13 +156,13 @@ class SeggerRttAdapter(BaseAdapter):
 
     @classmethod
     def get_name(cls):
-        """ Get name of the adapter """
+        """Get name of the adapter"""
         return "segger_rtt"
 
     @classmethod
     @gds_plugin_implementation
     def register_communication_plugin(cls):
-        """ Register this as a communication plugin """
+        """Register this as a communication plugin"""
         return cls
 
     @classmethod
