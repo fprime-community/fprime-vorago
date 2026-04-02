@@ -27,6 +27,7 @@ AUTOCTS
 AUTORTS
 AVDD
 awrite
+badstrb
 baremetal
 bfar
 bfd
@@ -185,6 +186,7 @@ LBM
 LCK
 lcxx
 ldr
+ldrexb
 len
 linkonce
 lld
@@ -260,6 +262,7 @@ PORTE
 PORTF
 PORTG
 Posix
+postinit
 preinit
 pri
 primask
@@ -351,6 +354,7 @@ stdlib
 STest
 strb
 STREQUAL
+strexb
 strftime
 strncpy
 STRVR
