@@ -1,6 +1,6 @@
 // ======================================================================
-// \title Os/Stub/Mutex.cpp
-// \brief stub implementation for Os::Mutex
+// \title Va416x0/Os/AtomicMutex/AtomicMutex.cpp
+// \brief atomic stub implementation for Va416x0Os::AtomicMutex::AtomicMutex
 // ======================================================================
 #include "AtomicMutex.hpp"
 #include "Os/Delegate.hpp"

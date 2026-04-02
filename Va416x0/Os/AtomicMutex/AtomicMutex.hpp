@@ -31,7 +31,7 @@ namespace AtomicMutex {
 
 struct AtomicMutexHandle : public Os::MutexHandle {
     //! True if the mutex has been acquired without being released.
-    std::atomic<bool> m_mutex_taken = {false};
+    std::atomic<U16> m_mutex_taken = {false};
 };
 
 //! \brief Nonblocking stub implementation of Os::Mutex
