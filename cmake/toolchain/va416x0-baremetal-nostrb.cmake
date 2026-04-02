@@ -14,11 +14,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Use this CPU to pull in the no-i8-store armv7 feature
+# Use this CPU to pull in the badstrb armv7 feature
 # This feature will disable all 'strb' (i8 writes) and replace them
-# with a compiler_rt function `__store_8_as_16`.
+# with a compiler_rt function `__badstrb_strb`.
 # 
 # This compiler_rt function will use a load/modify/write in 16-bits
 # to operate on the 8-bit memory to work around a chip-level bug.
 set(VA416X0_MCPU "cortex-m4-v41630")
+set(VA416X0_VERIFY_NO_STRB TRUE)
 include("${CMAKE_CURRENT_LIST_DIR}/va416x0-baremetal.cmake")
