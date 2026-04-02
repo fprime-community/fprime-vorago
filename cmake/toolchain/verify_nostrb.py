@@ -39,7 +39,7 @@ for line in sys.stdin:
                 errors.append(f"Found {red('ldrexb')} in '{func_name}'")
 
 if errors:
-    print(red("ERROR") + f" Invalid 8-bit operations in {target_name} detected with badstrb feature:", file=sys.stderr)
+    print(red("ERROR") + f" Illegal 8-bit operations detected in {target_name} with badstrb feature:", file=sys.stderr)
     for err in errors:
         print(red("ERROR") + f"     {err}", file=sys.stderr)
     print(f"INFO: Function whitelist:", file=sys.stderr)
