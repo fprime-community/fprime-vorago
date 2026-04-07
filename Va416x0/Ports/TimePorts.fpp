@@ -1,4 +1,4 @@
-# Copyright 2025 California Institute of Technology
+# Copyright 2026 California Institute of Technology
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,21 +15,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 module Va416x0Svc {
-    constant MAX_CLIENTS = 25
-
-    @ Microsecond-granularity scheduling component
-    passive component Microscheduler {
-
-        sync input port start_scheduler: Fw.Ready
-        output port start_rti: Svc.Sched
-
-        sync input port main_timer_isr: Va416x0Types.ExceptionHandler
-        sync input port proxy_timer_isr: Va416x0Types.ExceptionHandler
-
-        sync input port update_duration: Va416x0Svc.UpdateDuration
-        sync input port getRtiTime: Va416x0Svc.GetRtiTime
-
-        output port client_trigger_isr: [MAX_CLIENTS] Svc.Sched
-
-    }
+    port UpdateDuration(micros: U32)
+    port GetRtiTime() -> Va416x0Types.RtiTime
 }

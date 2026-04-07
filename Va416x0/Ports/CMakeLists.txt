@@ -28,6 +28,7 @@
 
 set(SOURCE_FILES
   "${CMAKE_CURRENT_LIST_DIR}/AdcPorts.fpp"
+  "${CMAKE_CURRENT_LIST_DIR}/TimePorts.fpp"
 )
 
 # Uncomment and add any modules that this component depends on, else
