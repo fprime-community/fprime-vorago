@@ -32,6 +32,7 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 set(CMAKE_ASM_COMPILER_WORKS 1)
 
 set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
+set(SCRIPT_VERIFY_NO_STRB "${CMAKE_CURRENT_LIST_DIR}/verify_nostrb.py")
 
 # Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
 # additional compiler features.
@@ -219,4 +220,29 @@ function(register_with_bsp TARGET_NAME)
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
             "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
     )
+
+    if (VA416X0_VERIFY_NO_STRB)
+        # Define the default set of STRB whitelist
+        if (NOT DEFINED VA416X0_VERIFY_NO_STRB_WHITELIST)
+            set(VA416X0_VERIFY_NO_STRB_WHITELIST
+                # V-table data stored in .text
+                __start___lcxx_override
+
+                # C vector table for initializing arrays
+                __preinit_array_start
+                __postinit_array_start
+                __init_array_start
+            )
+        endif()
+
+        add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
+            # Verify the .text of the objdump does not include illegal instructions
+            COMMAND "${PYTHON}" "${SCRIPT_VERIFY_NO_STRB}"
+                    "$<TARGET_FILE:${TARGET_NAME}>"
+                    --whitelist "\"${VA416X0_VERIFY_NO_STRB_WHITELIST}\""
+                    --name ${TARGET_NAME}
+
+                DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
+        )
+    endif()
 endfunction()
