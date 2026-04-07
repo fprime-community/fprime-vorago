@@ -21,7 +21,7 @@ register_fprime_config(
         "${CMAKE_CURRENT_LIST_DIR}/PlatformTypes.h"
     CHOOSES_IMPLEMENTATIONS
         Os_File_Stub
-        Os_Mutex_Stub
+        Va416x0_Os_AtomicMutex
         Va416x0_Os_IsrSafeQueue
         Va416x0_Os_SeggerConsole
         Os_Task_Baremetal

@@ -1,0 +1,46 @@
+# Based on https://github.com/nasa/fprime/blob/6bdeb5ad05daa39b0eb76b0f74e052a3b0981630/.github/workflows/python-format.yml
+
+name: Format Python
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-22.04
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: "Setup Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: "Install Python Formatter"
+        run: pip install black
+
+      - name: Check formatting
+        run: black --check --diff .
+
+      - name: "Comment on PR in case of Failure"
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Python formatting checks failed on the submitted code. To fix, you can run this command on your branch:\n\n\`\`\`bash\nblack .\n\`\`\``
+            })
