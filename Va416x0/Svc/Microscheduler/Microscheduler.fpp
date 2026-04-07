@@ -26,8 +26,8 @@ module Va416x0Svc {
         sync input port main_timer_isr: Va416x0Types.ExceptionHandler
         sync input port proxy_timer_isr: Va416x0Types.ExceptionHandler
 
-        sync input port update_duration: Va416x0Svc.UpdateDuration
-        sync input port getRtiTime: Va416x0Svc.GetRtiTime
+        sync input port update_duration: UpdateDuration
+        sync input port getRtiTime: GetRtiTime
 
         output port client_trigger_isr: [MAX_CLIENTS] Svc.Sched
 
