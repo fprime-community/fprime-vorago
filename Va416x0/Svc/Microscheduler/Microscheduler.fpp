@@ -17,9 +17,6 @@
 module Va416x0Svc {
     constant MAX_CLIENTS = 25
 
-    port UpdateDuration(micros: U32)
-    port GetRtiTime() -> Va416x0Types.RtiTime
-
     @ Microsecond-granularity scheduling component
     passive component Microscheduler {
 
@@ -29,8 +26,8 @@ module Va416x0Svc {
         sync input port main_timer_isr: Va416x0Types.ExceptionHandler
         sync input port proxy_timer_isr: Va416x0Types.ExceptionHandler
 
-        sync input port update_duration: UpdateDuration
-        sync input port getRtiTime: GetRtiTime
+        sync input port update_duration: Va416x0.UpdateDuration
+        sync input port getRtiTime: Va416x0.GetRtiTime
 
         output port client_trigger_isr: [MAX_CLIENTS] Svc.Sched
 
