@@ -27,6 +27,7 @@ AUTOCTS
 AUTORTS
 AVDD
 awrite
+badstrb
 baremetal
 bfar
 bfd
@@ -185,6 +186,7 @@ LBM
 LCK
 lcxx
 ldr
+ldrexb
 len
 linkonce
 lld
@@ -221,8 +223,8 @@ movt
 msr
 mthumb
 MTXPAUSE
-MUXes
 muxes
+MUXes
 mvfr
 NACKADDR
 NACKDATA
@@ -232,6 +234,7 @@ NOLOAD
 nop
 norelro
 nostartfiles
+nostrb
 nothrow
 nvic
 NVM
@@ -259,6 +262,7 @@ PORTE
 PORTF
 PORTG
 Posix
+postinit
 preinit
 pri
 primask
@@ -348,7 +352,9 @@ stdint
 stdio
 stdlib
 STest
+strb
 STREQUAL
+strexb
 strftime
 strncpy
 STRVR
@@ -435,6 +441,7 @@ wdogvalue
 weaknames
 wfi
 workaround
+workflows
 wsr
 XACT
 xpsr

@@ -1,4 +1,4 @@
-# Copyright 2025 California Institute of Technology
+# Copyright 2026 California Institute of Technology
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +14,23 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/TimerRawTime")
 
-if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/AtomicMutex")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SeggerConsole")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SeggerTerminal")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/MaskingMutex")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/IsrSafeQueue")
-endif ()
+register_fprime_module(
+    Va416x0_Os_AtomicMutex_Implementation
+    SOURCES
+        "${CMAKE_CURRENT_LIST_DIR}/AtomicMutex.cpp"
+    HEADERS
+        "${CMAKE_CURRENT_LIST_DIR}/AtomicMutex.hpp"
+    DEPENDS
+        Os
+        Os_Mutex
+)
+
+register_fprime_implementation(
+        Va416x0_Os_AtomicMutex
+    IMPLEMENTS
+        Os_Mutex
+    INTERFACE
+    DEPENDS
+        Va416x0_Os_AtomicMutex_Implementation
+)

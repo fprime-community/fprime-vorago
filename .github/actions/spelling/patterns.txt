@@ -156,3 +156,6 @@ _I2CIDLE\b
 
 # Image URLs in Markdown
 ^!\[.+\]\([-A-Za-z0-9+&@#/*%?=~_|!:,.;]+[-A-Za-z0-9+&@#/*%=~_|]\)$
+
+# Docker images
+^\s*FROM\s+\S+:\S+(?:\s+AS\s+\S+|)

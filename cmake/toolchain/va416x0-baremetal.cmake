@@ -19,8 +19,8 @@ set(FPRIME_PLATFORM va416x0-baremetal)
 set(CMAKE_SYSTEM_PROCESSOR armv7l)
 
 # This toolchain file is intended to be used with the toolchain available from:
-#   https://github.com/arm/arm-toolchain/tree/arm-software/arm-software/embedded
-# Specifically release-20.1.0-ATfE
+#   https://github.com/fprime-community/llvm-vorago-arm-toolchain
+# See README.md for suggested development container.
 set(CMAKE_C_COMPILER clang-20)
 set(CMAKE_CXX_COMPILER clang-20)
 set(CMAKE_ASM_COMPILER clang-20)
@@ -32,10 +32,17 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 set(CMAKE_ASM_COMPILER_WORKS 1)
 
 set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
+set(SCRIPT_VERIFY_NO_STRB "${CMAKE_CURRENT_LIST_DIR}/verify_nostrb.py")
+
+# Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
+# additional compiler features.
+if (NOT DEFINED VA416X0_MCPU)
+    set(VA416X0_MCPU "cortex-m4")
+endif()
 
 set(VA416X0_COMMON_FLAGS "\
     --target=thumbv7m-unknown-none-eabi \
-    -mcpu=cortex-m4 \
+    -mcpu=${VA416X0_MCPU} \
     -mthumb \
     -ggdb3 \
     -mfpu=fpv4-sp-d16 \
@@ -213,4 +220,29 @@ function(register_with_bsp TARGET_NAME)
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
             "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
     )
+
+    if (VA416X0_VERIFY_NO_STRB)
+        # Define the default set of STRB whitelist
+        if (NOT DEFINED VA416X0_VERIFY_NO_STRB_WHITELIST)
+            set(VA416X0_VERIFY_NO_STRB_WHITELIST
+                # V-table data stored in .text
+                __start___lcxx_override
+
+                # C vector table for initializing arrays
+                __preinit_array_start
+                __postinit_array_start
+                __init_array_start
+            )
+        endif()
+
+        add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
+            # Verify the .text of the objdump does not include illegal instructions
+            COMMAND "${PYTHON}" "${SCRIPT_VERIFY_NO_STRB}"
+                    "$<TARGET_FILE:${TARGET_NAME}>"
+                    --whitelist "\"${VA416X0_VERIFY_NO_STRB_WHITELIST}\""
+                    --name ${TARGET_NAME}
+
+                DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
+        )
+    endif()
 endfunction()

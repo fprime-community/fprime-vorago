@@ -14,12 +14,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/TimerRawTime")
-
-if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/AtomicMutex")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SeggerConsole")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SeggerTerminal")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/MaskingMutex")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/IsrSafeQueue")
-endif ()
+# Use this CPU to pull in the badstrb armv7 feature
+# This feature will disable all 'strb' (i8 writes) and replace them
+# with a compiler_rt function `__badstrb_strb`.
+# 
+# This compiler_rt function will use a load/modify/write in 16-bits
+# to operate on the 8-bit memory to work around a chip-level bug.
+set(VA416X0_MCPU "cortex-m4-v41630")
+set(VA416X0_VERIFY_NO_STRB TRUE)
+include("${CMAKE_CURRENT_LIST_DIR}/va416x0-baremetal.cmake")
