@@ -14,7 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-module Va416x0Svc {
+module Va416x0 {
     port UpdateDuration(micros: U32)
     port GetRtiTime() -> Va416x0Types.RtiTime
 }
