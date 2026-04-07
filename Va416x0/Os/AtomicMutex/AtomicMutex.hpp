@@ -31,6 +31,7 @@ namespace AtomicMutex {
 
 struct AtomicMutexHandle : public Os::MutexHandle {
     //! True if the mutex has been acquired without being released.
+    //! Note: Use `U16` since atomic bool (8-bit) instructions are no supported for `nostrb`
     std::atomic<U16> m_mutex_taken = {false};
 };
 

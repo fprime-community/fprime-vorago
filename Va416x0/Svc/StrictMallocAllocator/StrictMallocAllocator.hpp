@@ -84,6 +84,7 @@ class StrictMallocAllocator : public Fw::MemAllocator {
 
   private:
     //! If False, assert when allocate is called
+    //! Note: Use `U16` since atomic bool (8-bit) instructions are no supported for `nostrb`
     std::atomic<U16> m_allowAllocation;
     //! Length of the allocations array to allocate
     FwEnumStoreType m_numIds;

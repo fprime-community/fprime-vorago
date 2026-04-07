@@ -237,10 +237,10 @@ function(register_with_bsp TARGET_NAME)
 
         add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
             # Verify the .text of the objdump does not include illegal instructions
-            COMMAND arm-none-eabi-objdump -d "$<TARGET_FILE:${TARGET_NAME}>" |
-                "TARGET_NAME=\"${TARGET_NAME}\""
-                "VERIFY_NO_STRB_WHITELIST=\"${VA416X0_VERIFY_NO_STRB_WHITELIST}\""
-                "${PYTHON}" "${SCRIPT_VERIFY_NO_STRB}"
+            COMMAND "${PYTHON}" "${SCRIPT_VERIFY_NO_STRB}"
+                    "$<TARGET_FILE:${TARGET_NAME}>"
+                    --whitelist "\"${VA416X0_VERIFY_NO_STRB_WHITELIST}\""
+                    --name ${TARGET_NAME}
 
                 DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
         )
