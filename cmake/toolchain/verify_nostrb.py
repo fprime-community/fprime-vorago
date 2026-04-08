@@ -87,7 +87,9 @@ def main():
                 continue
 
             # Rule out all instructions within the whitelist
-            if (function_name is None and symbol_name in whitelist) or function_name in whitelist:
+            if (
+                function_name is None and symbol_name in whitelist
+            ) or function_name in whitelist:
                 continue
 
             for i in illegal_instructions:
@@ -118,7 +120,7 @@ def main():
             + f" Illegal 8-bit operations detected in {target_name} with badstrb feature:",
             file=sys.stderr,
         )
-        for (instruction, function_name, symbol_name, location) in errors:
+        for instruction, function_name, symbol_name, location in errors:
             print(red("ERROR") + " Instruction " + red(instruction), file=sys.stderr)
             print(f"INFO     Function '{function_name}'", file=sys.stderr)
             print(f"INFO     Symbol '{symbol_name}'", file=sys.stderr)
