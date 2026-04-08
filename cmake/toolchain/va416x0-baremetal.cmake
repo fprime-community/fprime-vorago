@@ -226,6 +226,10 @@ function(register_with_bsp TARGET_NAME)
         set(VA416X0_VERIFY_NO_STRB_WHITELIST
             ${VA416X0_VERIFY_NO_STRB_WHITELIST}
 
+            # We actually _do_ want 'strb' in 'Va416x0Mmio::Amba::write_u8'
+            # This uses inline assembly to avoid the `badstrb` feature
+            _ZN11Va416x0Mmio4Amba8write_u8Ejh
+
             # V-table data stored in .text
             __start___lcxx_override
 
