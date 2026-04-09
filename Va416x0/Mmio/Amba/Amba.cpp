@@ -31,10 +31,10 @@ U8 read_u8(U32 bus_address) {
 }
 
 void write_u8(U32 bus_address, U8 value) {
-    __asm__ __volatile__("strb %1, [%0]"
-                         :  // No output operands
-                         : "r"(bus_address), "r"(value)
-                         : "memory"  // Clobber memory
+    asm volatile("strb %1, [%0]"
+                 :  // No output operands
+                 : "r"(bus_address), "r"(value)
+                 : "memory"  // Clobber memory
     );
 }
 
