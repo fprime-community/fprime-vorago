@@ -223,17 +223,21 @@ function(register_with_bsp TARGET_NAME)
 
     if (VA416X0_VERIFY_NO_STRB)
         # Define the default set of STRB whitelist
-        if (NOT DEFINED VA416X0_VERIFY_NO_STRB_WHITELIST)
-            set(VA416X0_VERIFY_NO_STRB_WHITELIST
-                # V-table data stored in .text
-                __start___lcxx_override
+        set(VA416X0_VERIFY_NO_STRB_WHITELIST
+            ${VA416X0_VERIFY_NO_STRB_WHITELIST}
 
-                # C vector table for initializing arrays
-                __preinit_array_start
-                __postinit_array_start
-                __init_array_start
-            )
-        endif()
+            # We actually _do_ want 'strb' in 'Va416x0Mmio::Amba::write_u8'
+            # This uses inline assembly to avoid the `badstrb` feature
+            _ZN11Va416x0Mmio4Amba8write_u8Ejh
+
+            # V-table data stored in .text
+            __start___lcxx_override
+
+            # C vector table for initializing arrays
+            __preinit_array_start
+            __postinit_array_start
+            __init_array_start
+        )
 
         add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
             # Verify the .text of the objdump does not include illegal instructions

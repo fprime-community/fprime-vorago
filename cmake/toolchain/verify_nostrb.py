@@ -18,8 +18,7 @@
 import argparse
 import subprocess
 import sys
-import os
-import typing
+from typing import List, Optional, Tuple
 
 
 def red(sub: str):
@@ -51,7 +50,8 @@ def main():
     process = subprocess.Popen(
         [
             "arm-none-eabi-objdump",
-            "-d",
+            "-l",  # Source code line numbers
+            "-d",  # Decode only .text
             filename,
         ],
         stdout=subprocess.PIPE,
@@ -60,34 +60,56 @@ def main():
 
     assert process.stdout, "Failed to pipe stdout"
 
-    errors = []
+    errors: List[Tuple[str, Optional[str], Optional[str], Optional[str]]] = []
 
     # Clear lines until we get to the .text section
     for line in process.stdout:
         if "Disassembly of section .text" in line:
             break
 
+    # Symbol names are set in the .text by the linker
+    # These are the most robust labels in the final binary
+    symbol_name = None
+
+    # Function names are mapped via DWARF symbols and are typically per-instruction
+    function_name = None
+
+    # Location is the line number and file location this instruction corresponds to
+    # This information is also found in the DWARF symbols
+    location = None
+
+    illegal_instructions = ("strb", "strexb", "ldrexb")
+
     for line in process.stdout:
-        if line.endswith(">:\n"):
-            # This is a function section
-            func_name = line[line.find("<") + 1 : -3]
+        # This is an instruction
+        if line.startswith("    "):
+            if "__badstrb_strb" in line:
+                continue
 
-            for line in process.stdout:
-                if line == "\n":
-                    # Empty line marks the end of the function
-                    break
+            # Rule out all instructions within the whitelist
+            if (
+                function_name is None and symbol_name in whitelist
+            ) or function_name in whitelist:
+                continue
 
-                if "__badstrb_strb" in line or func_name in whitelist:
-                    continue
+            for i in illegal_instructions:
+                if i in line:
+                    errors.append((i, function_name, symbol_name, location))
 
-                if "strb" in line:
-                    errors.append(f"Found {red('strb')} in '{func_name}'")
-
-                if "strexb" in line:
-                    errors.append(f"Found {red('strexb')} in '{func_name}'")
-
-                if "ldrexb" in line:
-                    errors.append(f"Found {red('ldrexb')} in '{func_name}'")
+        elif line.endswith(">:\n"):
+            symbol_name = line[line.find("<") + 1 : -3]
+        elif line.endswith("():\n"):
+            function_name = line[: line.find("():")]
+        else:
+            line = line.strip()
+            if line:
+                # All other non-empty lines are source locations
+                location = line.strip()
+            else:
+                # Empty lines mark the end of the function/symbol
+                symbol_name = None
+                function_name = None
+                location = None
 
     exit_code = process.wait()
     assert exit_code == 0, "objdump failed"
@@ -98,11 +120,14 @@ def main():
             + f" Illegal 8-bit operations detected in {target_name} with badstrb feature:",
             file=sys.stderr,
         )
-        for err in errors:
-            print(red("ERROR") + f"     {err}", file=sys.stderr)
-        print(f"INFO: Function whitelist:", file=sys.stderr)
+        for instruction, function_name, symbol_name, location in errors:
+            print(red("ERROR") + " Instruction " + red(instruction), file=sys.stderr)
+            print(f"INFO     Function '{function_name}'", file=sys.stderr)
+            print(f"INFO     Symbol '{symbol_name}'", file=sys.stderr)
+            print(f"INFO     Location '{location}'", file=sys.stderr)
+        print(f"INFO Function whitelist:", file=sys.stderr)
         for item in whitelist:
-            print(f"INFO:     {item}", file=sys.stderr)
+            print(f"INFO     {item}", file=sys.stderr)
         exit(1)
 
 
