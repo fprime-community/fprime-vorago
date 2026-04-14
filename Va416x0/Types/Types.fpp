@@ -32,6 +32,11 @@ module Va416x0Types {
         offsetUs: U32
     }
 
+    struct RtiTimeWithValidity {
+        isValid: bool
+        rtiTime: RtiTime
+    }
+
     constant BASE_NVIC_INTERRUPT = 16
     constant NUMBER_OF_EXCEPTIONS = BASE_NVIC_INTERRUPT + 196
 

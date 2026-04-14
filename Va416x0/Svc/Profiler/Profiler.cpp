@@ -133,8 +133,10 @@ __attribute__((no_instrument_function)) void Profiler::run_handler(FwIndexType p
     // Enable the profiler on the RTI before the target RTI so that we can see the leading edge of
     // the RTI in the trace
     U8 trigger_rti = (this->m_rti == 0) ? (this->m_rtisPerSecond - 1) : (this->m_rti - 1);
-    Va416x0Types::RtiTime rti_time = this->getRtiTime_out(0);
-    if ((rti_time.get_rti() % this->m_rtisPerSecond) == trigger_rti) {
+    Va416x0Types::RtiTimeWithValidity rti_time = this->getRtiTime_out(0);
+    // FIXME - asserting that rti_time is valid may not be the best approach
+    FW_ASSERT(rti_time.get_isValid());
+    if ((rti_time.get_rtiTime().get_rti() % this->m_rtisPerSecond) == trigger_rti) {
         this->enable();
         this->m_rti = RTI_DISABLED;
     }

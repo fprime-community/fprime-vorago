@@ -16,5 +16,5 @@
 
 module Va416x0 {
     port UpdateDuration(micros: U32)
-    port GetRtiTime() -> Va416x0Types.RtiTime
+    port GetRtiTime() -> Va416x0Types.RtiTimeWithValidity
 }

@@ -124,6 +124,8 @@ void Microscheduler ::start_scheduler_handler(FwIndexType portNum) {
 
     // No need to set proxy_timer enabled yet. That will be taken care of
     // during the first top-of-RTI interrupt.
+
+    this->m_isRunning = true;
 }
 
 void Microscheduler ::update_duration_handler(FwIndexType portNum, U32 micros) {
@@ -142,7 +144,12 @@ void Microscheduler ::update_duration_handler(FwIndexType portNum, U32 micros) {
     main_timer.write_rst_value(micros * cycles_per_microsecond - 1);
 }
 
-Va416x0Types::RtiTime Microscheduler ::getRtiTime_handler(FwIndexType portNum) {
+Va416x0Types::RtiTimeWithValidity Microscheduler ::getRtiTime_handler(FwIndexType portNum) {
+    Va416x0Types::RtiTimeWithValidity rtiTimeV{false, Va416x0Types::RtiTime{0,0}};
+    if (!this->m_isRunning) {
+        rtiTimeV.set_isValid(false);
+        return rtiTimeV;
+    }
     // Lock to make sure that m_rtiIndex, m_rtiOffsetBase, and the main timer value are consistent.
     Va416x0Mmio::Lock::CriticalSectionLock lock;
 
@@ -157,7 +164,9 @@ Va416x0Types::RtiTime Microscheduler ::getRtiTime_handler(FwIndexType portNum) {
     FW_ASSERT(offsetUs <= config.maximum_duration_micros, offsetUs, this->m_rtiOffsetBase,
               config.maximum_duration_micros);
 
-    return Va416x0Types::RtiTime{this->m_rtiIndex, offsetUs};
+    rtiTimeV.set_isValid(true);
+    rtiTimeV.set_rtiTime(Va416x0Types::RtiTime{this->m_rtiIndex, offsetUs});
+    return rtiTimeV;
 }
 
 void Microscheduler ::main_timer_isr_handler(FwIndexType portNum) {
