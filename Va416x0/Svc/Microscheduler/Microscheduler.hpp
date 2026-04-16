@@ -68,7 +68,7 @@ class Microscheduler : public MicroschedulerComponentBase {
     //! Handler implementation for update_duration
     void update_duration_handler(FwIndexType portNum, U32 micros) override;
 
-    Va416x0Types::RtiTime getRtiTime_handler(FwIndexType portNum) override;
+    Va416x0Types::RtiTimeWithValidity getRtiTime_handler(FwIndexType portNum) override;
 
     //! Handler implementation for proxy_timer_isr
     void proxy_timer_isr_handler(FwIndexType portNum) override;
@@ -89,6 +89,9 @@ class Microscheduler : public MicroschedulerComponentBase {
     U32 execution_index;
     U32 m_rtiIndex;
     U32 m_rtiOffsetBase;
+
+    //! Flag indicating the scheduler has started
+    bool m_isRunning = false;
 };
 
 }  // namespace Va416x0Svc
