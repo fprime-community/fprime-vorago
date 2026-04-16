@@ -145,7 +145,7 @@ void Microscheduler ::update_duration_handler(FwIndexType portNum, U32 micros) {
 }
 
 Va416x0Types::RtiTimeWithValidity Microscheduler ::getRtiTime_handler(FwIndexType portNum) {
-    Va416x0Types::RtiTimeWithValidity rtiTimeV{false, Va416x0Types::RtiTime{0,0}};
+    Va416x0Types::RtiTimeWithValidity rtiTimeV{false, Va416x0Types::RtiTime{0, 0}};
     if (!this->m_isRunning) {
         rtiTimeV.set_isValid(false);
         return rtiTimeV;
