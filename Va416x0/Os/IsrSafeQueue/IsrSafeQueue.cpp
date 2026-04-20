@@ -23,7 +23,6 @@
 #include <Fw/Types/Assert.hpp>
 #include <Fw/Types/ByteArray.hpp>
 #include <Fw/Types/MemAllocator.hpp>
-#include <Va416x0/Svc/StrictMallocAllocator/StrictMallocAllocator.hpp>
 #include <cstdio>
 #include <cstring>
 #include <fprime-baremetal/Os/MemoryIdScope/MemoryIdScope.hpp>
@@ -75,7 +74,6 @@ Os::QueueInterface::Status IsrSafeQueue::create(FwEnumStoreType id,
     FW_ASSERT(this->m_handle.m_indices == nullptr);
     FW_ASSERT(this->m_handle.m_sizes == nullptr);
     FW_ASSERT(this->m_handle.m_data == nullptr);
-    printf("IsrSafeQueue id = %d\n", id);
     Os::Baremetal::MemoryIdScope tmp = Os::Baremetal::MemoryIdScope(id);
 
     // Allocate indices list

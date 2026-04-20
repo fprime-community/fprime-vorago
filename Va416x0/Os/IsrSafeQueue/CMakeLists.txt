@@ -23,7 +23,6 @@ register_fprime_module(
     DEPENDS
         Os_Generic_Types
         Os_Baremetal_OverrideNewDelete
-        Va416x0_Svc_StrictMallocAllocator
 )
 
 register_fprime_implementation(

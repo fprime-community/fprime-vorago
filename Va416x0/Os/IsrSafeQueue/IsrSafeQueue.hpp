@@ -95,10 +95,10 @@ class IsrSafeQueue : public Os::QueueInterface {
     //! \param depth: depth of queue in number of messages
     //! \param messageSize: size of an individual message
     //! \return: status of the creation
-    virtual Status create(FwEnumStoreType id,
-                          const Fw::ConstStringBase& name,
-                          FwSizeType depth,
-                          FwSizeType messageSize) override;
+    Status create(FwEnumStoreType id,
+                  const Fw::ConstStringBase& name,
+                  FwSizeType depth,
+                  FwSizeType messageSize) override;
 
     //! \brief send a message into the queue
     //!
