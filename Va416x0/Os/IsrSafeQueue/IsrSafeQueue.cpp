@@ -61,11 +61,8 @@ void IsrSafeQueueHandle ::load_data(FwSizeType index, U8* destination, FwSizeTyp
     (void)::memcpy(destination, this->m_data + offset, static_cast<size_t>(size));
 }
 
-IsrSafeQueue::~IsrSafeQueue() {
-    delete[] this->m_handle.m_data;
-    delete[] this->m_handle.m_indices;
-    delete[] this->m_handle.m_sizes;
-}
+IsrSafeQueue::~IsrSafeQueue() {}
+
 Os::QueueInterface::Status IsrSafeQueue::create(FwEnumStoreType id,
                                                 const Fw::ConstStringBase& name,
                                                 FwSizeType depth,
@@ -116,7 +113,9 @@ Os::QueueInterface::Status IsrSafeQueue::create(FwEnumStoreType id,
         sizes[i] = 0;
     }
     // Set local tracking variables
+    this->m_handle.m_id = id;
     this->m_handle.m_maxSize = messageSize;
+    this->m_handle.m_heapPointer = memory;
     this->m_handle.m_indices = indices;
     this->m_handle.m_data = data;
     this->m_handle.m_sizes = sizes;
@@ -126,6 +125,25 @@ Os::QueueInterface::Status IsrSafeQueue::create(FwEnumStoreType id,
     this->m_handle.m_highMark = 0;
 
     return QueueInterface::Status::OP_OK;
+}
+
+void IsrSafeQueue::teardown() {
+    if (this->m_handle.m_data != nullptr) {
+        const FwEnumStoreType identifier = this->m_handle.m_id;
+        Fw::MemAllocatorRegistry& registry = Fw::MemAllocatorRegistry::getInstance();
+        Fw::MemAllocator& allocator = registry.getAllocator(Fw::MemoryAllocation::MemoryAllocatorType::SYSTEM);
+        this->m_handle.m_heap.teardown();
+        allocator.deallocate(identifier, this->m_handle.m_heapPointer);
+
+        delete[] this->m_handle.m_data;
+        delete[] this->m_handle.m_indices;
+        delete[] this->m_handle.m_sizes;
+
+        // Set these pointers to nullptr
+        this->m_handle.m_data = nullptr;
+        this->m_handle.m_indices = nullptr;
+        this->m_handle.m_sizes = nullptr;
+    }
 }
 
 Os::QueueInterface::Status IsrSafeQueue::send(const U8* buffer,
