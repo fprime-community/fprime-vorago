@@ -32,5 +32,6 @@ register_fprime_config(
         # implementation choice (done in the deployment's CMakeLists.txt) for highly sensitive  performance tests
         Va416x0_Os_TimerRawTime
         Fw_StringFormat_snprintf
+        Fw_StringScan_sscanf
     INTERFACE # No buildable files generated
 )
