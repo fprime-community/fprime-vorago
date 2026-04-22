@@ -29,90 +29,69 @@ namespace Va416x0Drv {
 // Component construction and destruction
 // ----------------------------------------------------------------------
 
-PwmDriver::PwmDriver(const char* const compName, U8 timerIndex)
-    : PwmDriverComponentBase(compName), m_timer(timerIndex), m_periodTicks(0), m_pulseTicks(0) {
-    // Configure the timer, initializing it in a disabled state with the PWMA status mode
-    Va416x0Mmio::SysConfig::set_clk_enabled(this->m_timer, true);
-    Va416x0Mmio::SysConfig::reset_peripheral(this->m_timer);
-    this->m_timer.write_ctrl(Va416x0Mmio::Timer::CTRL_STATUS_PWMA_ACTIVE);
-    this->m_timer.write_rst_value(0);
-    this->m_timer.write_cnt_value(0);
-}
+PwmDriver::PwmDriver(const char* const compName)
+    : PwmDriverComponentBase(compName), m_running(false), m_periodTicks(0) {}
 
 PwmDriver::~PwmDriver() {}
 
-void PwmDriver::configure(U32 frequencyDividend, U32 frequencyDivisor, U8 dutyCycle) {
+void PwmDriver::configure(U8 timerIndex, F32 frequency) {
+    this->m_timer = Va416x0Mmio::Timer(timerIndex);
+
+    // Configure the timer, initializing it in a disabled state with the PWMA status mode
+    Va416x0Mmio::SysConfig::set_clk_enabled(this->m_timer.value(), true);
+    Va416x0Mmio::SysConfig::reset_peripheral(this->m_timer.value());
+    this->m_timer.value().write_ctrl(Va416x0Mmio::Timer::CTRL_STATUS_PWMA_ACTIVE);
+    this->m_timer.value().write_rst_value(0);
+    this->m_timer.value().write_cnt_value(0);
+
     // Clocked frequency of the timer from the Vorago APB
-    U32 timerFrequency = Va416x0Mmio::ClkTree::getActiveTimerFreq(this->m_timer);
-
-    // Derive tick counts using the clocked frequency of the timer vs. configured pulse frequency
-    if ((frequencyDividend == 0) && (frequencyDivisor == 0)) {
+    U32 timerFrequency = Va416x0Mmio::ClkTree::getActiveTimerFreq(this->m_timer.value());
+    // Derive tick counts using the clocked frequency of the timer vs. configured frequency
+    if (frequency == 0.0) {
         this->m_periodTicks = 0;
-        this->m_pulseTicks = 0;
     } else {
-        FW_ASSERT(frequencyDividend > 0);
-        // Ensure that the given frequency does not cause the calculation to overflow
-        // Given the maximum timer frequency of 40 MHz on APB1, this is effectively a lower bound
-        // on the frequency of approximately 0.01 Hz
-        // FIXME: is an assert appropriate here?
-        FW_ASSERT(frequencyDivisor < (std::numeric_limits<U32>::max() / timerFrequency), frequencyDivisor,
-                  timerFrequency);
-
-        this->m_periodTicks = (timerFrequency * frequencyDivisor) / frequencyDividend;
-        this->m_pulseTicks = 0;
-        if (dutyCycle >= 100) {
-            this->m_pulseTicks = this->m_periodTicks;
-        } else {
-            // NOTE: floating point conversion could limit the precision of this calculation
-            this->m_pulseTicks = this->m_periodTicks * (static_cast<F32>(dutyCycle) / 100.0);
-        }
+        FW_ASSERT(frequency > 0.0);
+        this->m_periodTicks = static_cast<F32>(timerFrequency) / frequency;
     }
+
+    // Disable the timer initially
+    this->m_timer.value().write_enable(0);
+    // Set up the timer RST_VALUE and CNT_VALUE registers with the calculated PWM period
+    this->m_timer.value().write_rst_value(this->m_periodTicks);
+    this->m_timer.value().write_cnt_value(this->m_periodTicks);
 }
 
-void PwmDriver::configure(U32 frequencyDividend, U32 frequencyDivisor, U8 dutyCycle, Va416x0Mmio::Gpio::Pin pin) {
+void PwmDriver::configure(U8 timerIndex, F32 frequency, Va416x0Mmio::Gpio::Pin pin) {
     // Assign the timer function to the given pin
-    auto timerFunction = Va416x0Mmio::Signal::FunctionSignal(Va416x0Mmio::Signal::FunctionCategory::TIMER,
-                                                             this->m_timer.get_timer_peripheral_index());
+    auto timerFunction = Va416x0Mmio::Signal::FunctionSignal(Va416x0Mmio::Signal::FunctionCategory::TIMER, timerIndex);
     pin.configure_as_function(timerFunction);
 
-    this->configure(frequencyDividend, frequencyDivisor, dutyCycle);
-}
-
-void PwmDriver::stopTimer() const {
-    // Disable the timer and clear the RST_VALUE and CNT_VALUE registers
-    this->m_timer.write_enable(0);
-    this->m_timer.write_rst_value(0);
-    this->m_timer.write_cnt_value(0);
+    this->configure(timerIndex, frequency);
 }
 
 // ----------------------------------------------------------------------
 // Handler implementations for typed input ports
 // ----------------------------------------------------------------------
 
-void PwmDriver::configure_handler(FwIndexType portNum, U32 frequencyDividend, U32 frequencyDivisor, U8 dutyCycle) {
-    // Ensure that the timer is disabled before configuring
-    this->stopTimer();
-    this->configure(frequencyDividend, frequencyDivisor, dutyCycle);
-}
+void PwmDriver::setDutyCycle_handler(FwIndexType portNum, F32 dutyCycle) {
+    // Assert that the timer has been configured
+    FW_ASSERT(this->m_timer.has_value());
 
-void PwmDriver::start_handler(FwIndexType portNum) {
-    // Check if the timer was configured
-    if ((this->m_periodTicks == 0) || (this->m_pulseTicks == 0)) {
-        return;
+    // Calculate the pulse tick count using the given duty cycle and load the PWMA register
+    U32 pulseTicks = 0;
+    if (dutyCycle >= 1.0) {
+        pulseTicks = this->m_periodTicks;
+    } else {
+        FW_ASSERT(pulseTicks >= 0.0);
+        pulseTicks = this->m_periodTicks * dutyCycle;
     }
+    this->m_timer.value().write_pwma_value(pulseTicks);
 
-    // Disable the timer
-    this->m_timer.write_enable(0);
-    // Set up the timer registers with the calculated PWM values
-    this->m_timer.write_rst_value(this->m_periodTicks);
-    this->m_timer.write_cnt_value(this->m_periodTicks);
-    this->m_timer.write_pwma_value(this->m_pulseTicks);
-    // Enable the timer
-    this->m_timer.write_enable(1);
-}
-
-void PwmDriver::stop_handler(FwIndexType portNum) {
-    this->stopTimer();
+    // Enable the timer, if it is not already running
+    if (!this->m_running) {
+        this->m_timer.value().write_enable(1);
+        this->m_running = true;
+    }
 }
 
 }  // namespace Va416x0Drv

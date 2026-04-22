@@ -30,9 +30,7 @@ namespace Va416x0Drv {
 
 class PwmDriver final : public PwmDriverComponentBase {
   public:
-    PwmDriver(const char* const compName,  //!< The component name
-              U8 timerIndex                //!< Index of the Vorago timer
-    );
+    PwmDriver(const char* const compName);
 
     ~PwmDriver();
 
@@ -40,48 +38,39 @@ class PwmDriver final : public PwmDriverComponentBase {
     // Public interface
     // ----------------------------------------------------------------------
 
-    //! Configure the timer with the given frequency and duty cycle.
-    void configure(U32 frequencyDividend,  //!< Dividend for calculating signal frequency
-                   U32 frequencyDivisor,   //!< Divisor for calculating signal frequency
-                   U8 dutyCycle            //!< Signal duty cycle
+    //! Configure the timer with the given timer index and frequency
+    void configure(U8 timerIndex,  //!< Index of the Vorago timer, 0 thru 23
+                   F32 frequency   //!< Signal frequency
     );
 
-    //! Configure the timer with the given frequency and duty cycle and designate the given GPIO
+    //! Configure the timer with the given timer index and frequency and designate the given GPIO
     //! pin to be associated with the timer.
     //! NOTE: this will cause an assert if the timer function cannot be routed to the pin
-    void configure(U32 frequencyDividend,      //!< Dividend for calculating signal frequency
-                   U32 frequencyDivisor,       //!< Divisor for calculating signal frequency
-                   U8 dutyCycle,               //!< Signal duty cycle
+    void configure(U8 timerIndex,              //!< Index of the Vorago timer, 0 thru 23
+                   F32 frequency,              //!< Signal frequency
                    Va416x0Mmio::Gpio::Pin pin  //!< Pin to be assigned the timer function
     );
 
   private:
-    //! Stop the timer
-    void stopTimer() const;
-
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------
 
-    //! Handler implementation for configure port
-    void configure_handler(FwIndexType portNum, U32 frequencyDividend, U32 frequencyDivisor, U8 dutyCycle) override;
-
-    //! Handler implementation for start port
-    void start_handler(FwIndexType portNum) override;
-
-    //! Handler implementation for stop port
-    void stop_handler(FwIndexType portNum) override;
+    //! Handler implementation for setDutyCycle port
+    void setDutyCycle_handler(FwIndexType portNum,
+                              F32 dutyCycle  //!< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
+                              ) override;
 
   private:
     // ----------------------------------------------------------------------
     // Member variables
     // ----------------------------------------------------------------------
 
-    Va416x0Mmio::Timer m_timer;
+    Va416x0Types::Optional<Va416x0Mmio::Timer> m_timer;
+    //! Is the timer running?
+    bool m_running;
     //! Number of ticks for the full signal period
     U32 m_periodTicks;
-    //! Number of ticks where the signal is active within the period
-    U32 m_pulseTicks;
 };
 
 }  // namespace Va416x0Drv
