@@ -65,7 +65,7 @@ def get_project_root() -> str:
 
 
 def get_date() -> str:
-    output = subprocess.check_output(["date", "+%Y-%m-%d-%H-%M-%S"])
+    output = subprocess.check_output(["date", "+%Y%m%d-%H%M"])
     return output.decode().strip()
 
 
