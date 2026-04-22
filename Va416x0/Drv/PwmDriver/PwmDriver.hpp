@@ -35,7 +35,7 @@ class PwmDriver final : public PwmDriverComponentBase {
     ~PwmDriver();
 
     // ----------------------------------------------------------------------
-    // Public interface
+    // Public interfaces
     // ----------------------------------------------------------------------
 
     //! Configure the timer with the given timer index and frequency
@@ -53,6 +53,15 @@ class PwmDriver final : public PwmDriverComponentBase {
 
   private:
     // ----------------------------------------------------------------------
+    // Private interfaces
+    // ----------------------------------------------------------------------
+
+    //! Set the signal duty cycle. This enables the timer, if it is not already running.
+    void setDutyCycle(F32 dutyCycle  //!< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
+    );
+
+  private:
+    // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------
 
@@ -60,6 +69,17 @@ class PwmDriver final : public PwmDriverComponentBase {
     void setDutyCycle_handler(FwIndexType portNum,
                               F32 dutyCycle  //!< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
                               ) override;
+
+  private:
+    // ----------------------------------------------------------------------
+    // Handler implementations for commands
+    // ----------------------------------------------------------------------
+
+    //! Handler implementation for command SET_DUTY_CYCLE
+    void SET_DUTY_CYCLE_cmdHandler(FwOpcodeType opCode,
+                                   U32 cmdSeq,
+                                   F32 dutyCycle  //!< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
+                                   ) override;
 
   private:
     // ----------------------------------------------------------------------

@@ -69,11 +69,7 @@ void PwmDriver::configure(U8 timerIndex, F32 frequency, Va416x0Mmio::Gpio::Pin p
     this->configure(timerIndex, frequency);
 }
 
-// ----------------------------------------------------------------------
-// Handler implementations for typed input ports
-// ----------------------------------------------------------------------
-
-void PwmDriver::setDutyCycle_handler(FwIndexType portNum, F32 dutyCycle) {
+void PwmDriver::setDutyCycle(F32 dutyCycle) {
     // Assert that the timer has been configured
     FW_ASSERT(this->m_timer.has_value());
 
@@ -92,6 +88,23 @@ void PwmDriver::setDutyCycle_handler(FwIndexType portNum, F32 dutyCycle) {
         this->m_timer.value().write_enable(1);
         this->m_running = true;
     }
+}
+
+// ----------------------------------------------------------------------
+// Handler implementations for typed input ports
+// ----------------------------------------------------------------------
+
+void PwmDriver::setDutyCycle_handler(FwIndexType portNum, F32 dutyCycle) {
+    this->setDutyCycle(dutyCycle);
+}
+
+// ----------------------------------------------------------------------
+// Handler implementations for commands
+// ----------------------------------------------------------------------
+
+void PwmDriver::SET_DUTY_CYCLE_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, F32 dutyCycle) {
+    this->setDutyCycle(dutyCycle);
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
 }  // namespace Va416x0Drv
