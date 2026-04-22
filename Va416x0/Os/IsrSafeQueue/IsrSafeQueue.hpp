@@ -37,6 +37,7 @@ namespace IsrSafeQueue {
 //! the data region and index list have queue depth number of entries.
 struct IsrSafeQueueHandle : public Os::QueueHandle {
     Types::MaxHeap m_heap;            //!< MaxHeap data store for tracking priority
+    void* m_heapPointer = nullptr;    //!< Pointer to the MaxHeap data store
     U8* m_data = nullptr;             //!< Pointer to data allocation
     FwSizeType* m_indices = nullptr;  //!< List of indices into data
     FwSizeType* m_sizes = nullptr;    //!< Size store for each method
@@ -45,6 +46,7 @@ struct IsrSafeQueueHandle : public Os::QueueHandle {
     FwSizeType m_stopIndex = 0;       //!< End index of the circular data structure
     FwSizeType m_maxSize = 0;         //!< Maximum size allowed of a message
     FwSizeType m_highMark = 0;        //!< Message count high water mark
+    FwEnumStoreType m_id;             //!< Identifier for the queue, used for memory allocation
 
     //!\brief find an available index to store data from the list
     FwSizeType find_index();
@@ -90,11 +92,21 @@ class IsrSafeQueue : public Os::QueueInterface {
     //!
     //! \warning allocates memory on the heap
     //!
+    //! \param id: identifier for the queue, used for memory allocation
     //! \param name: name of queue
     //! \param depth: depth of queue in number of messages
     //! \param messageSize: size of an individual message
     //! \return: status of the creation
-    Status create(const Fw::ConstStringBase& name, FwSizeType depth, FwSizeType messageSize) override;
+    Status create(FwEnumStoreType id,
+                  const Fw::ConstStringBase& name,
+                  FwSizeType depth,
+                  FwSizeType messageSize) override;
+
+    //! \brief teardown the queue
+    //!
+    //! Allow for queues to deallocate resources as part of system shutdown. This delegates to the underlying queue
+    //! implementation.
+    void teardown() override;
 
     //! \brief send a message into the queue
     //!
