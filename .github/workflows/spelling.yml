@@ -89,7 +89,7 @@ jobs:
     steps:
     - name: check-spelling
       id: spelling
-      uses: check-spelling/check-spelling@v0.0.25
+      uses: check-spelling/check-spelling@v0.0.26
       with:
         checkout: true
         check_file_names: 1
