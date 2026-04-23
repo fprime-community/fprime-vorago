@@ -138,6 +138,9 @@ TeX/AMS
 # ignore long runs of a single character:
 \b([A-Za-z])\g{-1}{3,}\b
 
+# Part of the phrase "FW_ASSERT'd"
+ASSERT'd
+
 
 ##########################################
 ###### F Prime specific patterns    ######
