@@ -15,23 +15,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // ======================================================================
-// \title  Microscheduler.hpp
-// \brief  hpp file for Microscheduler component implementation class
+// \title  Metronome.hpp
+// \brief  hpp file for Metronome component implementation class
 // ======================================================================
 
-#ifndef Va416x0_Microscheduler_HPP
-#define Va416x0_Microscheduler_HPP
+#ifndef Va416x0_Metronome_HPP
+#define Va416x0_Metronome_HPP
 
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Mmio/Timer/Timer.hpp"
-#include "Va416x0/Svc/Microscheduler/FppConstantsAc.hpp"
-#include "Va416x0/Svc/Microscheduler/MicroschedulerComponentAc.hpp"
+#include "Va416x0/Svc/Metronome/FppConstantsAc.hpp"
+#include "Va416x0/Svc/Metronome/MetronomeComponentAc.hpp"
 
 #include <atomic>
 
 namespace Va416x0Svc {
 
-struct MicroschedulerConfig {
+struct MetronomeConfig {
     Va416x0Mmio::Timer main_timer;
     Va416x0Mmio::Timer proxy_timer;
 
@@ -45,22 +45,22 @@ struct MicroschedulerConfig {
     U32 client_trigger_times_micros[MAX_CLIENTS];
 };
 
-class Microscheduler : public MicroschedulerComponentBase {
+class Metronome : public MetronomeComponentBase {
   public:
     // ----------------------------------------------------------------------
     // Component construction and destruction
     // ----------------------------------------------------------------------
 
-    //! Construct Microscheduler object
-    Microscheduler(const char* const compName, const MicroschedulerConfig& config);
+    //! Construct Metronome object
+    Metronome(const char* const compName, const MetronomeConfig& config);
 
   private:
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------
 
-    //! Handler implementation for start_scheduler
-    void start_scheduler_handler(FwIndexType portNum) override;
+    //! Handler implementation for start_metronome
+    void start_metronome_handler(FwIndexType portNum) override;
 
     //! Handler implementation for rti_timer_isr
     void main_timer_isr_handler(FwIndexType portNum) override;
@@ -75,22 +75,22 @@ class Microscheduler : public MicroschedulerComponentBase {
 
     void process_isrs_until(U32 until_cnt_value);
 
-    struct MicroschedulerClientInfo {
+    struct MetronomeClientInfo {
         U32 trigger_time_micros;
         U32 trigger_time_threshold;
         FwIndexType portNum;
     };
 
-    const MicroschedulerConfig config;
+    const MetronomeConfig config;
     const Va416x0Mmio::Nvic::InterruptControl main_ic;
     const Va416x0Mmio::Nvic::InterruptControl proxy_ic;
     U32 cycles_per_microsecond;
-    MicroschedulerClientInfo clients[MAX_CLIENTS];
+    MetronomeClientInfo clients[MAX_CLIENTS];
     U32 execution_index;
     U32 m_rtiIndex;
     U32 m_rtiOffsetBase;
 
-    //! Flag indicating the scheduler has started
+    //! Flag indicating the metronome has started
     bool m_isRunning = false;
 };
 

@@ -18,9 +18,9 @@ module Va416x0Svc {
     constant MAX_CLIENTS = 25
 
     @ Microsecond-granularity scheduling component
-    passive component Microscheduler {
+    passive component Metronome {
 
-        sync input port start_scheduler: Fw.Ready
+        sync input port start_metronome: Fw.Ready
         output port start_rti: Svc.Sched
 
         sync input port main_timer_isr: Va416x0Types.ExceptionHandler
