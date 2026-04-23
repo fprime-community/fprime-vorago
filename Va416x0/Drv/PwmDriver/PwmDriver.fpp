@@ -1,7 +1,7 @@
 module Va416x0Drv {
 
     port PwmDutyCycle(
-        dutyCycle: F32  @< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
+        dutyCycle: F32  @< Signal duty cycle, interpreted as a fraction i.e. 0.25 == 25%
     )
 
     @ Controls Vorago PWM timers
@@ -28,14 +28,8 @@ module Va416x0Drv {
         @ Port for requesting the current time
         time get port timeCaller
 
-        @ Port for sending command registrations
-        command reg port cmdRegOut
-
-        @ Port for receiving commands
-        command recv port cmdIn
-
-        @ Port for sending command responses
-        command resp port cmdResponseOut
+        @ Command interface
+        import Fw.Command
 
     }
 }

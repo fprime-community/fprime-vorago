@@ -39,16 +39,10 @@ class PwmDriver final : public PwmDriverComponentBase {
     // ----------------------------------------------------------------------
 
     //! Configure the timer with the given timer index and frequency
-    void configure(U8 timerIndex,  //!< Index of the Vorago timer, 0 thru 23
-                   F32 frequency   //!< Signal frequency
-    );
-
-    //! Configure the timer with the given timer index and frequency and designate the given GPIO
-    //! pin to be associated with the timer.
-    //! NOTE: this will cause an assert if the timer function cannot be routed to the pin
-    void configure(U8 timerIndex,              //!< Index of the Vorago timer, 0 thru 23
-                   F32 frequency,              //!< Signal frequency
-                   Va416x0Mmio::Gpio::Pin pin  //!< Pin to be assigned the timer function
+    void configure(
+        U8 timerIndex,                                      //!< Index of the Vorago timer, 0 thru 23
+        F32 frequency,                                      //!< Signal frequency
+        Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> pin  //!< Pin to be assigned the timer function, if given
     );
 
   private:
@@ -57,7 +51,7 @@ class PwmDriver final : public PwmDriverComponentBase {
     // ----------------------------------------------------------------------
 
     //! Set the signal duty cycle. This enables the timer, if it is not already running.
-    void setDutyCycle(F32 dutyCycle  //!< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
+    void setDutyCycle(F32 dutyCycle  //!< Signal duty cycle, interpreted as a fraction i.e. 0.25 == 25%
     );
 
   private:
@@ -67,7 +61,7 @@ class PwmDriver final : public PwmDriverComponentBase {
 
     //! Handler implementation for setDutyCycle port
     void setDutyCycle_handler(FwIndexType portNum,
-                              F32 dutyCycle  //!< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
+                              F32 dutyCycle  //!< Signal duty cycle, interpreted as a fraction i.e. 0.25 == 25%
                               ) override;
 
   private:
@@ -78,7 +72,7 @@ class PwmDriver final : public PwmDriverComponentBase {
     //! Handler implementation for command SET_DUTY_CYCLE
     void SET_DUTY_CYCLE_cmdHandler(FwOpcodeType opCode,
                                    U32 cmdSeq,
-                                   F32 dutyCycle  //!< Signal duty cycle, interpreted as a percentage i.e. 0.25 == 25%
+                                   F32 dutyCycle  //!< Signal duty cycle, interpreted as a fraction i.e. 0.25 == 25%
                                    ) override;
 
   private:

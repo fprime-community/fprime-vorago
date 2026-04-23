@@ -34,18 +34,29 @@ PwmDriver::PwmDriver(const char* const compName)
 
 PwmDriver::~PwmDriver() {}
 
-void PwmDriver::configure(U8 timerIndex, F32 frequency) {
+void PwmDriver::configure(U8 timerIndex, F32 frequency, Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> pin) {
     this->m_timer = Va416x0Mmio::Timer(timerIndex);
+    Va416x0Mmio::Timer& timer = this->m_timer.value();
+
+    // Assign the timer function to the given pin, if one was given
+    if (pin.has_value()) {
+        auto timerFunction =
+            Va416x0Mmio::Signal::FunctionSignal(Va416x0Mmio::Signal::FunctionCategory::TIMER, timerIndex);
+        pin.value().configure_as_function(timerFunction);
+    }
 
     // Configure the timer, initializing it in a disabled state with the PWMA status mode
-    Va416x0Mmio::SysConfig::set_clk_enabled(this->m_timer.value(), true);
-    Va416x0Mmio::SysConfig::reset_peripheral(this->m_timer.value());
-    this->m_timer.value().write_ctrl(Va416x0Mmio::Timer::CTRL_STATUS_PWMA_ACTIVE);
-    this->m_timer.value().write_rst_value(0);
-    this->m_timer.value().write_cnt_value(0);
+    Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
+    Va416x0Mmio::SysConfig::reset_peripheral(timer);
+    timer.write_ctrl(Va416x0Mmio::Timer::CTRL_STATUS_PWMA_ACTIVE);
+    timer.write_rst_value(0);
+    timer.write_cnt_value(0);
 
     // Clocked frequency of the timer from the Vorago APB
-    U32 timerFrequency = Va416x0Mmio::ClkTree::getActiveTimerFreq(this->m_timer.value());
+    U32 timerFrequency = Va416x0Mmio::ClkTree::getActiveTimerFreq(timer);
+    // Verify that the given frequency will not cause the registers to overflow
+    FW_ASSERT(frequency >= (static_cast<F32>(timerFrequency) / static_cast<F32>(std::numeric_limits<U32>::max())),
+              frequency, timerFrequency);
     // Derive tick counts using the clocked frequency of the timer vs. configured frequency
     if (frequency == 0.0) {
         this->m_periodTicks = 0;
@@ -55,37 +66,26 @@ void PwmDriver::configure(U8 timerIndex, F32 frequency) {
     }
 
     // Disable the timer initially
-    this->m_timer.value().write_enable(0);
+    timer.write_enable(0);
     // Set up the timer RST_VALUE and CNT_VALUE registers with the calculated PWM period
-    this->m_timer.value().write_rst_value(this->m_periodTicks);
-    this->m_timer.value().write_cnt_value(this->m_periodTicks);
-}
-
-void PwmDriver::configure(U8 timerIndex, F32 frequency, Va416x0Mmio::Gpio::Pin pin) {
-    // Assign the timer function to the given pin
-    auto timerFunction = Va416x0Mmio::Signal::FunctionSignal(Va416x0Mmio::Signal::FunctionCategory::TIMER, timerIndex);
-    pin.configure_as_function(timerFunction);
-
-    this->configure(timerIndex, frequency);
+    timer.write_rst_value(this->m_periodTicks);
+    timer.write_cnt_value(this->m_periodTicks);
 }
 
 void PwmDriver::setDutyCycle(F32 dutyCycle) {
     // Assert that the timer has been configured
     FW_ASSERT(this->m_timer.has_value());
+    Va416x0Mmio::Timer& timer = this->m_timer.value();
 
     // Calculate the pulse tick count using the given duty cycle and load the PWMA register
-    U32 pulseTicks = 0;
-    if (dutyCycle >= 1.0) {
-        pulseTicks = this->m_periodTicks;
-    } else {
-        FW_ASSERT(pulseTicks >= 0.0);
-        pulseTicks = this->m_periodTicks * dutyCycle;
-    }
-    this->m_timer.value().write_pwma_value(pulseTicks);
+    // Duty cycle is only valid in the range 0.0 thru 1.0
+    FW_ASSERT((dutyCycle >= 0.0) && (dutyCycle <= 1.0), dutyCycle);
+    U32 pulseTicks = this->m_periodTicks * dutyCycle;
+    timer.write_pwma_value(pulseTicks);
 
     // Enable the timer, if it is not already running
     if (!this->m_running) {
-        this->m_timer.value().write_enable(1);
+        timer.write_enable(1);
         this->m_running = true;
     }
 }
