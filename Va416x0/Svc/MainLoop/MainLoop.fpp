@@ -33,7 +33,7 @@ module Va416x0Svc {
 
         output port start: [10] Fw.Ready
 
-        output port start_scheduler: Fw.Ready
+        output port start_metronome: Fw.Ready
         sync input port start_rti: Svc.Sched
 
         output port cycle: Svc.Cycle
