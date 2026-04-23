@@ -133,7 +133,7 @@ U32 DmaDriver::stop_dma_transaction_handler(FwIndexType channel) {
     Va416x0Mmio::Amba::memory_barrier();
 
     // We need to give the PL230 enough time to complete any outstanding
-    // transfers. We use NOPs here to make sure that the system memory bus is
+    // transfers. We use no-ops here to make sure that the system memory bus is
     // not used. That will make sure that the DMA engine is allowed to execute
     // its transfers.
     // FIXME: This timing requires more testing.

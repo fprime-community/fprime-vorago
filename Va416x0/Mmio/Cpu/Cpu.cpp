@@ -53,7 +53,7 @@ U32 save_disable_interrupts() {
     // issue as long as an IRQ routine restore primask to 0 prior to exit
     // Consider the following cases
     // A. primask is already 1:
-    //    IRQs are already disabled. No chance for a race condition
+    //    All IRQ are already disabled. No chance for a race condition
     // B. primask is 0 and an IRQ fires after "mrs" be before "cpsid"
     //    An ISR is required to restore primask to 0 before returning.
     asm volatile(
