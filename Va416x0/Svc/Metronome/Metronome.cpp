@@ -57,10 +57,9 @@ Metronome ::Metronome(const char* const compName, const MetronomeConfig& config)
     }
     // We don't need to worry about sorting performance since the number of
     // clients is small and it happens during init, not during execution.
-    std::sort(std::begin(clients), std::end(clients),
-              [](const MetronomeClientInfo& a, const MetronomeClientInfo& b) {
-                  return a.trigger_time_micros < b.trigger_time_micros;
-              });
+    std::sort(std::begin(clients), std::end(clients), [](const MetronomeClientInfo& a, const MetronomeClientInfo& b) {
+        return a.trigger_time_micros < b.trigger_time_micros;
+    });
 
     // Make extra sure we don't run anything until the first RTI starts.
     execution_index = MAX_CLIENTS;
