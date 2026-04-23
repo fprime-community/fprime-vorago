@@ -171,7 +171,6 @@ ioconfig
 iomanip
 iostream
 irq
-irqs
 isar
 isb
 ISER
@@ -234,7 +233,6 @@ NMIPENDSET
 noinline
 NOLOAD
 nop
-nops
 norelro
 nostartfiles
 nostrb
