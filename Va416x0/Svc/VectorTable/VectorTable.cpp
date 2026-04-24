@@ -25,6 +25,7 @@
 #include "Va416x0/Mmio/SysControl/SysControl.hpp"
 #include "Va416x0/Types/ExceptionNumberEnumAc.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
+#include <Va416x0/Mmio/Cpu/Cpu.hpp>
 
 #include <arm_acle.h>
 
@@ -65,6 +66,11 @@ extern "C" void __libc_init_array(void);
 extern void initialize_deployment();
 
 extern "C" void _start(void) {
+    // Artificial delay to let the debugger attach
+    for (U32 i = 0; i < 8000000; i++) {
+        Va416x0Mmio::Cpu::nop();
+    }
+
     // Enable Floating-Point Coprocessor in CPACR register.
     Va416x0Mmio::SysControl::write_cpacr(Va416x0Mmio::SysControl::CPACR_ENABLE_FP_COPROCESSOR);
     // All accesses to the System Control Space must be followed by DSB + ISB.
