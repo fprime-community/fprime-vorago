@@ -80,10 +80,10 @@ extern "C" void _start(void) {
     shcsr |= (Va416x0Mmio::SysControl::SHCSR_MEMFAULTENA | Va416x0Mmio::SysControl::SHCSR_BUSFAULTENA |
               Va416x0Mmio::SysControl::SHCSR_USGFAULTENA);
     Va416x0Mmio::SysControl::write_shcsr(shcsr);
-    // Enable divide-by-zero exception trapping
-    // This is disabled by default
+    // Enable divide-by-zero and unaligned access exception trapping
+    // These are disabled by default
     U32 ccr = Va416x0Mmio::SysControl::read_ccr();
-    ccr |= Va416x0Mmio::SysControl::CCR_DIV_0_TRP;
+    ccr |= (Va416x0Mmio::SysControl::CCR_DIV_0_TRP | Va416x0Mmio::SysControl::CCR_UNALIGN_TRP);
     Va416x0Mmio::SysControl::write_ccr(ccr);
 
     // Copy data section from NVM to volatile memory.
