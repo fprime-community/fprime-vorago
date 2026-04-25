@@ -15,11 +15,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // ======================================================================
-// \title  Microscheduler.cpp
-// \brief  cpp file for Microscheduler component implementation class
+// \title  Metronome.cpp
+// \brief  cpp file for Metronome component implementation class
 // ======================================================================
 
-#include "Va416x0/Svc/Microscheduler/Microscheduler.hpp"
+#include "Va416x0/Svc/Metronome/Metronome.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
 #include "Va416x0/Mmio/Gpio/Pin.hpp"
@@ -38,8 +38,8 @@ constexpr U32 MICROSECONDS_PER_SECOND = 1000 * 1000;
 // Component construction and destruction
 // ----------------------------------------------------------------------
 
-Microscheduler ::Microscheduler(const char* const compName, const MicroschedulerConfig& config)
-    : MicroschedulerComponentBase(compName),
+Metronome ::Metronome(const char* const compName, const MetronomeConfig& config)
+    : MetronomeComponentBase(compName),
       config(config),
       proxy_ic(config.proxy_timer.get_timer_done_exception()),
       main_ic(config.main_timer.get_timer_done_exception()) {
@@ -57,10 +57,9 @@ Microscheduler ::Microscheduler(const char* const compName, const Microscheduler
     }
     // We don't need to worry about sorting performance since the number of
     // clients is small and it happens during init, not during execution.
-    std::sort(std::begin(clients), std::end(clients),
-              [](const MicroschedulerClientInfo& a, const MicroschedulerClientInfo& b) {
-                  return a.trigger_time_micros < b.trigger_time_micros;
-              });
+    std::sort(std::begin(clients), std::end(clients), [](const MetronomeClientInfo& a, const MetronomeClientInfo& b) {
+        return a.trigger_time_micros < b.trigger_time_micros;
+    });
 
     // Make extra sure we don't run anything until the first RTI starts.
     execution_index = MAX_CLIENTS;
@@ -72,7 +71,7 @@ Microscheduler ::Microscheduler(const char* const compName, const Microscheduler
 // Handler implementations for typed input ports
 // ----------------------------------------------------------------------
 
-void Microscheduler ::start_scheduler_handler(FwIndexType portNum) {
+void Metronome ::start_metronome_handler(FwIndexType portNum) {
     Va416x0Mmio::Timer main_timer = config.main_timer;
     Va416x0Mmio::Timer proxy_timer = config.proxy_timer;
 
@@ -128,7 +127,7 @@ void Microscheduler ::start_scheduler_handler(FwIndexType portNum) {
     this->m_isRunning = true;
 }
 
-void Microscheduler ::update_duration_handler(FwIndexType portNum, U32 micros) {
+void Metronome ::update_duration_handler(FwIndexType portNum, U32 micros) {
     FW_ASSERT(config.minimum_duration_micros <= micros && micros <= config.maximum_duration_micros,
               config.minimum_duration_micros, micros, config.maximum_duration_micros);
 
@@ -144,7 +143,7 @@ void Microscheduler ::update_duration_handler(FwIndexType portNum, U32 micros) {
     main_timer.write_rst_value(micros * cycles_per_microsecond - 1);
 }
 
-Va416x0Types::RtiTimeWithValidity Microscheduler ::getRtiTime_handler(FwIndexType portNum) {
+Va416x0Types::RtiTimeWithValidity Metronome ::getRtiTime_handler(FwIndexType portNum) {
     Va416x0Types::RtiTimeWithValidity rtiTimeV{false, Va416x0Types::RtiTime{0, 0}};
     if (!this->m_isRunning) {
         rtiTimeV.set_isValid(false);
@@ -169,7 +168,7 @@ Va416x0Types::RtiTimeWithValidity Microscheduler ::getRtiTime_handler(FwIndexTyp
     return rtiTimeV;
 }
 
-void Microscheduler ::main_timer_isr_handler(FwIndexType portNum) {
+void Metronome ::main_timer_isr_handler(FwIndexType portNum) {
     // Ensure that proxy interrupt is disabled before we manually execute the
     // interrupt action.
     proxy_ic.set_interrupt_enabled(false);
@@ -198,7 +197,7 @@ void Microscheduler ::main_timer_isr_handler(FwIndexType portNum) {
 
     // With the potentially updated RTI duration, figure out when the different
     // events should trigger.
-    for (MicroschedulerClientInfo& client : clients) {
+    for (MetronomeClientInfo& client : clients) {
         client.trigger_time_threshold = rst_value - client.trigger_time_micros * cycles_per_microsecond;
     }
 
@@ -213,7 +212,7 @@ void Microscheduler ::main_timer_isr_handler(FwIndexType portNum) {
     }
 }
 
-void Microscheduler ::proxy_timer_isr_handler(FwIndexType portNum) {
+void Metronome ::proxy_timer_isr_handler(FwIndexType portNum) {
     // Note: this function is also called as part of main_timer_isr.
 
     U32 cnt_value = config.main_timer.read_cnt_value();
@@ -221,7 +220,7 @@ void Microscheduler ::proxy_timer_isr_handler(FwIndexType portNum) {
     process_isrs_until(cnt_value);
 }
 
-void Microscheduler ::process_isrs_until(U32 until_cnt_value) {
+void Metronome ::process_isrs_until(U32 until_cnt_value) {
     // FIXME: We probably need to verify the timeliness of scheduled interrupts.
     // Too much of a delay, and it would interfere with the correctness of the FSW.
 

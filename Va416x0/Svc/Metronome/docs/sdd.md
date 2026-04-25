@@ -1,4 +1,4 @@
-# Va416x0::Microscheduler
+# Va416x0::Metronome
 
 Microsecond-granularity scheduling component
 

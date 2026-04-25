@@ -27,8 +27,8 @@
 ####
 
 set(SOURCE_FILES
-  "${CMAKE_CURRENT_LIST_DIR}/Microscheduler.fpp"
-  "${CMAKE_CURRENT_LIST_DIR}/Microscheduler.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/Metronome.fpp"
+  "${CMAKE_CURRENT_LIST_DIR}/Metronome.cpp"
 )
 
 # Uncomment and add any modules that this component depends on, else
@@ -49,9 +49,9 @@ register_fprime_module()
 
 ### Unit Tests ###
 # set(UT_SOURCE_FILES
-#   "${CMAKE_CURRENT_LIST_DIR}/Microscheduler.fpp"
-#   "${CMAKE_CURRENT_LIST_DIR}/test/ut/MicroschedulerTestMain.cpp"
-#   "${CMAKE_CURRENT_LIST_DIR}/test/ut/MicroschedulerTester.cpp"
+#   "${CMAKE_CURRENT_LIST_DIR}/Metronome.fpp"
+#   "${CMAKE_CURRENT_LIST_DIR}/test/ut/MetronomeTestMain.cpp"
+#   "${CMAKE_CURRENT_LIST_DIR}/test/ut/MetronomeTester.cpp"
 # )
 # set(UT_MOD_DEPS
 #   STest
