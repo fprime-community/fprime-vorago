@@ -214,7 +214,7 @@ memset
 mfloat
 mfpu
 microcontrollers
-microscheduler
+metronome
 mls
 mmfar
 mmfr

@@ -82,9 +82,9 @@ void MainLoop ::invoke_start_ports() {
         }
     }
 
-    // Start the scheduler as the very last step, because we don't want to
+    // Start the metronome as the very last step, because we don't want to
     // inadvertently start executing late.
-    start_scheduler_out(0);
+    start_metronome_out(0);
 }
 
 void MainLoop ::resetCounts_handler(FwIndexType portNum) {

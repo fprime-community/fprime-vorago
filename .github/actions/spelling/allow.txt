@@ -5,3 +5,5 @@ https
 ssh
 ubuntu
 workarounds
+nops
+irqs
