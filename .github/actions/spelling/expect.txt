@@ -24,6 +24,7 @@ Autocoded
 autocoders
 autocoding
 AUTOCTS
+AUTODEACTIVATE
 AUTORTS
 AVDD
 awrite
@@ -377,6 +378,7 @@ testbeds
 THDSTA
 TICKINT
 timespec
+TIMERDONE
 tlm
 TLOW
 tls
