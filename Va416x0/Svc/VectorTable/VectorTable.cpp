@@ -20,12 +20,12 @@
 // ======================================================================
 
 #include "VectorTable.hpp"
+#include <Va416x0/Mmio/Cpu/Cpu.hpp>
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Mmio/SysControl/SysControl.hpp"
 #include "Va416x0/Types/ExceptionNumberEnumAc.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
-#include <Va416x0/Mmio/Cpu/Cpu.hpp>
 
 #include <arm_acle.h>
 

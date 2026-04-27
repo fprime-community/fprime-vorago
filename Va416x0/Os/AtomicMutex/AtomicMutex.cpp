@@ -37,7 +37,6 @@ Os::MutexHandle* AtomicMutex::getHandle() {
 }  // namespace AtomicMutex
 }  // namespace Va416x0Os
 
-
 namespace Os {
 
 //! \brief get a delegate for MutexInterface that intercepts calls for stub file usage
@@ -48,4 +47,4 @@ MutexInterface* MutexInterface::getDelegate(MutexHandleStorage& aligned_new_memo
     return Os::Delegate::makeDelegate<MutexInterface, Va416x0Os::AtomicMutex::AtomicMutex>(aligned_new_memory);
 }
 
-}
+}  // namespace Os
