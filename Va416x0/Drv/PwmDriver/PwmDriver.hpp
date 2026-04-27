@@ -38,7 +38,7 @@ class PwmDriver final : public PwmDriverComponentBase {
     // Public interfaces
     // ----------------------------------------------------------------------
 
-    //! Configure the timer with the given timer index and frequency.
+    //! Configure the timer with the given timer indices, frequency, and optional GPIO pin connection.
     void configure(
         U8 frequencyTimerIndex,  //!< Index of the Vorago timer used to create the frequency pulse, 0 thru 23
         U8 dutyCycleTimerIndex,  //!< Index of the Vorago timer used to drive the actual signal, 0 thru 23
@@ -52,6 +52,13 @@ class PwmDriver final : public PwmDriverComponentBase {
 
   private:
     // ----------------------------------------------------------------------
+    // Private interfaces
+    // ----------------------------------------------------------------------
+
+    //! Number of ticks for the signal period, relative to the APB frequency of the given timer
+    U32 periodTicksForTimer(const Va416x0Mmio::Timer& timer) const;
+
+    // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------
 
@@ -60,7 +67,6 @@ class PwmDriver final : public PwmDriverComponentBase {
                               F32 dutyCycle  //!< Signal duty cycle, interpreted as a fraction i.e. 0.25 == 25%
                               ) override;
 
-  private:
     // ----------------------------------------------------------------------
     // Handler implementations for commands
     // ----------------------------------------------------------------------
@@ -71,7 +77,6 @@ class PwmDriver final : public PwmDriverComponentBase {
                                    F32 dutyCycle  //!< Signal duty cycle, interpreted as a fraction i.e. 0.25 == 25%
                                    ) override;
 
-  private:
     // ----------------------------------------------------------------------
     // Member variables
     // ----------------------------------------------------------------------
@@ -80,6 +85,8 @@ class PwmDriver final : public PwmDriverComponentBase {
     Va416x0Types::Optional<Va416x0Mmio::Timer> m_dutyCycleTimer;
     //! Is the timer running?
     bool m_running;
+    //! Frequency of the signal
+    F32 m_frequency;
     //! Number of ticks for the full signal period
     U32 m_periodTicks;
 };

@@ -30,14 +30,28 @@ namespace Va416x0Drv {
 // ----------------------------------------------------------------------
 
 PwmDriver::PwmDriver(const char* const compName)
-    : PwmDriverComponentBase(compName), m_running(false), m_periodTicks(0) {}
+    : PwmDriverComponentBase(compName), m_running(false), m_frequency(0.0), m_periodTicks(0) {}
 
 PwmDriver::~PwmDriver() {}
+
+U32 PwmDriver::periodTicksForTimer(const Va416x0Mmio::Timer& timer) const {
+    U32 timerFrequency = Va416x0Mmio::ClkTree::getActiveTimerFreq(timer);
+    // Verify that the frequency will not cause an overflow
+    // FIXME: should we mandate that both timers are on the same APB line in the configure
+    // function? otherwise this could trigger a runtime assertion
+    FW_ASSERT(
+        this->m_frequency >= (static_cast<F32>(timerFrequency) / static_cast<F32>(std::numeric_limits<U32>::max())),
+        this->m_frequency, timerFrequency);
+    U32 periodTicks = static_cast<F32>(timerFrequency) / this->m_frequency;
+    return periodTicks;
+}
 
 void PwmDriver::configure(U8 frequencyTimerIndex,
                           U8 dutyCycleTimerIndex,
                           F32 frequency,
                           Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> pin) {
+    FW_ASSERT(frequency > 0.0);
+    this->m_frequency = frequency;
     this->m_frequencyTimer = Va416x0Mmio::Timer(frequencyTimerIndex);
     this->m_dutyCycleTimer = Va416x0Mmio::Timer(dutyCycleTimerIndex);
     Va416x0Mmio::Timer& frequencyTimer = this->m_frequencyTimer.value();
@@ -73,13 +87,7 @@ void PwmDriver::configure(U8 frequencyTimerIndex,
     }
 
     // The period of the frequency timer matches that of the signal
-    // Derive tick counts using the clocked frequency of the timer vs. configured frequency
-    U32 freqTimerFrequency = Va416x0Mmio::ClkTree::getActiveTimerFreq(frequencyTimer);
-    // Verify that the given frequency will not cause the registers to overflow
-    FW_ASSERT(frequency > 0.0);
-    FW_ASSERT(frequency >= (static_cast<F32>(freqTimerFrequency) / static_cast<F32>(std::numeric_limits<U32>::max())),
-              frequency, freqTimerFrequency);
-    this->m_periodTicks = static_cast<F32>(freqTimerFrequency) / frequency;
+    this->m_periodTicks = this->periodTicksForTimer(frequencyTimer);
 }
 
 void PwmDriver::setDutyCycle(F32 dutyCycle) {
@@ -97,7 +105,8 @@ void PwmDriver::setDutyCycle(F32 dutyCycle) {
         frequencyTimer.write_enable(0);
         this->m_running = false;
     } else {
-        U32 pulseTicks = this->m_periodTicks * dutyCycle;
+        // Derive tick counts relative to the clocked frequency of the timer
+        U32 pulseTicks = this->periodTicksForTimer(dutyCycleTimer) * dutyCycle;
         dutyCycleTimer.write_rst_value(pulseTicks);
 
         // Set up the frequency timer and enable both the timers, if they are not already running
@@ -105,12 +114,13 @@ void PwmDriver::setDutyCycle(F32 dutyCycle) {
             // Clear any count that might be left over in the duty cycle timer
             dutyCycleTimer.write_cnt_value(0);
             dutyCycleTimer.write_enable(1);
-            // Write frequency timer count 0 so it will immediately trigger
-            // NOTE: timer will not trigger the TIMERDONE signal if it has count 0, load 1 so that
-            // it will trigger after 1 cycle
-            frequencyTimer.write_cnt_value(1);
+
             frequencyTimer.write_rst_value(this->m_periodTicks);
+            // Write count 1 to the frequency timer count 1 so that it will immediately trigger
+            // after 1 cycle (it will not trigger the TIMERDONE signal if it has count 0)
+            frequencyTimer.write_cnt_value(1);
             frequencyTimer.write_enable(1);
+
             this->m_running = true;
         }
     }
