@@ -38,17 +38,13 @@ class PwmDriver final : public PwmDriverComponentBase {
     // Public interfaces
     // ----------------------------------------------------------------------
 
-    //! Configure the timer with the given timer index and frequency
+    //! Configure the timer with the given timer index and frequency.
     void configure(
-        U8 timerIndex,                                      //!< Index of the Vorago timer, 0 thru 23
-        F32 frequency,                                      //!< Signal frequency
+        U8 frequencyTimerIndex,  //!< Index of the Vorago timer used to create the frequency pulse, 0 thru 23
+        U8 dutyCycleTimerIndex,  //!< Index of the Vorago timer used to drive the actual signal, 0 thru 23
+        F32 frequency,           //!< Signal frequency
         Va416x0Types::Optional<Va416x0Mmio::Gpio::Pin> pin  //!< Pin to be assigned the timer function, if given
     );
-
-  private:
-    // ----------------------------------------------------------------------
-    // Private interfaces
-    // ----------------------------------------------------------------------
 
     //! Set the signal duty cycle. This enables the timer, if it is not already running.
     void setDutyCycle(F32 dutyCycle  //!< Signal duty cycle, interpreted as a fraction i.e. 0.25 == 25%
@@ -80,7 +76,8 @@ class PwmDriver final : public PwmDriverComponentBase {
     // Member variables
     // ----------------------------------------------------------------------
 
-    Va416x0Types::Optional<Va416x0Mmio::Timer> m_timer;
+    Va416x0Types::Optional<Va416x0Mmio::Timer> m_frequencyTimer;
+    Va416x0Types::Optional<Va416x0Mmio::Timer> m_dutyCycleTimer;
     //! Is the timer running?
     bool m_running;
     //! Number of ticks for the full signal period
