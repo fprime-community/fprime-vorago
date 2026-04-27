@@ -87,8 +87,8 @@ void ExceptionHandler::exceptions_handler(FwIndexType portNum) {
     // logOut port prior to the logTextOut port so we will hit _exit before the event can be logged
     // to the console
     Fw::Logger::log(
-        "FATAL: Exception: %u: HFSR: 0x%08X: MMFSR: 0x%08X: MMFAR: 0x%08X: BFSR: 0x%08X: BFAR: 0x%08X: "
-        "UFSR: 0x%08X: R0: 0x%08X: R1: 0x%08X: R2: 0x%08X: R3: 0x%08X: R12: 0x%08X: LR: 0x%08X: "
+        "FATAL: Exception: %u: HFSR: 0x%08X: MMFSR: 0x%02X: MMFAR: 0x%08X: BFSR: 0x%02X: BFAR: 0x%08X: "
+        "UFSR: 0x%04X: R0: 0x%08X: R1: 0x%08X: R2: 0x%08X: R3: 0x%08X: R12: 0x%08X: LR: 0x%08X: "
         "PC: 0x%08X: XPSR: 0x%08X\n",
         exceptionNumber, hfsr, mmfsr, mmfar, bfsr, bfar, ufsr, r0, r1, r2, r3, r12, lr, pc, xpsr);
     // Downlink the FATAL event
