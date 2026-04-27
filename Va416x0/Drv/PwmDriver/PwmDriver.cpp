@@ -80,27 +80,39 @@ void PwmDriver::configure(U8 frequencyTimerIndex,
     FW_ASSERT(frequency >= (static_cast<F32>(freqTimerFrequency) / static_cast<F32>(std::numeric_limits<U32>::max())),
               frequency, freqTimerFrequency);
     this->m_periodTicks = static_cast<F32>(freqTimerFrequency) / frequency;
-    frequencyTimer.write_rst_value(this->m_periodTicks);
-    frequencyTimer.write_cnt_value(this->m_periodTicks);
-    frequencyTimer.write_enable(1);
 }
 
 void PwmDriver::setDutyCycle(F32 dutyCycle) {
     // Assert that the timers have been configured
     FW_ASSERT(this->m_frequencyTimer.has_value() && this->m_dutyCycleTimer.has_value());
-    Va416x0Mmio::Timer& frequencyTimer = this->m_dutyCycleTimer.value();
+    Va416x0Mmio::Timer& frequencyTimer = this->m_frequencyTimer.value();
     Va416x0Mmio::Timer& dutyCycleTimer = this->m_dutyCycleTimer.value();
 
     // Calculate the pulse tick count using the given duty cycle
     // Duty cycle is only valid in the range 0.0 thru 1.0
     FW_ASSERT((dutyCycle >= 0.0) && (dutyCycle <= 1.0), dutyCycle);
-    U32 pulseTicks = this->m_periodTicks * dutyCycle;
-    dutyCycleTimer.write_rst_value(pulseTicks);
+    if (dutyCycle == 0.0) {
+        // Disable the timers for 0% duty cycle
+        dutyCycleTimer.write_enable(0);
+        frequencyTimer.write_enable(0);
+        this->m_running = false;
+    } else {
+        U32 pulseTicks = this->m_periodTicks * dutyCycle;
+        dutyCycleTimer.write_rst_value(pulseTicks);
 
-    // Enable the duty cycle timer, if it is not already running
-    if (!this->m_running) {
-        dutyCycleTimer.write_enable(1);
-        this->m_running = true;
+        // Set up the frequency timer and enable both the timers, if they are not already running
+        if (!this->m_running) {
+            // Clear any count that might be left over in the duty cycle timer
+            dutyCycleTimer.write_cnt_value(0);
+            dutyCycleTimer.write_enable(1);
+            // Write frequency timer count 0 so it will immediately trigger
+            // NOTE: timer will not trigger the TIMERDONE signal if it has count 0, load 1 so that
+            // it will trigger after 1 cycle
+            frequencyTimer.write_cnt_value(1);
+            frequencyTimer.write_rst_value(this->m_periodTicks);
+            frequencyTimer.write_enable(1);
+            this->m_running = true;
+        }
     }
 }
 
