@@ -29,13 +29,20 @@ void configure(
 );
 ```
 
+This will assert that, if the frequency timer is on APB1, then the duty cycle timer cannot be on
+APB2. Since APB2 is clocked slower than APB1, the TIMERDONE trigger from the frequency timer could
+potentially be lost since it is only active for a single cycle.
+
 The duty cycle of the component can then be set using either the `setDutyCycle` input port or by
 sending a `SET_DUTY_CYCLE` command. The duty cycle is given as an `F32` value and is interpreted as
-a fraction i.e. 0.25 is 25%.
+a fraction i.e. 0.25 is 25%. Note that the accuracy at which this duty cycle float is translated to
+a tick count is dependent on the frequency, as higher frequencies result in smaller pulse periods
+which are more susceptible to loss of accuracy with integer rounding.
 
 The leading edge of the signal period will align with the port call or command to set the duty
 cycle, when it transitions from 0% to a non-zero value. Subsequent (non-zero) updates to the duty
-cycle will preserve the same period. The timers will be disabled when the duty cycle is set to 0%.
+cycle will preserve the same period. The timers will be disabled when the duty cycle is set to 0%
+and the output signal will immediately go low.
 
 ### Diagrams
 

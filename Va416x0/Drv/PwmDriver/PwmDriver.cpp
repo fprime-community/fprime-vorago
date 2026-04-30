@@ -30,15 +30,17 @@ namespace Va416x0Drv {
 // ----------------------------------------------------------------------
 
 PwmDriver::PwmDriver(const char* const compName)
-    : PwmDriverComponentBase(compName), m_running(false), m_frequency(0.0), m_periodTicks(0) {}
+    : PwmDriverComponentBase(compName),
+      m_running(false),
+      m_frequency(0.0),
+      m_periodTicksFrequency(0),
+      m_periodTicksDutyCycle(0) {}
 
 PwmDriver::~PwmDriver() {}
 
 U32 PwmDriver::periodTicksForTimer(const Va416x0Mmio::Timer& timer) const {
     U32 timerFrequency = Va416x0Mmio::ClkTree::getActiveTimerFreq(timer);
     // Verify that the frequency will not cause an overflow
-    // FIXME: should we mandate that both timers are on the same APB line in the configure
-    // function? otherwise this could trigger a runtime assertion
     FW_ASSERT(
         this->m_frequency >= (static_cast<F32>(timerFrequency) / static_cast<F32>(std::numeric_limits<U32>::max())),
         this->m_frequency, timerFrequency);
@@ -56,6 +58,11 @@ void PwmDriver::configure(U8 frequencyTimerIndex,
     this->m_dutyCycleTimer = Va416x0Mmio::Timer(dutyCycleTimerIndex);
     Va416x0Mmio::Timer& frequencyTimer = this->m_frequencyTimer.value();
     Va416x0Mmio::Timer& dutyCycleTimer = this->m_dutyCycleTimer.value();
+    // This design cannot support a scenario where the frequency timer is on APB1 and the duty
+    // cycle timer is on APB2: since APB2 is clocked slower than APB1, the TIMERDONE trigger could
+    // potentially be lost since it is only active for a single cycle
+    FW_ASSERT(Va416x0Mmio::ClkTree::getActiveTimerFreq(dutyCycleTimer) >=
+              Va416x0Mmio::ClkTree::getActiveTimerFreq(frequencyTimer));
 
     // Enable the clocks to the timers and reset their peripherals and registers
     Va416x0Mmio::SysConfig::set_clk_enabled(frequencyTimer, true);
@@ -71,6 +78,8 @@ void PwmDriver::configure(U8 frequencyTimerIndex,
     // runs in Trigger mode. The duty cycle timer has the AUTODEACTIVATE bit set so it will only
     // re-activate when triggered by the frequency timer and has control status ACTIVE so its
     // signal will be high whenever it is active.
+    frequencyTimer.write_ctrl(Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
+    frequencyTimer.write_csd_ctrl(0);
     dutyCycleTimer.write_ctrl(Va416x0Mmio::Timer::CTRL_AUTO_DEACTIVATE | Va416x0Mmio::Timer::CTRL_STATUS_ACTIVE);
     dutyCycleTimer.write_csd_ctrl(Va416x0Mmio::Timer::CSD_CTRL_CSDEN0 | Va416x0Mmio::Timer::CSD_CTRL_CSDTRG0);
     dutyCycleTimer.configure_cascades(Va416x0Mmio::TimerStatusSignal(frequencyTimerIndex));
@@ -86,8 +95,10 @@ void PwmDriver::configure(U8 frequencyTimerIndex,
         pin.value().configure_as_function(timerFunction);
     }
 
-    // The period of the frequency timer matches that of the signal
-    this->m_periodTicks = this->periodTicksForTimer(frequencyTimer);
+    // Calculate the number of ticks in the full signal period, relative to the clocked frequency
+    // of each timer
+    this->m_periodTicksFrequency = this->periodTicksForTimer(frequencyTimer);
+    this->m_periodTicksDutyCycle = this->periodTicksForTimer(dutyCycleTimer);
 }
 
 void PwmDriver::setDutyCycle(F32 dutyCycle) {
@@ -101,12 +112,14 @@ void PwmDriver::setDutyCycle(F32 dutyCycle) {
     FW_ASSERT((dutyCycle >= 0.0) && (dutyCycle <= 1.0), dutyCycle);
     if (dutyCycle == 0.0) {
         // Disable the timers for 0% duty cycle
+        // NOTE: this also sets the timers to inactive so this will immediately switch to 0% duty
+        // cycle even if the signal is currently high when this is called
         dutyCycleTimer.write_enable(0);
         frequencyTimer.write_enable(0);
         this->m_running = false;
     } else {
         // Derive tick counts relative to the clocked frequency of the timer
-        U32 pulseTicks = this->periodTicksForTimer(dutyCycleTimer) * dutyCycle;
+        U32 pulseTicks = this->m_periodTicksDutyCycle * dutyCycle;
         dutyCycleTimer.write_rst_value(pulseTicks);
 
         // Set up the frequency timer and enable both the timers, if they are not already running
@@ -115,7 +128,7 @@ void PwmDriver::setDutyCycle(F32 dutyCycle) {
             dutyCycleTimer.write_cnt_value(0);
             dutyCycleTimer.write_enable(1);
 
-            frequencyTimer.write_rst_value(this->m_periodTicks);
+            frequencyTimer.write_rst_value(this->m_periodTicksFrequency);
             // Write count 1 to the frequency timer count 1 so that it will immediately trigger
             // after 1 cycle (it will not trigger the TIMERDONE signal if it has count 0)
             frequencyTimer.write_cnt_value(1);

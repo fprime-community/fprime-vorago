@@ -87,8 +87,10 @@ class PwmDriver final : public PwmDriverComponentBase {
     bool m_running;
     //! Frequency of the signal
     F32 m_frequency;
-    //! Number of ticks for the full signal period
-    U32 m_periodTicks;
+    //! Number of ticks for the full signal period, relative to the frequency timer
+    U32 m_periodTicksFrequency;
+    //! Number of ticks for the full signal period, relative to the duty cycle timer
+    U32 m_periodTicksDutyCycle;
 };
 
 }  // namespace Va416x0Drv
