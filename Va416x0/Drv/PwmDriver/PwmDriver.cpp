@@ -61,8 +61,12 @@ void PwmDriver::configure(U8 frequencyTimerIndex,
     // This design cannot support a scenario where the frequency timer is on APB1 and the duty
     // cycle timer is on APB2: since APB2 is clocked slower than APB1, the TIMERDONE trigger could
     // potentially be lost since it is only active for a single cycle
+    // FIXME: potential edge case where frequency timer is on APB2 and duty cycle timer is on APB1
+    // when running with a 100% duty cycle, is the duty cycle timer guaranteed to be triggered from
+    // the frequency timer TIMERDONE signal since it is running at a higher rate?
     FW_ASSERT(Va416x0Mmio::ClkTree::getActiveTimerFreq(dutyCycleTimer) >=
-              Va416x0Mmio::ClkTree::getActiveTimerFreq(frequencyTimer));
+                  Va416x0Mmio::ClkTree::getActiveTimerFreq(frequencyTimer),
+              dutyCycleTimerIndex, frequencyTimerIndex);
 
     // Enable the clocks to the timers and reset their peripherals and registers
     Va416x0Mmio::SysConfig::set_clk_enabled(frequencyTimer, true);
