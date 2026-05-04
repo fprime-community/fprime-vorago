@@ -15,12 +15,12 @@ module Va416x0Svc {
         # TODO: expand to include callee-saved registers R4-R11 if they can be captured as well
         # NOTE: FPP does not support zero-padding the hex values, tracked in https://github.com/nasa/fpp/issues/459
         event Exception( \
-            exception: Va416x0Types.ExceptionNumber, status: U32, address: U32, \
-            R0: U32, R1: U32, R2: U32, R3: U32, R12: U32, LR: U32, PC: U32, XPSR: U32 \
+            exception: Va416x0Types.ExceptionNumber, hfsr: U32, mmfsr: U32, bfsr: U32, ufsr: U32, \
+            mmfar: U32, bfar: U32, R0: U32, R1: U32, R2: U32, R3: U32, R12: U32, LR: U32, PC: U32, XPSR: U32 \
         ) \
             severity fatal \
             id 0x00 \
-            format "{}: Status:0x{x} Address:0x{x} R0:0x{x} R1:0x{x} R2:0x{x} R3:0x{x} R12:0x{x} LR:0x{x} PC:0x{x} XPSR:0x{x}"
+            format "{}: HFSR:0x{x} MMFSR:0x{x} BFSR:0x{x} UFSR:0x{x} MMFAR:0x{x} BFAR:0x{x} R0:0x{x} R1:0x{x} R2:0x{x} R3:0x{x} R12:0x{x} LR:0x{x} PC:0x{x} XPSR:0x{x}"
 
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #

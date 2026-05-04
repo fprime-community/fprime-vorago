@@ -71,37 +71,28 @@ void ExceptionHandler::exceptions_handler(FwIndexType portNum) {
     U32 pc = framePointer[EXCEPTION_FRAME_PC_INDEX];
     U32 xpsr = framePointer[EXCEPTION_FRAME_XPSR_INDEX];
 
-    // Read exception-specific status/address registers, where applicable
-    U32 status = 0;
-    U32 address = 0;
-    switch (exceptionNumber) {
-        case Va416x0Types::ExceptionNumber::EXCEPTION_HARD_FAULT:
-            status = Va416x0Mmio::SysControl::read_hfsr();
-            break;
-        case Va416x0Types::ExceptionNumber::EXCEPTION_MEM_MANAGE:
-            status = Va416x0Mmio::SysControl::read_mmfsr();
-            address = Va416x0Mmio::SysControl::read_mmfar();
-            break;
-        case Va416x0Types::ExceptionNumber::EXCEPTION_BUS_FAULT:
-            status = Va416x0Mmio::SysControl::read_bfsr();
-            address = Va416x0Mmio::SysControl::read_bfar();
-            break;
-        case Va416x0Types::ExceptionNumber::EXCEPTION_USAGE_FAULT:
-            status = Va416x0Mmio::SysControl::read_ufsr();
-            break;
-        default:
-            break;
-    }
+    // Read exception-specific status/address registers
+    // Even though we can map the exception number to a specific fault type,
+    // we log all of the fault status and address registers here.
+    // In the case of priority escalation to Hard Fault from one of the other fault types, we want to
+    // log relevant information from the underlying fault in addition to the Hard Fault.
+    U32 hfsr = Va416x0Mmio::SysControl::read_hfsr();
+    U32 mmfsr = Va416x0Mmio::SysControl::read_mmfsr();
+    U32 mmfar = Va416x0Mmio::SysControl::read_mmfar();
+    U32 bfsr = Va416x0Mmio::SysControl::read_bfsr();
+    U32 bfar = Va416x0Mmio::SysControl::read_bfar();
+    U32 ufsr = Va416x0Mmio::SysControl::read_ufsr();
 
     // NOTE: manually log the FATAL event to stdout, the auto-coded event loggers will invoke the
     // logOut port prior to the logTextOut port so we will hit _exit before the event can be logged
     // to the console
     Fw::Logger::log(
-        "FATAL: Exception: %u: Status: 0x%08X: Address: 0x%08X: R0: 0x%08X: R1: 0x%08X: "
-        "R2: 0x%08X: R3: 0x%08X: R12: 0x%08X: LR: 0x%08X: PC: 0x%08X: XPSR: 0x%08X\n",
-        exceptionNumber, status, address, r0, r1, r2, r3, r12, lr, pc, xpsr);
+        "FATAL: Exception: %u: HFSR: 0x%08X: MMFSR: 0x%02X: BFSR: 0x%02X: UFSR: 0x%04X: "
+        "MMFAR: 0x%08X: BFAR: 0x%08X: R0: 0x%08X: R1: 0x%08X: R2: 0x%08X: R3: 0x%08X: R12: 0x%08X: LR: 0x%08X: "
+        "PC: 0x%08X: XPSR: 0x%08X\n",
+        exceptionNumber, hfsr, mmfsr, bfsr, ufsr, mmfar, bfar, r0, r1, r2, r3, r12, lr, pc, xpsr);
     // Downlink the FATAL event
-    this->log_FATAL_Exception(exceptionNumber, status, address, r0, r1, r2, r3, r12, lr, pc, xpsr);
+    this->log_FATAL_Exception(exceptionNumber, hfsr, mmfsr, bfsr, ufsr, mmfar, bfar, r0, r1, r2, r3, r12, lr, pc, xpsr);
 
     abort();
 }
