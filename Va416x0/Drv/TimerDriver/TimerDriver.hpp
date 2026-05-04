@@ -37,7 +37,7 @@ class TimerDriver : public TimerDriverComponentBase {
     //! Construct TimerDriver object
     TimerDriver(const char* const compName);
 
-    void setup(U8 timer_peripheral_index, U32 cycle_time_microseconds);
+    void setup(U8 timer_peripheral_index, U32 cycle_time_microseconds, U32 timer_interrupt_priority);
 
   private:
     U32 m_tickIndex;
