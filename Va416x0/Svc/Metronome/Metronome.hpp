@@ -43,8 +43,8 @@ struct MetronomeConfig {
     // triggered within an acceptable delay of the expected times?
     // NOTE: This is copied and sorted during initialization.
     U32 client_trigger_times_micros[MAX_CLIENTS];
-    U32 main_timer_interrupt_priority;
-    U32 proxy_timer_interrupt_priority;
+    U8 main_timer_interrupt_priority;
+    U8 proxy_timer_interrupt_priority;
 };
 
 class Metronome : public MetronomeComponentBase {

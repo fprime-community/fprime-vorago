@@ -86,8 +86,8 @@ AdcSampler ::AdcSampler(const char* const compName) : AdcSamplerComponentBase(co
 void AdcSampler ::setup(AdcConfig& config,
                         U32 adc_delay_microseconds,
                         Va416x0Mmio::Timer timer,
-                        U32 adc_interrupt_priority,
-                        U32 timer_interrupt_priority) {
+                        U8 adc_interrupt_priority,
+                        U8 timer_interrupt_priority) {
     this->m_timer = timer;
     Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
     Va416x0Mmio::SysConfig::reset_peripheral(timer);

@@ -88,7 +88,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     );
 
     //! Setup
-    void setup(AdcConfig& config, U32 adc_delay_microseconds, Va416x0Mmio::Timer timer, U32 timer_interrupt_priority, U32 adc_interrupt_priority);
+    void setup(AdcConfig& config, U32 adc_delay_microseconds, Va416x0Mmio::Timer timer, U8 timer_interrupt_priority, U8 adc_interrupt_priority);
 
   private:
     //! ADC read request in progress (set by startRead())

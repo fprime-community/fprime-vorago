@@ -34,7 +34,7 @@ constexpr U32 MICROSECONDS_PER_SECOND = 1000 * 1000;
 
 TimerDriver ::TimerDriver(const char* const compName) : TimerDriverComponentBase(compName), m_tickIndex(0) {}
 
-void TimerDriver::setup(U8 timer_peripheral_index, U32 cycle_time_microseconds, U32 timer_interrupt_priority) {
+void TimerDriver::setup(U8 timer_peripheral_index, U32 cycle_time_microseconds, U8 timer_interrupt_priority) {
     Va416x0Mmio::Timer timer(timer_peripheral_index);
 
     Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
