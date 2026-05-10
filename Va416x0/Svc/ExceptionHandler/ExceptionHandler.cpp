@@ -83,16 +83,17 @@ void ExceptionHandler::exceptions_handler(FwIndexType portNum) {
     U32 bfar = Va416x0Mmio::SysControl::read_bfar();
     U32 ufsr = Va416x0Mmio::SysControl::read_ufsr();
 
-    // NOTE: manually log the FATAL event to stdout, the auto-coded event loggers will invoke the
+    // Exception information logged as two separate events to fit within FW_LOG_BUFFER_MAX_SIZE
+    this->log_WARNING_HI_ExceptionStatus(exceptionNumber, hfsr, mmfsr, mmfar, bfsr, bfar, ufsr);
+
+    // NOTE: manually log the FATAL events to stdout; the auto-coded event loggers will invoke the
     // logOut port prior to the logTextOut port so we will hit _exit before the event can be logged
     // to the console
     Fw::Logger::log(
-        "FATAL: Exception: %u: HFSR: 0x%08X: MMFSR: 0x%02X: BFSR: 0x%02X: UFSR: 0x%04X: "
-        "MMFAR: 0x%08X: BFAR: 0x%08X: R0: 0x%08X: R1: 0x%08X: R2: 0x%08X: R3: 0x%08X: R12: 0x%08X: LR: 0x%08X: "
-        "PC: 0x%08X: XPSR: 0x%08X\n",
-        exceptionNumber, hfsr, mmfsr, bfsr, ufsr, mmfar, bfar, r0, r1, r2, r3, r12, lr, pc, xpsr);
+        "FATAL: ExceptionContext: R1: 0x%08X: R1: 0x%08X: R2: 0x%08X: R3: 0x%08X: R12: 0x%08X: LR: 0x%08X: PC: 0x%08X: XPSR: 0x%08X\n",
+        r0, r1, r2, r3, r12, lr, pc, xpsr);
     // Downlink the FATAL event
-    this->log_FATAL_Exception(exceptionNumber, hfsr, mmfsr, bfsr, ufsr, mmfar, bfar, r0, r1, r2, r3, r12, lr, pc, xpsr);
+    this->log_FATAL_ExceptionContext(r0, r1, r2, r3, r12, lr, pc, xpsr);
 
     abort();
 }
