@@ -23,7 +23,7 @@
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
-#include "config-scythe/IsrPriorityCfg.hpp"
+#include "config/IsrPriorityCfg.hpp"
 
 namespace Va416x0 {
 
