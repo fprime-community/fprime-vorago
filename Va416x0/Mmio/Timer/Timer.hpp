@@ -82,6 +82,8 @@ class Timer final {
     static constexpr U32 CSD_CTRL_CSDTRG2 = (1 << 10);
 
     static constexpr U32 NUM_TIMERS = 24;
+    //! Timers 0-15 reside on APB1, 16-23 reside on APB2
+    static constexpr U32 NUM_APB1_TIMERS = 16;
 
     U8 get_timer_peripheral_index() const;
 

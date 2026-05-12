@@ -178,8 +178,9 @@ U32 ClkTree::getPeripheralFreq(const Va416x0Mmio::SysConfig::ClockedPeripheral& 
 
 U32 ClkTree::getTimerFreq(Timer timer) const {
     //! Assert timer index is valid (TIM0-TIM23)
-    FW_ASSERT(timer.get_timer_peripheral_index() <= 23);
-    if (timer.get_timer_peripheral_index() <= 15) {
+    U8 timer_index = timer.get_timer_peripheral_index();
+    FW_ASSERT(timer_index < Timer::NUM_TIMERS, timer_index);
+    if (timer_index < Timer::NUM_APB1_TIMERS) {
         //! Timers 0-15 use APB1 Frequency
         return m_apb1_freq;
     } else {
