@@ -23,7 +23,6 @@
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
-#include "config/IsrPriorityCfg.hpp"
 
 namespace Va416x0 {
 
@@ -169,8 +168,8 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
     this->component.setup(three_mux_pin_config,
                           20,
                           Va416x0Mmio::Timer(18),
-                          Scythe::IsrPriorityCfg::PRIORITY_GROUP_5,
-                          Scythe::IsrPriorityCfg::PRIORITY_GROUP_5);
+                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
+                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5);
     printf("Testing MUX index 0, pin 1, port A\n");
     {
         // Get the mux enable gpio port
@@ -265,8 +264,8 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
     this->component.setup(three_mux_pin_config,
                           20,
                           Va416x0Mmio::Timer(18),
-                          Scythe::IsrPriorityCfg::PRIORITY_GROUP_5,
-                          Scythe::IsrPriorityCfg::PRIORITY_GROUP_5);
+                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
+                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5);
     printf("Testing address indexing\n");
     {
         for (U32 index = 0; index < three_mux_pin_config.num_en_pins; index++) {

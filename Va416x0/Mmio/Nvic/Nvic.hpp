@@ -26,6 +26,17 @@ namespace Nvic {
 // Only 3 priority bits are implemented on the Va416x0!
 constexpr U32 PRIORITY_MASK = 0xE0;
 
+// Interrupt priority values based on execution groups
+// Formula: NVIC_Priority = Execution_Group * 0x20
+constexpr U8 PRIORITY_GROUP_0 = 0x00;
+constexpr U8 PRIORITY_GROUP_1 = 0x20;
+constexpr U8 PRIORITY_GROUP_2 = 0x40;
+constexpr U8 PRIORITY_GROUP_3 = 0x60;
+constexpr U8 PRIORITY_GROUP_4 = 0x80;
+constexpr U8 PRIORITY_GROUP_5 = 0xA0;
+constexpr U8 PRIORITY_GROUP_6 = 0xC0;
+constexpr U8 PRIORITY_GROUP_7 = 0xE0;
+
 // This class is a convenient wrapper to allow monitoring/controlling
 // interrupts on the NVIC. In particular, it caches information about each's
 // interrupt access addresses so that they can be manipulated very efficiently.

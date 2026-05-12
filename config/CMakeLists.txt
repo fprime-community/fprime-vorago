@@ -18,7 +18,6 @@ register_fprime_config(
         config-fprime-vorago
     HEADERS
         "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
-        "${CMAKE_CURRENT_LIST_DIR}/IsrPriorityCfg.hpp"
     INTERFACE
     BASE_CONFIG
 )
