@@ -49,10 +49,6 @@ Metronome ::Metronome(const char* const compName, const MetronomeConfig& config)
 
     main_ic.set_interrupt_priority(config.main_timer_interrupt_priority);
     proxy_ic.set_interrupt_priority(config.proxy_timer_interrupt_priority);
-    // FIXME: previous implementation asserted that priorities were correctly set. Is this necessary?
-    // And, if so, should we be using this convention everywhere we set interrupt priorities?
-    FW_ASSERT(main_ic.get_interrupt_priority() == config.main_timer_interrupt_priority, main_ic.get_interrupt_priority());
-    FW_ASSERT(proxy_ic.get_interrupt_priority() == config.proxy_timer_interrupt_priority, proxy_ic.get_interrupt_priority());
 
     // Sort the clients. That way, they can be specified in any order, but can
     // be executed efficiently.
