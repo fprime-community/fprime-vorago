@@ -116,14 +116,6 @@ void Metronome ::start_metronome_handler(FwIndexType portNum) {
     proxy_timer.write_cnt_value(0);
     proxy_timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_IRQ_ENB);
 
-    // Deprioritize our ISRs slightly. If there's urgent hardware I/O that
-    // needs to happen, or if we need to manually trigger a higher-priority
-    // ISR, we don't want to stop it from running.
-    main_ic.set_interrupt_priority(0x20);
-    proxy_ic.set_interrupt_priority(0x20);
-    FW_ASSERT(main_ic.get_interrupt_priority() == 0x20, main_ic.get_interrupt_priority());
-    FW_ASSERT(proxy_ic.get_interrupt_priority() == 0x20, proxy_ic.get_interrupt_priority());
-
     // Go.
     main_ic.set_interrupt_enabled(true);
     main_timer.write_enable(1);
