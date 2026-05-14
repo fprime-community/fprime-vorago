@@ -16,6 +16,9 @@ register_fprime_library(
     SOURCES
         "${CMAKE_CURRENT_LIST_DIR}/PwmDriver.cpp"
   DEPENDS
+        Va416x0_Mmio_ClkTree
+        Va416x0_Mmio_Gpio
+        Va416x0_Mmio_SysConfig
         Va416x0_Mmio_Timer
 )
 
