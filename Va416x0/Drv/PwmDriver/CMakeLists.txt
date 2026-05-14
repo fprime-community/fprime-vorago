@@ -17,6 +17,7 @@ register_fprime_library(
         "${CMAKE_CURRENT_LIST_DIR}/PwmDriver.cpp"
   DEPENDS
         Va416x0_Mmio_Timer
+        Va416x0_Mmio_ClkTree
 )
 
 ### Unit Tests ###
