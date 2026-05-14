@@ -84,9 +84,10 @@ AdcSampler ::AdcSampler(const char* const compName) : AdcSamplerComponentBase(co
 }
 
 void AdcSampler ::setup(AdcConfig& config,
-                        U32 interrupt_priority,
                         U32 adc_delay_microseconds,
-                        Va416x0Mmio::Timer timer) {
+                        Va416x0Mmio::Timer timer,
+                        U8 adc_interrupt_priority,
+                        U8 timer_interrupt_priority) {
     this->m_timer = timer;
     Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
     Va416x0Mmio::SysConfig::reset_peripheral(timer);
@@ -99,7 +100,7 @@ void AdcSampler ::setup(AdcConfig& config,
     Va416x0Mmio::Nvic::InterruptControl timer_interrupt =
         Va416x0Mmio::Nvic::InterruptControl(timer.get_timer_done_exception());
     timer_interrupt.set_interrupt_pending(false);
-    timer_interrupt.set_interrupt_priority(interrupt_priority);
+    timer_interrupt.set_interrupt_priority(timer_interrupt_priority);
     Va416x0Mmio::SysConfig::set_clk_enabled(Va416x0Mmio::SysConfig::IRQ_ROUTER, true);
     Va416x0Mmio::Amba::memory_barrier();
     Va416x0Mmio::IrqRouter::write_adcsel(timer.get_timer_peripheral_index());
@@ -114,7 +115,7 @@ void AdcSampler ::setup(AdcConfig& config,
         Va416x0Mmio::Nvic::InterruptControl(Va416x0Types::ExceptionNumber::INTERRUPT_ADC);
     adc_interrupt.set_interrupt_pending(false);
     adc_interrupt.set_interrupt_enabled(true);
-    adc_interrupt.set_interrupt_priority(interrupt_priority);
+    adc_interrupt.set_interrupt_priority(adc_interrupt_priority);
 
     // Configure the mux enable disable delay
     U32 sys_clock_rate = Va416x0Mmio::ClkTree::getActiveSysclkFreq();

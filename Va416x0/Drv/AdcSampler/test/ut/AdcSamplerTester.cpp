@@ -165,7 +165,8 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         gpioPort.write_irq_enb(0);
     }
 
-    this->component.setup(three_mux_pin_config, 0xe0, 20, Va416x0Mmio::Timer(18));
+    this->component.setup(three_mux_pin_config, 20, Va416x0Mmio::Timer(18), Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
+                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5);
     printf("Testing MUX index 0, pin 1, port A\n");
     {
         // Get the mux enable gpio port
@@ -257,7 +258,8 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
         gpioPort.write_irq_enb(0);
     }
 
-    this->component.setup(three_mux_pin_config, 0xe0, 20, Va416x0Mmio::Timer(18));
+    this->component.setup(three_mux_pin_config, 20, Va416x0Mmio::Timer(18), Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
+                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5);
     printf("Testing address indexing\n");
     {
         for (U32 index = 0; index < three_mux_pin_config.num_en_pins; index++) {

@@ -47,6 +47,9 @@ Metronome ::Metronome(const char* const compName, const MetronomeConfig& config)
                   config.default_duration_micros <= config.maximum_duration_micros,
               config.minimum_duration_micros, config.default_duration_micros, config.maximum_duration_micros);
 
+    main_ic.set_interrupt_priority(config.main_timer_interrupt_priority);
+    proxy_ic.set_interrupt_priority(config.proxy_timer_interrupt_priority);
+
     // Sort the clients. That way, they can be specified in any order, but can
     // be executed efficiently.
     for (U32 i = 0; i < MAX_CLIENTS; i++) {
@@ -108,14 +111,6 @@ void Metronome ::start_metronome_handler(FwIndexType portNum) {
     proxy_timer.write_rst_value(0);
     proxy_timer.write_cnt_value(0);
     proxy_timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_IRQ_ENB);
-
-    // Deprioritize our ISRs slightly. If there's urgent hardware I/O that
-    // needs to happen, or if we need to manually trigger a higher-priority
-    // ISR, we don't want to stop it from running.
-    main_ic.set_interrupt_priority(0x20);
-    proxy_ic.set_interrupt_priority(0x20);
-    FW_ASSERT(main_ic.get_interrupt_priority() == 0x20, main_ic.get_interrupt_priority());
-    FW_ASSERT(proxy_ic.get_interrupt_priority() == 0x20, proxy_ic.get_interrupt_priority());
 
     // Go.
     main_ic.set_interrupt_enabled(true);
