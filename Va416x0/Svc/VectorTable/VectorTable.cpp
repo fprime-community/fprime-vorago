@@ -20,6 +20,7 @@
 // ======================================================================
 
 #include "VectorTable.hpp"
+#include <Va416x0/Mmio/Cpu/Cpu.hpp>
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Mmio/SysControl/SysControl.hpp"
@@ -65,6 +66,11 @@ extern "C" void __libc_init_array(void);
 extern void initialize_deployment();
 
 extern "C" void _start(void) {
+    // Artificial delay to let the debugger attach
+    for (U32 i = 0; i < 8000000; i++) {
+        Va416x0Mmio::Cpu::nop();
+    }
+
     // Enable Floating-Point Coprocessor in CPACR register.
     Va416x0Mmio::SysControl::write_cpacr(Va416x0Mmio::SysControl::CPACR_ENABLE_FP_COPROCESSOR);
     // All accesses to the System Control Space must be followed by DSB + ISB.
@@ -80,10 +86,10 @@ extern "C" void _start(void) {
     shcsr |= (Va416x0Mmio::SysControl::SHCSR_MEMFAULTENA | Va416x0Mmio::SysControl::SHCSR_BUSFAULTENA |
               Va416x0Mmio::SysControl::SHCSR_USGFAULTENA);
     Va416x0Mmio::SysControl::write_shcsr(shcsr);
-    // Enable divide-by-zero exception trapping
-    // This is disabled by default
+    // Enable divide-by-zero and unaligned access exception trapping
+    // These are disabled by default
     U32 ccr = Va416x0Mmio::SysControl::read_ccr();
-    ccr |= Va416x0Mmio::SysControl::CCR_DIV_0_TRP;
+    ccr |= (Va416x0Mmio::SysControl::CCR_DIV_0_TRP | Va416x0Mmio::SysControl::CCR_UNALIGN_TRP);
     Va416x0Mmio::SysControl::write_ccr(ccr);
 
     // Copy data section from NVM to volatile memory.

@@ -151,6 +151,10 @@ def main(args: argparse.Namespace):
     project_root = get_project_root()
 
     build_identifier = get_build_identifier(project_root)
+
+    # Let the user know the new build identifier for this binary
+    print(f"Stamped {deployment_name} with build identifier: {build_identifier}")
+
     generate_source(args.output_path, deployment_name, build_identifier)
 
 

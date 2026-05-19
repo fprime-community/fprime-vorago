@@ -153,6 +153,9 @@ _I2CIDLE\b
 
 \bATfE\b
 
+# Compiler options
+\b-m[a-z-]+\b
+
 # Image URLs in Markdown
 ^!\[.+\]\([-A-Za-z0-9+&@#/*%?=~_|!:,.;]+[-A-Za-z0-9+&@#/*%=~_|]\)$
 

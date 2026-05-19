@@ -38,12 +38,10 @@ MainLoop ::MainLoop(const char* const compName) : MainLoopComponentBase(compName
 
 void MainLoop ::configure(Va416x0Mmio::ClkTree system_clk_configuration,
                           bool enable_performance,
-                          bool enable_debugger,
                           U32 dispatch_per_rti) {
     system_clk_configuration.applyClkTree();
 
     this->m_enablePerformanceTest = enable_performance;
-    this->m_enableDebuggerAttachWait = enable_debugger;
     this->m_dispatchPerRti = dispatch_per_rti;
     FW_ASSERT(this->m_readyToRun.is_lock_free());
 }
@@ -53,13 +51,6 @@ void MainLoop ::configure(Va416x0Mmio::ClkTree system_clk_configuration,
 // ----------------------------------------------------------------------
 
 void MainLoop ::reset_vector_handler(FwIndexType portNum) {
-    if (this->m_enableDebuggerAttachWait) {
-        // Artificial delay to let the debugger attach
-        for (U32 i = 0; i < 8000000; i++) {
-            Va416x0Mmio::Cpu::nop();
-        }
-    }
-
     this->enable_irq_router();
     this->invoke_start_ports();
 
