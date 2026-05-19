@@ -112,14 +112,15 @@ void Metronome ::start_metronome_handler(FwIndexType portNum) {
     proxy_timer.write_cnt_value(0);
     proxy_timer.write_ctrl(Va416x0Mmio::Timer::CTRL_ENABLE | Va416x0Mmio::Timer::CTRL_IRQ_ENB);
 
+    // Before we start the timer, mark the metronome as running so that times are considered valid.
+    this->m_isRunning = true;
+
     // Go.
     main_ic.set_interrupt_enabled(true);
     main_timer.write_enable(1);
 
     // No need to set proxy_timer enabled yet. That will be taken care of
     // during the first top-of-RTI interrupt.
-
-    this->m_isRunning = true;
 }
 
 void Metronome ::update_duration_handler(FwIndexType portNum, U32 micros) {
