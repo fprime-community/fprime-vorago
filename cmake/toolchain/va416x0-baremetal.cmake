@@ -215,9 +215,16 @@ function(register_with_bsp TARGET_NAME)
         COMMAND arm-none-eabi-objdump -xD --visualize-jumps "$<TARGET_FILE:${TARGET_NAME}>"
             >"$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
             DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
+        # Demangle the objdump
+        COMMAND c++filt <"$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
+            >"$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump.demangled"
         # Copy the dump into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
+            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+        # Copy the demangled dump into the build-artifacts directory
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump.demangled"
             "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
     )
 
