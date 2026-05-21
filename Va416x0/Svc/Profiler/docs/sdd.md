@@ -7,12 +7,14 @@ flags and defines efficient hooks to maintain a lean footprint.
 
 ## Configuration
 
-The `Profiler` component should be included by using the
-[`va416x0-baremetal-profiler.cmake`](../../../../cmake/toolchain/va416x0-baremetal-profiler.cmake)
-CMake toolchain to build your project. This adds the instrumentation flags to
-the compiler commands and defines the `VA416X0_ENABLE_PROFILER` macro (which
-should be used to identify profiler-specific code sections). An instance of the
-`Va416x0Svc::Profiler` component can then be included in your topology.
+The `Profiler` component should be included by using one of the profiler CMake toolchains:
+- [`va416x0-baremetal-profiler.cmake`](../../../../cmake/toolchain/va416x0-baremetal-profiler.cmake) (without STRB workaround)
+- [`va416x0-baremetal-nostrb-profiler.cmake`](../../../../cmake/toolchain/va416x0-baremetal-nostrb-profiler.cmake) (includes STRB workaround for VA41630 silicon defect)
+
+These toolchains add the instrumentation flags to the compiler commands and define
+the `VA416X0_ENABLE_PROFILER` macro (which should be used to identify profiler-specific
+code sections). An instance of the `Va416x0Svc::Profiler` component can then be
+included in your topology.
 
 By default, all functions in the topology (including auto-coded functions) are
 instrumented. Functions can be excluded from instrumentation using one or more

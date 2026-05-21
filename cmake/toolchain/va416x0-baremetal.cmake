@@ -44,6 +44,7 @@ set(VA416X0_COMMON_FLAGS "\
     --target=thumbv7m-unknown-none-eabi \
     -mcpu=${VA416X0_MCPU} \
     -mthumb \
+    -mno-unaligned-access \
     -ggdb3 \
     -mfpu=fpv4-sp-d16 \
     -mfloat-abi=hard \
