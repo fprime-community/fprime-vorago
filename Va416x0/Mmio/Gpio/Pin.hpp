@@ -78,7 +78,7 @@ class Pin final {
                            Gpio::Irq irq = Gpio::IRQ_DEFAULT,
                            bool direct_interrupt = false,
                            Gpio::Resistors resistors = Gpio::PULL_NEITHER,
-                           bool enable_input_readback = false) const;
+                           bool enable_input_read_back = false) const;
 
     // Will trip an assertion if the function in question cannot be routed to this pin.
     void configure_as_function(Signal::FunctionSignal function, Gpio::IoInversion inversion = Gpio::NO_CHANGE) const;
