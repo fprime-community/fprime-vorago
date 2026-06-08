@@ -162,6 +162,7 @@ IABR
 ICER
 ICPR
 icsr
+IEWO
 ihex
 indexstr
 INOUT
@@ -221,6 +222,7 @@ mmfar
 mmfr
 mmfsr
 Mmio
+mno
 mosi
 movt
 msr

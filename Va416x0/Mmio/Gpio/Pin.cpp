@@ -276,7 +276,7 @@ void Pin::configure_as_gpio(Fw::Direction dir,
     } else if (resistors == Gpio::PULL_DOWN) {
         config |= IoConfig::IO_CONFIG_PEN | IoConfig::IO_CONFIG_PLEVEL_PULLDOWN;
     }
-    // If requested, enable input readback
+    // If requested, enable input read back
     if (enable_input_readback) {
         config |= IoConfig::IO_CONFIG_IEWO;
     }
