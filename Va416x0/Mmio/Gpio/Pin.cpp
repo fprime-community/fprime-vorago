@@ -261,7 +261,7 @@ void Pin::configure_as_gpio(Fw::Direction dir,
                             Gpio::Irq irq,
                             bool direct_interrupt,
                             Gpio::Resistors resistors,
-                            bool enable_input_read_back) const {
+                            Gpio::InputEnable enable_input_read_back) const {
     // Assert that direction is only IN or OUT; INOUT is not supported in the Vorago
     FW_ASSERT(dir == Fw::Direction::IN || dir == Fw::Direction::OUT, dir);
     // Re-enforce IoConfig and GPIO clock enabled.
@@ -277,7 +277,7 @@ void Pin::configure_as_gpio(Fw::Direction dir,
         config |= IoConfig::IO_CONFIG_PEN | IoConfig::IO_CONFIG_PLEVEL_PULLDOWN;
     }
     // If requested, enable input read back
-    if (enable_input_read_back) {
+    if (enable_input_read_back == Gpio::INPUT_ENABLED_ON_OUTPUT) {
         config |= IoConfig::IO_CONFIG_IEWO;
     }
     IoConfig::write_port_config(gpio_port.get_gpio_port(), gpio_pin, config);
