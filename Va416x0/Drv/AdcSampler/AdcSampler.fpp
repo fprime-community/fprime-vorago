@@ -16,7 +16,7 @@
 
 module Va416x0 {
     
-    @ VA416x0 driver for analog-to-digital converter peripherals
+    @ Collects analog data from MUX or non-MUX channels using the VA41630 ADC peripheral
     passive component AdcSampler {
 
         @ Read a contiguous selection of ADC channels 
