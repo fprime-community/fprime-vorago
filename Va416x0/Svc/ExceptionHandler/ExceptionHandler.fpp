@@ -1,6 +1,6 @@
 module Va416x0Svc {
 
-    @ Handles processor exceptions triggered by the Va416x0
+    @ Reports a FATAL when the microcontroller detects a processor exception
     passive component ExceptionHandler {
 
         # NOTE: the following constants should denote the range of exceptions that are handled

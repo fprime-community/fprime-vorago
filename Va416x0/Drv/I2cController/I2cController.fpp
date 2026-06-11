@@ -17,7 +17,7 @@ module Va416x0Drv {
     @ Maximum size of the read/write FIFO buffer
     constant I2C_MAX_BUFFER_SIZE = 16
 
-    @ Driver for the I2C Interface on VA416x0
+    @ Executes I2C bus transactions on an individual VA41630 I2C peripheral
     passive component I2cController {
 
         @ Port for synchronous write to I2C

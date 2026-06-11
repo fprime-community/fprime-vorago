@@ -17,7 +17,7 @@
 module Va416x0Svc {
     constant MAX_CLIENTS = 25
 
-    @ Microsecond-granularity scheduling component
+    @ Schedules activities during each RTI at a microsecond granularity
     passive component Metronome {
 
         sync input port start_metronome: Fw.Ready
