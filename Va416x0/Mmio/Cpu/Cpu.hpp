@@ -41,6 +41,10 @@ void restore_interrupts(U32 primask);
 // Delay a given number of cycles
 void delay_cycles(U32 num_cycles_delay);
 
+// Delay a given number of cycles. This is higher-fidelity than `delay_cycles` and is accurate to
+// within 1 cycle of the given number.
+void delay_cycles_hires(U32 cycles);
+
 }  // namespace Cpu
 }  // namespace Va416x0Mmio
 
