@@ -1,115 +1,101 @@
 # Va416x0::AdcSampler
 
-Below is the high level design of the AdcSampler's interactions; it's given a list of read requests which it then provides to the ADC peripheral one at a time with the ADC interrupt used to signal it should collect data and program the next request. This design supports:
-1. Sweep reads of non-MUX ADC channels 
+The `AdcSampler` component is given a list of ADC requests which it provides to the ADC peripheral
+one at a time. The component handles the ADC interrupt which signals that it should collect the
+conversion data and program the next request. This design supports:
+
+1. Sweep reads of non-MUX ADC channels
 2. 1 to 16 reads of a single ADC channel (MUX or non-MUX)
-3. Reading external (0 to 7) and internal (8-15) ADC channels  
+3. Reading external (0 to 7) and internal (8-15) ADC channels
 
-Expectations: 
+Expectations:
 1. ADC_DONE interrupt signal is triggered when all conversions requested by CTRL>CONV_CNT value are complete (this is consistent with the programmer guide)
-2. Setting SWEEP_EN=0 and CONV_CNT=15 in the ADC CTRL register will read the channel matching the lowest-bit in CTRL>CHAN_EN 16 times 
+2. Setting SWEEP_EN=0 and CONV_CNT=15 in the ADC CTRL register will read the channel matching the lowest-bit in CTRL>CHAN_EN 16 times
 
-Example contents for an AdcRequest object used to start a read 
-```
-adc_request = {
-    adc_sampler_request(1 << 0 , 15, 0, 0, 0, 0),
-    adc_sampler_request(0xff, 8, 1, 0, 0, 0),
-    adc_sampler_request(1 << 1, 15, 0, 0, 0, 0)
-}
-```
-Example contents of the  AdcData object's array once the reads complete (`A<#>` represents the value read from `AN_IN<#>`)
-```
-{ A0*16, A0, A1, A2, A3, A4, A5, A6, A7, A1*16, ...}
-```
+Each ADC read request is a 4-byte `U32` value with the structure defined below. If an ADC read
+request entry does a sweep read with N channels, N-1 entries following the request must be 0 (e.g.
+`{ {.cnt=3, .is_sweep=1}, {0},{0},{0} ...}`)
 
-The ADC read request entry is defined below (it uses bit packed fields to fit into 4 bytes). If an ADC read request entry does a sweep read with N channels, N-1 entries following must be 0 (.e.g `{ {.cnt=3, .is_sweep=1}, {0},{0},{0} ...}`)
-```
+```c++
 struct AdcEntry{
-    chan_en:     U16 <@ this is a bit mask (to read channel 7, this should be (1<<7))
-    cnt:    U8  (size: 4 bit ) <@ range 0 to 15 supports 1 to 16 samples 
-    enable_pin:  I8  (size: 4 bit ) <@ supports mux_en pins 0 to 15
-    mux_chan:    U8  (size: 5 bit)  <@ supports mux addresses 0 to 31
-    is_mux:      U8  (size: 1 bit ) <@ indicates whether MUX enable & address values should be set
-    is_sweep:    U8  (size: 1 bit ) <@ controls whether N+1 channels are read once or 1 channel is read N+1 times
+    U16 chan_en;    //! 16 bits; Bit mask to select the channel to read, i.e. to read channel 7, this should be 1<<7
+    U8 cnt;         //! 4 bits; Sample count +1 (range 0 to 15 supports 1 to 16 samples)
+    U8 enable_pin;  //! 4 bits; Index of the MUX_EN pin from the ADC config (ignored if is_mux is 0)
+    U8 mux_chan;    //! 5 bits; Channel to select the MUX sample (ignored if is_mux is 0)
+    U8 is_mux;      //! 1 bit; Is this a MUX channel?
+    U8 is_sweep;    //! 1 bit; Is this a sweep read? Controls whether N+1 channels are read once or 1 channel is read N+1 times
 }
 ```
-To assist in bit-packing requests, AdcSampler provides the below static inline function 
-```
-adc_sampler_request(chan_en, cnt, is_sweep, is_mux, enable_pin, mux_chan) 
+
+To assist in bit-packing requests, AdcSampler provides the below static inline function
+```c++
+U32 static inline adc_sampler_request(U16 chan_en, U8 cnt, bool is_sweep, bool is_mux, U8 enable_pin, U8 mux_chan) {
+    // ...
+}
 ```
 
-Setup & configuration will be handled by a public setup method (`AdcSampler::setup()`) which should do the following 
-```
-# 1. Enable ADC digital logic clock in the System Configuration peripherals (bit 13, ADC, of PERIPHERAL_CLK_ENABLES, offset 0x05C)
-# 2. Enable the NVIC entry for the ADC (IRQ #28 and NVIC input #44) 
-# 3. Setup GPIO pin connections for all MUX_EN & MUX_ADDR connections 
-# 4. Set RQ_ENB> ADC_DONE = 1 (and all other bits in the register to 0)
-```
+Configuration is handled by `AdcSampler::configure` which does the following:
+1. Enable the ADC digital logic clock in the System Configuration peripherals (bit 13, ADC, of PERIPHERAL_CLK_ENABLES, offset 0x05C)
+2. Enable the NVIC entry for the ADC interrupt (IRQ #28 and NVIC input #44)
+3. Setup GPIO pin connections for all MUX_EN & MUX_ADDR connections
+4. Set RQ_ENB> ADC_DONE = 1 (and all other bits in the register to 0)
 
-A client (AdcCollector) will begin sampling by calling  startRead (`bool readStart_handler(FwIndexType portNum, U8 num_reads, Scythe::AdcRequests& requests, Scythe::AdcData& data)`) which should do the following 
-```
-# 1. Return FALSE if (this->requestIndex  && this->requestIndex != this->num_reads)
-# 2. Store (by reference) list of read requests in this->requests 
-#       see AdcEntry struct def above 
-# 3. Store (by reference) the data as this->data
-# 4. Set this->requestIndex to 0 
-# 5. Set this->dataIndex to 0 
-# 6. Set this->num_reads to num_reads
-# 7. Call this->startRead()
-# 8. Return TRUE
-```
+A client will begin sampling by calling `startRead` and providing it with a list of ADC read
+requests and a buffer to store the read data. This stores the requests and buffer by reference and
+then calls `startReadInner` which does the following:
+1. Clear out old data by setting the FIFO_CLR >FIFO_CLR bit
+2. If the current request is a MUX read:
+   a. Set the MUX_EN GPIO pin for the request to LO (enabled) and all others to HI (disabled)
+   b. Set MUX_ADDR GPIO pins to reflect the MUX channel for the request
+3. If the current request is a sweep read:
+   a. Write the request channel & CONV_CNT (1) & SWEEP_EN=1 & MANUAL_TRIG values to CTRL register
+4. Otherwise: (this handles the single read & multi-read cases)
+   a. Write the request channel & CONV_CNT (cur_request->cnt) & SWEEP_EN=0 & MANUAL_TRIG values to the CTRL register
 
-The private function `AdcSampler::startRead()` will be invoked by `readStart_handler` and by the interrupt handler and do the following: 
-```
-# 1. Set this->cur_request = &this->requests[this->requestIndex]
-# 2. Assert (this->requestIndex + this->cnt + 1) < this->num_reads
-# 3. Clear old data by setting the FIFO_CLR >FIFO_CLR bit 
-# 4. If this->cur_request->is_mux == TRUE 
-#       a. Set the GPIO pin for this->cur_request->enable_pin to LO (enable) and all others to HI (disable)
-#       b. Set MUX_ADDR pins to reflect this->cur_request->mux_chan
-# 
-# 5. If this->cur_request->is_sweep == TRUE 
-#       a. Write this->cur_request->chan_en & CONV_CNT (1) & SWEEP_EN=1 & MANUAL_TRIG values to CTRL register 
-# 
-# 6. Else:  # (this handles the single read & multi read cases)
-#       a. Write this->cur_request->chan_en & CONV_CNT (cur_request->cnt) & SWEEP_EN=0 & MANUAL_TRIG values to CTRL register 
-```
-
-There will be an interrupt handler (`AdcSampler::adcIrq_handler`) registered (by FPP at compile time) for the ADC interrupt based on the ADC_DONE bit in the IRQ_ENB register. That interrupt handler will do the following: 
+The component registers an interrupt handler (`AdcSampler::adcIrq_handler`) for the ADC interrupt
+based on the ADC_DONE bit in the IRQ_ENB register. The interrupt handler does the following:
 ```
 # 1. If this->cur_request->is_sweep == FALSE && cur_request->cnt > 0
-#       a. set sum = 0 
-#       b. (for n=0; n < (cur_request->cnt+1); n++), 
+#       a. set sum = 0
+#       b. (for n=0; n < (cur_request->cnt+1); n++),
 #           i. read  ADC FIFO register value & add it to sum
 #       c. Store sum into this->data[this->dataIndex]
 #       d. this->dataIndex += 1
-# 2. Else 
+# 2. Else
 #       a. (for n=0; n < (cur_request->cnt+1); n++)
 #           i. Read the ADC FIFO register value & store it into this->data[this->dataIndex + n]
 #       b. this->dataIndex += cur_request->cnt + 1
-# 
+#
 # 3. this->requestIndex += 1
 # 4. If this->requestIndex < this->num_reads, call this->startRead()
 ```
 _MUX_EN is not updated at the end of the read because the next read operation will set the value for the new ADC sample and skipping that update here saves time_
 
-The client will call AdcSampler::startRead() to start a read operation and then poll at some TBD rate (likely no faster than 1 KHz) using `AdcSampler::checkRead()` to see when its requests are complete. 
-```
-# 0. Return BUSY if this->requestIndex == this->num_reads else SUCCESS
-```
+The client calls `startRead` to start a read operation and then polls the `AdcSampler` component at
+some TBD rate (likely no faster than 1 KHz) using `checkRead` to see when the requests are complete.
 
 Advantages:
--  most of the new read operations are triggered via interrupt (high rate)
--  support re-reading the same multiple times 
--  clients can size the list of requests given to AdcSampler to provide flexibility in how frequently the client needs to provide new work
--  All work done in the interrupt context is handled by a single component (limited scope & scope is readily apparent) 
-
-## Performance Information
-
-Performance info is kept under AdcCollector's SDD.
+- Most of the new read operations are triggered via interrupt (high rate)
+- Support re-reading the same channel multiple times
+- Clients can size the list of requests given to AdcSampler to provide flexibility in how frequently the client needs to provide new work
+- All work done in the interrupt context is handled by a single component (limited scope & scope is readily apparent)
 
 ## Usage Examples
-Add usage examples here
+
+Example contents for an `AdcRequest` object used to start a read:
+```c++
+Va416x0::AdcRequests adc_requests[] = {
+    adc_sampler_request(1 << 0 , 15, 0, 0, 0, 0),
+    adc_sampler_request(0xff, 8, 1, 0, 0, 0),
+    adc_sampler_request(1 << 1, 15, 0, 0, 0, 0)
+};
+```
+
+Example contents of the `AdcData` array once the reads complete (`A<#>` represents the value read
+from `AN_IN<#>`):
+```
+{ A0*16, A0, A1, A2, A3, A4, A5, A6, A7, A1*16, ...}
+```
 
 ### Diagrams
 Add diagrams here
@@ -135,24 +121,20 @@ Add component states in the chart below
 Add sequence diagrams here
 
 ## Parameters
-| Name | Description |
-|---|---|
-|---|---|
+
+None.
 
 ## Commands
-| Name | Description |
-|---|---|
-|---|---|
+
+None.
 
 ## Events
-| Name | Description |
-|---|---|
-|---|---|
+
+None.
 
 ## Telemetry
-| Name | Description |
-|---|---|
-|---|---|
+
+None.
 
 ## Unit Tests
 Add unit test descriptions in the chart below
