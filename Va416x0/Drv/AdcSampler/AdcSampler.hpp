@@ -41,9 +41,9 @@
 /// @param enable_pin Index of the pin to set LO to enable the MUX for a MUX sample (ignored if is_mux is 0)
 /// @param mux_chan Channel (0 to 31) to select for the MUX sample (ignored if is_mux is 0)
 /// @return 32 bit unsigned int
-// FIXME: this should be namespaced
+// FIXME: should this be namespaced?
 U32 static inline adc_sampler_request(U16 chan_en, U8 cnt, bool is_sweep, bool is_mux, U8 enable_pin, U8 mux_chan) {
-    return (((chan_en & 0xffff) << 16) + ((cnt & 0xf) << 12) + ((enable_pin & 0xf) << 8) + ((mux_chan & 31) << 2) +
+    return (((chan_en & 0xffff) << 16) + ((cnt & 0xf) << 12) + ((enable_pin & 0xf) << 8) + ((mux_chan & 0x1f) << 2) +
             ((is_mux & 1) << 1) + ((is_sweep & 1) << 0));
 }
 
@@ -51,18 +51,26 @@ U32 static inline adc_sampler_request(U16 chan_en, U8 cnt, bool is_sweep, bool i
 namespace Va416x0 {
 
 struct AdcConfig {
-    //! Number of MUX_ADDR pins, can be between 0 (no MUXes) and ADC_MUX_PINS_ADDR_MAX
-    U8 num_addr_pins;
-    //! Number of MUX_EN pins, can be between 0 and ADC_MUX_PINS_EN_MAX
-    U8 num_en_pins;
-    //! Array of GPIO pins used to enable a MUX. If an ADC request specifies enable_pin=i, the pin
-    //! at index i is used. If a request specifies enable_pin=ADC_MUX_PINS_EN_MAX, no enable signal
-    //! is set
-    Va416x0Mmio::Gpio::Pin mux_en_output[ADC_MUX_PINS_EN_MAX];
-    //! Array of GPIO pins used for MUX address/selection. All MUXes must use the same pins for
-    //! address/selection signals. The pin at index i is the pin that sets 1 << i when selecting
+    //! Array of GPIO pins used to enable a MUX. When an ADC request specifies enable_pin=i, the
+    //! pin at index i is used. If a request specifies enable_pin=ADC_MUX_PINS_EN_MAX, no enable
+    //! signal is set
+    Va416x0Mmio::Gpio::Pin* muxEnPins;
+    //! Number of MUX_EN pins
+    U8 muxEnPinCount;
+    //! Array of GPIO pins used for MUX address selection. All MUXes must use the same pins for
+    //! address selection signals. The pin at index i is the pin that sets 1 << i when selecting
     //! the MUX channel
-    Va416x0Mmio::Gpio::Pin mux_addr_output[ADC_MUX_PINS_ADDR_MAX];
+    Va416x0Mmio::Gpio::Pin* muxAddrPins;
+    //! Number of MUX_ADDR pins
+    U8 muxAddrPinCount;
+    //! Delay (in microseconds) between the ADC request and when the sampling is performed
+    U32 adcDelayUs;
+    //! Timer used to perform the sampling delay
+    Va416x0Mmio::Timer timer;
+    //! Priority of the interrupt for the sampling delay timer
+    U8 timerInterruptPriority;
+    //! Priority of the ADC interrupt
+    U8 adcInterruptPriority;
 };
 
 class AdcSampler final : public AdcSamplerComponentBase {
@@ -78,11 +86,9 @@ class AdcSampler final : public AdcSamplerComponentBase {
     );
 
     //! Component configuration
-    void configure(AdcConfig& config,
-                   U32 adc_delay_microseconds,
-                   Va416x0Mmio::Timer timer,
-                   U8 timer_interrupt_priority,
-                   U8 adc_interrupt_priority);
+    //! NOTE: the AdcConfig struct must live beyond the call since it is stored as a pointer
+    //! member variable
+    void configure(AdcConfig& config);
 
   private:
     //! Pointer to the ADC configuration
@@ -107,8 +113,6 @@ class AdcSampler final : public AdcSamplerComponentBase {
     U32 m_dataIndex;
     //! Timer delay (in timer ticks) before triggering the ADC conversion
     U32 m_adcDelayTicks;
-    //! Timer used to perform the sampling delay
-    Va416x0Types::Optional<Va416x0Mmio::Timer> m_timer;
     //! Delay (in CPU cycles) after the MUX is enabled or disabled
     U32 m_muxEnaDisDelay;
     //! Last request which used a MUX

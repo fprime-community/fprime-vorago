@@ -34,13 +34,13 @@
 namespace Va416x0 {
 
 /* Each AdcRequest (U32 value) is a bit packed structure with the following fields:
- Field name | Bits  | Description
+ field name | Bits  | Description
     chan_en | 31-16 | this is a bit mask (to read channel 7, this should be (1<<7))
-        cnt | 15-12 | range 0 to 15 supports 1 to 16 samples
- enable_pin | 11-8  | supports mux_en pins 0 to 15
+    cnt     | 15-12 | range 0 to 15 supports 1 to 16 samples
+  enable_pin| 11-8  | supports mux_en pins 0 to 15
    mux_chan | 8-2   | supports mux addresses 0 to 31
-     is_mux | 1     | indicates whether MUX enable & address values should be set
-   is_sweep | 0     | controls whether N+1 channels are read once or 1 channel is read N+1 times
+    is_mux  | 1     | indicates whether MUX enable & address values should be set
+   is_sweep | 0    | controls whether N+1 channels are read once or 1 channel is read N+1 times
 */
 static inline U32 REQ_GET_CHAN_EN(U32 request) {
     return request >> 16;
@@ -89,34 +89,29 @@ AdcSampler::AdcSampler(const char* const compName)
     }
 }
 
-void AdcSampler::configure(AdcConfig& config,
-                           U32 adc_delay_microseconds,
-                           Va416x0Mmio::Timer timer,
-                           U8 adc_interrupt_priority,
-                           U8 timer_interrupt_priority) {
+void AdcSampler::configure(AdcConfig& config) {
     FW_ASSERT(this->m_config == nullptr);
     this->m_config = &config;
 
     // Set up the timer used for the ADC delay
-    this->m_timer = timer;
-    Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
-    Va416x0Mmio::SysConfig::reset_peripheral(timer);
-    timer.write_ctrl(Va416x0Mmio::Timer::CTRL_AUTO_DISABLE | Va416x0Mmio::Timer::CTRL_IRQ_ENB |
-                     Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
-    timer.write_csd_ctrl(0);
+    Va416x0Mmio::SysConfig::set_clk_enabled(config.timer, true);
+    Va416x0Mmio::SysConfig::reset_peripheral(config.timer);
+    config.timer.write_ctrl(Va416x0Mmio::Timer::CTRL_AUTO_DISABLE | Va416x0Mmio::Timer::CTRL_IRQ_ENB |
+                            Va416x0Mmio::Timer::CTRL_STATUS_PULSE);
+    config.timer.write_csd_ctrl(0);
     // Convert microseconds to ticks
-    U32 timer_freq = Va416x0Mmio::ClkTree::getActiveTimerFreq(timer);
-    U64 rstValueScaled = U64(timer_freq) * adc_delay_microseconds;
+    U32 timer_freq = Va416x0Mmio::ClkTree::getActiveTimerFreq(config.timer);
+    U64 rstValueScaled = U64(timer_freq) * config.adcDelayUs;
     this->m_adcDelayTicks = rstValueScaled / MICROSECONDS_PER_SECOND;
 
     // Set up the interrupt that is triggered when the timer expires which is used as a trigger to
     // start the ADC conversion
-    Va416x0Mmio::Nvic::InterruptControl timer_interrupt(timer.get_timer_done_exception());
+    Va416x0Mmio::Nvic::InterruptControl timer_interrupt(config.timer.get_timer_done_exception());
     timer_interrupt.set_interrupt_pending(false);
-    timer_interrupt.set_interrupt_priority(timer_interrupt_priority);
+    timer_interrupt.set_interrupt_priority(config.timerInterruptPriority);
     Va416x0Mmio::SysConfig::set_clk_enabled(Va416x0Mmio::SysConfig::IRQ_ROUTER, true);
     Va416x0Mmio::Amba::memory_barrier();
-    Va416x0Mmio::IrqRouter::write_adcsel(timer.get_timer_peripheral_index());
+    Va416x0Mmio::IrqRouter::write_adcsel(config.timer.get_timer_peripheral_index());
 
     // Enable CLK for ADC (not technically needed but not a problem to do)
     Va416x0Mmio::SysConfig::reset_peripheral(Va416x0Mmio::SysConfig::ADC);
@@ -126,31 +121,32 @@ void AdcSampler::configure(AdcConfig& config,
     Va416x0Mmio::Nvic::InterruptControl adc_interrupt(Va416x0Types::ExceptionNumber::INTERRUPT_ADC);
     adc_interrupt.set_interrupt_pending(false);
     adc_interrupt.set_interrupt_enabled(true);
-    adc_interrupt.set_interrupt_priority(adc_interrupt_priority);
+    adc_interrupt.set_interrupt_priority(config.adcInterruptPriority);
 
     // Configure the MUX enable/disable delay
     U32 sys_clock_rate = Va416x0Mmio::ClkTree::getActiveSysclkFreq();
     this->m_muxEnaDisDelay = sys_clock_rate * MUX_BREAK_BEFORE_MAKE_DELAY_NS / NANOSECONDS_PER_SECOND;
     FW_ASSERT(this->m_muxEnaDisDelay > 0, sys_clock_rate, MUX_BREAK_BEFORE_MAKE_DELAY_NS);
 
-    // Configure GPIO pins for MUX(es) if using any
-    if ((config.num_addr_pins > 0) || (config.num_en_pins > 0)) {
-        // Setup GPIO pins for mux enable signals (if any are used)
-        FW_ASSERT(config.num_en_pins <= ADC_MUX_PINS_EN_MAX, config.num_en_pins);
-        for (U32 i = 0; i < config.num_en_pins; i++) {
-            auto pin = &config.mux_en_output[i];
-            // Default enable pins to HIGH (MUX disabled)
-            pin->out(Fw::Logic::HIGH);
-            pin->configure_as_gpio(Fw::Direction::OUT);
-        }
+    // Setup GPIO pins for MUX enable signals (if any are used)
+    if (config.muxEnPinCount > 0) {
+        FW_ASSERT(config.muxEnPins != nullptr, config.muxEnPinCount);
+    }
+    for (U32 i = 0; i < config.muxEnPinCount; i++) {
+        auto pin = &config.muxEnPins[i];
+        // Default enable pins to HIGH (MUX disabled)
+        pin->out(Fw::Logic::HIGH);
+        pin->configure_as_gpio(Fw::Direction::OUT);
+    }
 
-        // Setup GPIO pins for mux address/selection signals (if any are used)
-        FW_ASSERT(config.num_addr_pins <= ADC_MUX_PINS_ADDR_MAX, config.num_addr_pins);
-        for (U32 i = 0; i < config.num_addr_pins; i++) {
-            auto pin = &config.mux_addr_output[i];
-            this->m_muxPinsMask[pin->getGpioPortNumber()] |= (1 << pin->getPinNumber());
-            pin->configure_as_gpio(Fw::Direction::OUT);
-        }
+    // Setup GPIO pins for MUX address selection signals (if any are used)
+    if (config.muxAddrPinCount > 0) {
+        FW_ASSERT(config.muxAddrPins != nullptr, config.muxAddrPinCount);
+    }
+    for (U32 i = 0; i < config.muxAddrPinCount; i++) {
+        auto pin = &config.muxAddrPins[i];
+        this->m_muxPinsMask[pin->getGpioPortNumber()] |= (1 << pin->getPinNumber());
+        pin->configure_as_gpio(Fw::Direction::OUT);
     }
 
     // Dummy value to trigger a delay on the first MUX request
@@ -258,16 +254,16 @@ void AdcSampler::startReadInner() {
             // Disable the previous MUX_EN pin, unless the previous pin index is the dummy value
             // which indicates that no MUX request has been received yet
             if (previousMuxEnIndex < ADC_MUX_PINS_EN_MAX) {
-                this->m_config->mux_en_output[previousMuxEnIndex].out(Fw::Logic::HIGH);
+                this->m_config->muxEnPins[previousMuxEnIndex].out(Fw::Logic::HIGH);
                 // Delay after disabling the previous MUX_EN pin
                 Va416x0Mmio::Amba::memory_barrier();
                 Va416x0Mmio::Cpu::delay_cycles(this->m_muxEnaDisDelay);
             }
 
             // Enable the new MUX_EN pin
-            FW_ASSERT(muxEnIndex < this->m_config->num_en_pins, muxEnIndex, this->m_curRequest,
-                      this->m_config->num_en_pins);
-            this->m_config->mux_en_output[muxEnIndex].out(Fw::Logic::LOW);
+            FW_ASSERT(muxEnIndex < this->m_config->muxEnPinCount, muxEnIndex, this->m_curRequest,
+                      this->m_config->muxEnPinCount);
+            this->m_config->muxEnPins[muxEnIndex].out(Fw::Logic::LOW);
         }
 
         // Calculate the values for the MUX address selection pins
@@ -308,14 +304,13 @@ void AdcSampler::startReadInner() {
     Va416x0Mmio::Adc::write_ctrl(ctrl_val);
 
     // Setup and start timer
-    FW_ASSERT(this->m_timer.has_value());
-    this->m_timer.value().write_cnt_value(this->m_adcDelayTicks);
-    this->m_timer.value().write_enable(1);
+    this->m_config->timer.write_cnt_value(this->m_adcDelayTicks);
+    this->m_config->timer.write_enable(1);
 }
 
 U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
     U32 pin_values = 0;
-    U8 numAddrPins = this->m_config->num_addr_pins;
+    U8 numAddrPins = this->m_config->muxAddrPinCount;
     U8 mux_chan = REQ_GET_MUX_CHAN(request);
     U8 mux_en_index = REQ_GET_MUX_ENABLE(request);
     FW_ASSERT(mux_chan < (1 << numAddrPins), mux_chan, numAddrPins);
@@ -324,7 +319,7 @@ U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
     // The address pins should be set as a binary translation of the mux channel
     // where HI=1 and LO=0 (selecting Chan31 = 0b11111, selecting Chan0=0b0000)
     for (U32 i = 0; i < numAddrPins; i++) {
-        auto pin = &this->m_config->mux_addr_output[i];
+        auto pin = &this->m_config->muxAddrPins[i];
         if ((pin->getGpioPortNumber() == port_number) && ((1 << i) & mux_chan)) {
             pin_values |= (1 << pin->getPinNumber());
         }
