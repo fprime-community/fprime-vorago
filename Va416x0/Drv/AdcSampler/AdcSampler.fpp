@@ -15,11 +15,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 module Va416x0 {
-    
+
     @ Collects analog data from MUX or non-MUX channels using the VA41630 ADC peripheral
     passive component AdcSampler {
 
-        @ Read a contiguous selection of ADC channels 
+        @ Read a contiguous selection of ADC channels
         sync input port startRead: Va416x0.AdcStartRead
 
         @ Check whether ADC read request list is done

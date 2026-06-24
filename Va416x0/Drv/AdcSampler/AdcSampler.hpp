@@ -22,7 +22,6 @@
 #ifndef Va416x0_AdcSampler_HPP
 #define Va416x0_AdcSampler_HPP
 
-#include <atomic>
 #include "Va416x0/Drv/AdcSampler/AdcSamplerComponentAc.hpp"
 #include "Va416x0/Mmio/Gpio/Pin.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
@@ -32,6 +31,8 @@
 #include "Va416x0/Types/FppConstantsAc.hpp"
 #include "Va416x0/Types/Optional.hpp"
 
+#include <atomic>
+
 /// @brief Combine channel mask, count, and other ADC request information into a U32 value
 /// @param chan_en Channel mask for the read (1 to 0xffff)
 /// @param cnt Number of samples to collect -1 (0 to 15)
@@ -40,41 +41,38 @@
 /// @param enable_pin Index of the pin to set LO to enable the MUX for a MUX sample (ignored if is_mux is 0)
 /// @param mux_chan Channel (0 to 31) to select for the MUX sample (ignored if is_mux is 0)
 /// @return 32 bit unsigned int
+// FIXME: should this be namespaced?
 U32 static inline adc_sampler_request(U16 chan_en, U8 cnt, bool is_sweep, bool is_mux, U8 enable_pin, U8 mux_chan) {
-    return (((chan_en & 0xffff) << 16) + ((cnt & 0xf) << 12) + ((enable_pin & 0xf) << 8) + ((mux_chan & 31) << 2) +
+    return (((chan_en & 0xffff) << 16) + ((cnt & 0xf) << 12) + ((enable_pin & 0xf) << 8) + ((mux_chan & 0x1f) << 2) +
             ((is_mux & 1) << 1) + ((is_sweep & 1) << 0));
 }
 
+// FIXME: should be Va416x0Drv
 namespace Va416x0 {
 
-// Configuration (the GPIO pins for controlling MUXes must all be from
-// the same bank and are specified as bits so that they can be set together via a Port object)
 struct AdcConfig {
-    // Number of MUX_ADDR pins used by this configuration
-    // (Can be 0 (no muxes) to ADC_MUX_PINS_ADDR_MAX)
-    U8 num_addr_pins;
-    // Number of MUX_EN pins used by this configuration
-    U8 num_en_pins;
-    // Index of the bank of GPIO pins being used
-    // (ignored if num_en_pins & num_addr_pins are 0)
-    Va416x0Mmio::Gpio::Port gpio_port;
-    // Bit for each GPIO pin mapped to a signal to enable a MUX
-    // If a request specifies enable_pin=0, the value in index 0 is used at the pin's bit number
-    // If a request specifies enable_pin=ADC_MUX_PINS_EN_MAX, no enable signal is set
-    // If a request specifies enable_pin >= config.num_en_pins && enable_pin != ADC_MUX_PINS_EN_MAX, FSW asserts
-    // The PBC discussions included deliberation about whether to connect a MUX that didn't need an enable
-    // (because it was always enabled)
-    U8 mux_en_output[ADC_MUX_PINS_EN_MAX];
-    // Bit for each GPIO pin mapped to a signal used for a MUX address/selection
-    // All MUXes must use the same pins for address/selection signals
-    // Value of index 0 is the bit of the pin that sets (1<<0) when selecting the MUX channel
-    // Value of index 1 is the bit of the pin that sets (1<<1) when selecting the MUX channel
-    // Value of index 2 is the bit of the pin that sets (1<<2) when selecting the MUX channel
-    // etc.
-    Va416x0Mmio::Gpio::Pin mux_addr_output[ADC_MUX_PINS_ADDR_MAX];
+    //! Array of GPIO pins used to enable a MUX. When an ADC request specifies enable_pin=i, the
+    //! pin at index i is used. If a request specifies enable_pin=ADC_MUX_PINS_EN_MAX, no enable
+    //! signal is set
+    Va416x0Mmio::Gpio::Pin* muxEnPins;
+    //! Number of MUX_EN pins
+    U8 muxEnPinCount;
+    //! Array of GPIO pins used for MUX address selection. All MUXes must use the same pins for
+    //! address selection signals. The pin at index i is the pin that sets 1 << i when selecting
+    //! the MUX channel
+    Va416x0Mmio::Gpio::Pin* muxAddrPins;
+    //! Number of MUX_ADDR pins
+    U8 muxAddrPinCount;
+    //! Delay (in microseconds) between the ADC request and when the sampling is performed
+    U32 adcDelayUs;
+    //! Timer used to perform the sampling delay
+    Va416x0Mmio::Timer timer;
+    //! Priority of the interrupt for the sampling delay timer
+    U8 timerInterruptPriority;
+    //! Priority of the ADC interrupt
+    U8 adcInterruptPriority;
 };
 
-// Declared as final to comply with JPL-C++-Rule32
 class AdcSampler final : public AdcSamplerComponentBase {
     friend class AdcSamplerTester;
 
@@ -87,49 +85,44 @@ class AdcSampler final : public AdcSamplerComponentBase {
     AdcSampler(const char* const compName  //!< The component name
     );
 
-    //! Setup
-    void setup(AdcConfig& config,
-               U32 adc_delay_microseconds,
-               Va416x0Mmio::Timer timer,
-               U8 timer_interrupt_priority,
-               U8 adc_interrupt_priority);
+    //! Component configuration
+    //! NOTE: the AdcConfig struct must live beyond the call since it is stored as a pointer
+    //! member variable
+    void configure(AdcConfig& config);
 
   private:
+    //! Pointer to the ADC configuration
+    AdcConfig* m_config;
     //! ADC read request in progress (set by startRead())
     U32 m_curRequest;
     //! Number of measurements in m_curRequest (set by startRead())
     U32 m_curCnt;
-    //! \brief Pointer to config value from setup()
-    AdcConfig* m_pConfig;
-    //! \brief GPIO port used by pins for controlling MUXes
-    Va416x0Types::Optional<Va416x0Mmio::Gpio::Port> m_muxEnaGpioPort;
-    //! \brief  Bit mask for all pins set for MUXes (enable + address)
+    //! Bit mask for MUX address selection pins
     U32 m_muxPinsMask[Va416x0Mmio::Gpio::NUM_PORTS];
-    //! \brief  Bit mask for all pins set to enable MUXes
-    U32 m_muxEnPinsMask;
-    //! \brief previous value set for pins to control MUXes
+    //! Previous value set for MUX address selection pins
     U32 m_lastPinsValue[Va416x0Mmio::Gpio::NUM_PORTS];
-    //! \brief Number of requests provided by startRead_handler()
+    //! Number of requests provided by startRead_handler()
     U32 m_numReads;
-    //! \brief Pointer to requests provided by startRead_handler()
+    //! Pointer to requests provided by startRead_handler()
     Va416x0::AdcRequests* m_pRequests;
-    //! \brief Pointer to struct to store the results from the m_pRequests
+    //! Pointer to struct to store the results from the m_pRequests
     Va416x0::AdcData* m_pData;
-    //! \brief Index of the current read request
+    //! Index of the current read request
     std::atomic<U32> m_requestIndex;
-    //! \brief Index to store data into when current read completes
+    //! Index to store data into when current read completes
     U32 m_dataIndex;
-    //! \brief The timer delay in timer ticks before triggering the adc conversion
+    //! Timer delay (in timer ticks) before triggering the ADC conversion
     U32 m_adcDelayTicks;
-    //! \brief Timer used to perform the sampling delay
-    Va416x0Types::Optional<Va416x0Mmio::Timer> m_timer;
-    //! \brief 100ns delay in clock ticks for the mux disable/enable delay
+    //! Delay (in CPU cycles) after the MUX is enabled or disabled
     U32 m_muxEnaDisDelay;
-    //! \brief Last request which used a mux
+    //! Last request which used a MUX
     U32 m_lastMuxRequest;
 
     //! Starts the next read in the this->m_pRequests list
     void startReadInner();
+
+    //! Calculate the DATAOUT value for the given GPIO port to set the ADDR & EN pins to read a MUX channel
+    U32 calculateGpioPinsValue(U32 request, U32 port);
 
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
@@ -153,9 +146,6 @@ class AdcSampler final : public AdcSamplerComponentBase {
                            U8 numReads,
                            Va416x0::AdcRequests& requests,
                            Va416x0::AdcData& data) override;
-
-    //! Calculate the value to set the ADDR & EN pins to read a MUX channel
-    U32 calculateGpioPinsValue(U32 request, U32 port);
 
     //! Handler implementation for getNumDataValues
     U32 getNumDataValues_handler(FwIndexType portNum  //!< The port number
