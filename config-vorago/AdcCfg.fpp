@@ -14,11 +14,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-register_fprime_config(
-        config-fprime-vorago
-    HEADERS
-        "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
-    INTERFACE
-    BASE_CONFIG
-)
+# FIXME: should be Va416x0Drv
+module Va416x0 {
+    # To reduce noise, the Vorago programmer's guide recommends reading samples multiple times and
+    # then averaging the result, so it's reasonable to assume that reading a measurement 16x before
+    # reading the next will be a common use case. The Vorago only completes 21.5 16x reads (340)
+    # within 1 ms RTI, so setting the baseline to 32
+    @ Maximum size of the ADC request arrays
+    constant ADC_MAX_REQUEST_SIZE = 32
 
+    # FIXME: should this always match ADC_MAX_REQUEST_SIZE?
+    @ Maximum size of the data arrays
+    constant ADC_MAX_DATA_SIZE = 32
+}
