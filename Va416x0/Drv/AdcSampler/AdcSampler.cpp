@@ -126,9 +126,9 @@ void AdcSampler::configure(AdcConfig& config) {
     // Configure the MUX enable/disable delay
     U32 sys_clock_rate = Va416x0Mmio::ClkTree::getActiveSysclkFreq();
     this->m_muxEnaDisDelay = sys_clock_rate * MUX_BREAK_BEFORE_MAKE_DELAY_NS / NANOSECONDS_PER_SECOND;
-    FW_ASSERT(this->m_muxEnaDisDelay > 0, sys_clock_rate, MUX_BREAK_BEFORE_MAKE_DELAY_NS);
 
     // Setup GPIO pins for MUX enable signals (if any are used)
+    FW_ASSERT(config.muxEnPinCount < ADC_MUX_PINS_EN_MAX, config.muxEnPinCount, ADC_MUX_PINS_EN_MAX);
     if (config.muxEnPinCount > 0) {
         FW_ASSERT(config.muxEnPins != nullptr, config.muxEnPinCount);
     }
@@ -140,6 +140,7 @@ void AdcSampler::configure(AdcConfig& config) {
     }
 
     // Setup GPIO pins for MUX address selection signals (if any are used)
+    FW_ASSERT(config.muxAddrPinCount < ADC_MUX_PINS_ADDR_MAX, config.muxAddrPinCount, ADC_MUX_PINS_ADDR_MAX);
     if (config.muxAddrPinCount > 0) {
         FW_ASSERT(config.muxAddrPins != nullptr, config.muxAddrPinCount);
     }
