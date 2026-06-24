@@ -14,10 +14,21 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-register_fprime_library(
-    SOURCES
+if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    set(GPIO_SOURCES
         Pin.cpp
         Port.cpp
+    )
+else()
+    set(GPIO_SOURCES
+        Pin.cpp
+        PortStubs.cpp
+    )
+endif()
+
+register_fprime_library(
+    SOURCES
+        ${GPIO_SOURCES}
     HEADERS
         Pin.hpp
         Port.hpp
