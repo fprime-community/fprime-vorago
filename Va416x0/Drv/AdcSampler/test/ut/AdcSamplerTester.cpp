@@ -23,6 +23,7 @@
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
+#include "config-vorago/FppConstantsAc.hpp"
 
 namespace Va416x0 {
 
@@ -115,40 +116,15 @@ Va416x0::AdcConfig three_mux_pin_config = {
     Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
 };
 
-Va416x0::AdcRequests three_mux_pin_config_requests = {
+// FIXME: must use an intermediary array until https://github.com/nasa/fprime/issues/5331 is resolved
+U32 requests_list[ADC_MAX_REQUEST_SIZE] = {
     // AV 1
-    adc_sampler_request(1 << 0, 15, 0, 1, 0, 31),
-    adc_sampler_request(1 << 0, 15, 0, 1, 1, 1),
-    adc_sampler_request(1 << 0, 15, 0, 1, 2, 2),
-    adc_sampler_request(1 << 0, 15, 0, 1, 0, 3),
-    adc_sampler_request(1 << 0, 15, 0, 1, 1, 4),
-    adc_sampler_request(1 << 0, 15, 0, 1, 2, 16),
-    adc_sampler_request(1 << 0, 15, 0, 1, 1, 24),
-    adc_sampler_request(1 << 0, 15, 0, 1, 0, 0),
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0};
+    adc_sampler_request(1 << 0, 15, 0, 1, 0, 31), adc_sampler_request(1 << 0, 15, 0, 1, 1, 1),
+    adc_sampler_request(1 << 0, 15, 0, 1, 2, 2),  adc_sampler_request(1 << 0, 15, 0, 1, 0, 3),
+    adc_sampler_request(1 << 0, 15, 0, 1, 1, 4),  adc_sampler_request(1 << 0, 15, 0, 1, 2, 16),
+    adc_sampler_request(1 << 0, 15, 0, 1, 1, 24), adc_sampler_request(1 << 0, 15, 0, 1, 0, 0),
+};
+Va416x0::AdcRequests three_mux_pin_config_requests = requests_list;
 
 void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
     // Initialize memory addresses before access
