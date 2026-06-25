@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 module Va416x0 {
+
     @ Start a set of read requests
     port AdcStartRead(num_reads: U8,
                       requests: AdcRequests,
@@ -25,4 +26,5 @@ module Va416x0 {
 
     @ Get the number of measurements read in the previous ADC read
     port GetAdcDataNum() -> U32
+
 }
