@@ -16,8 +16,12 @@
 
 register_fprime_config(
         config-fprime-vorago
+    AUTOCODER_INPUTS
+        "${CMAKE_CURRENT_LIST_DIR}/AdcCfg.fpp"
     HEADERS
         "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
+    DEPENDS
+        Fw_Types
     INTERFACE
     BASE_CONFIG
 )

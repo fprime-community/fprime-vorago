@@ -89,7 +89,7 @@ AdcSampler::AdcSampler(const char* const compName)
     }
 }
 
-void AdcSampler::configure(AdcConfig& config) {
+void AdcSampler::configure(const AdcConfig& config) {
     FW_ASSERT(this->m_config == nullptr);
     this->m_config = &config;
 
@@ -218,7 +218,7 @@ Va416x0::AdcSamplerStatus AdcSampler::checkRead_handler(FwIndexType portNum) {
 
 bool AdcSampler::startRead_handler(FwIndexType portNum,
                                    U8 numReads,
-                                   Va416x0::AdcRequests& requests,
+                                   const Va416x0::AdcRequests& requests,
                                    Va416x0::AdcData& data) {
     if (numReads == 0 || this->checkRead_handler(0) == Va416x0::AdcSamplerStatus::BUSY) {
         return false;

@@ -54,13 +54,13 @@ struct AdcConfig {
     //! Array of GPIO pins used to enable a MUX. When an ADC request specifies enable_pin=i, the
     //! pin at index i is used. If a request specifies enable_pin=ADC_MUX_PINS_EN_MAX, no enable
     //! signal is set
-    Va416x0Mmio::Gpio::Pin* muxEnPins;
+    const Va416x0Mmio::Gpio::Pin* muxEnPins;
     //! Number of MUX_EN pins
     U8 muxEnPinCount;
     //! Array of GPIO pins used for MUX address selection. All MUXes must use the same pins for
     //! address selection signals. The pin at index i is the pin that sets 1 << i when selecting
     //! the MUX channel
-    Va416x0Mmio::Gpio::Pin* muxAddrPins;
+    const Va416x0Mmio::Gpio::Pin* muxAddrPins;
     //! Number of MUX_ADDR pins
     U8 muxAddrPinCount;
     //! Delay (in microseconds) between the ADC request and when the sampling is performed
@@ -88,11 +88,11 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! Component configuration
     //! NOTE: the AdcConfig struct must live beyond the call since it is stored as a pointer
     //! member variable
-    void configure(AdcConfig& config);
+    void configure(const AdcConfig& config);
 
   private:
     //! Pointer to the ADC configuration
-    AdcConfig* m_config;
+    const AdcConfig* m_config;
     //! ADC read request in progress (set by startRead())
     U32 m_curRequest;
     //! Number of measurements in m_curRequest (set by startRead())
@@ -104,7 +104,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! Number of requests provided by startRead_handler()
     U32 m_numReads;
     //! Pointer to requests provided by startRead_handler()
-    Va416x0::AdcRequests* m_pRequests;
+    const Va416x0::AdcRequests* m_pRequests;
     //! Pointer to struct to store the results from the m_pRequests
     Va416x0::AdcData* m_pData;
     //! Index of the current read request
@@ -144,7 +144,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! Read a contiguous selection of ADC channels
     bool startRead_handler(FwIndexType portNum,
                            U8 numReads,
-                           Va416x0::AdcRequests& requests,
+                           const Va416x0::AdcRequests& requests,
                            Va416x0::AdcData& data) override;
 
     //! Handler implementation for getNumDataValues
