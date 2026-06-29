@@ -18,5 +18,52 @@ module Va416x0Svc {
     @ Dispatches responses to processor resets and exceptions (including interrupts)
     passive component VectorTable {
         output port exceptions: [Va416x0Types.NUMBER_OF_EXCEPTIONS] Va416x0Types.ExceptionHandler
+
+        @ Mark end of RTI period for interrupt statistics tracking
+        sync input port EndRti: Svc.Sched
+
+        ###########################################################################
+        # Commands
+        ###########################################################################
+
+        @ Report RTI interrupt statistics
+        sync command REPORT_RTI_STATS
+
+        ###########################################################################
+        # Events
+        ###########################################################################
+
+        @ RTI interrupt statistics report
+        event RtiStats(
+            rtiHwmIrqDutyUtilTicks: U32 @< HWM for cumulative ticks of all outer interrupts in any RTI period
+            rtiHwmIrqAllCnt: U32 @< HWM of all interrupts in any RTI
+            rtiHwmIrqOuterCnt: U32 @< HWM of outer interrupts in any RTI
+            rtiHwmIrqLongestExc: U32 @< HWM of ticks for longest outer interrupt in any RTI (24-bit CVR ticks)
+            rtiHwmIrqLongestTicks: U32 @< Exception ID of the longest outer interrupt
+        ) \
+        severity activity low \
+        format "Per-RTI HWMs: IRQ duty cycle: {} ticks, all IRQ cnt: {}, outer IRQ cnt: {}, longest outer IRQ {} = {} ticks"
+
+        ###########################################################################
+        # Standard Ports
+        ###########################################################################
+
+        @ Command receive port
+        command recv port CmdDisp
+
+        @ Command registration port
+        command reg port CmdReg
+
+        @ Command response port
+        command resp port CmdStatus
+
+        @ Event port
+        event port Log
+
+        @ Text event port
+        text event port LogText
+
+        @ Time get port
+        time get port Time
     }
 }

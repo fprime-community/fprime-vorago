@@ -40,6 +40,51 @@ class VectorTable : public VectorTableComponentBase {
     ~VectorTable();
 
     void handle_exception(U8 exception);
+
+    // ----------------------------------------------------------------------
+    // Public accessor methods for timing data
+    // ----------------------------------------------------------------------
+
+    //! Mark end of RTI period (call from rate group)
+    void endRti();
+
+  private:
+    // ----------------------------------------------------------------------
+    // Handler implementations for typed input ports
+    // ----------------------------------------------------------------------
+
+    //! Handler implementation for EndRti
+    void EndRti_handler(FwIndexType portNum,  //!< The port number
+                        U32 context           //!< The call order
+    );
+
+    // ----------------------------------------------------------------------
+    // Handler implementations for commands
+    // ----------------------------------------------------------------------
+
+    //! Handler for command REPORT_RTI_STATS
+    void REPORT_RTI_STATS_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+                                     U32 cmdSeq            //!< The command sequence number
+    );
+
+    // ----------------------------------------------------------------------
+    // Member variables for exception timing
+    // ----------------------------------------------------------------------
+
+    // Per-RTI tracking
+    bool m_hasBeenCalled;           //!< First iteration, it is false. Subsequent calls, it is true.
+    U32 m_rtiCurrentAllCnt;         //!< Count of all interrupts (outer + nested) in current RTI period
+    U32 m_rtiCurrentOuterCnt;       //!< Count of outer interrupts only in current RTI period
+    U32 m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current RTI period
+
+    // Nesting tracking
+    U32 m_nestingDepth;  //!< Current interrupt nesting level (0 = not in interrupt)
+
+    U32 m_rtiHwmIrqOuterCnt;       //!< High Water Mark of outer interrupts per RTI Period
+    U32 m_rtiHwmIrqAllCnt;         //!< High Water Mark of all (outer and nested)  interrupts per RTI period
+    U32 m_rtiHwmIrqDutyUtilTicks;  //!< High water mark for cumulative ticks of all outer interrupts in any RTI period
+    U32 m_rtiHwmIrqLongestTicks;   //!< High water mark ticks for any single interrupt in any RTI (24-bit CVR ticks)
+    U8 m_rtiHwmIrqLongestExc;      //!< Exception number that caused the longest outer IRQ
 };
 
 }  // namespace Va416x0Svc
