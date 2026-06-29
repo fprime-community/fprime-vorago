@@ -67,10 +67,23 @@ void restore_interrupts(U32 primask) {
     asm volatile("msr primask, %0" : : "r"(primask) : "memory");
 }
 
-void delay_cycles(U32 num_cycles_delay) {
-    for (U32 cycles_delayed = 0; cycles_delayed < num_cycles_delay; ++cycles_delayed) {
-        Va416x0Mmio::Cpu::nop();
-    }
+void delay_cycles(U32 cycles) {
+    // Each loop iteration takes approximately 3 cycles: 1 cycle for SUBS and 2 cycles for BNE with
+    // the branch being taken (this could be longer but in practice this is pipelined efficiently
+    // in this tight loop). Additional overhead comes from the `iterations` calculation, which the
+    // compiler can do in 3 cycles
+    U32 iterations = cycles / 3;
+    asm volatile(
+        // Skip the loop if the iteration count is 0, otherwise this will underflow
+        "cbz %[iter], 2f \n"
+        "1: \n"
+        "subs %[iter], #1 \n"
+        "bne 1b \n"
+        "2: \n"
+        : [iter] "+r"(iterations)
+        :
+        : "cc"  // Modifies condition-code flags
+    );
 }
 
 }  // namespace Cpu

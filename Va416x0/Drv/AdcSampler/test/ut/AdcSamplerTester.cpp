@@ -23,6 +23,7 @@
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
+#include "config-vorago/FppConstantsAc.hpp"
 
 namespace Va416x0 {
 
@@ -83,10 +84,6 @@ enum {
     EDGE_STATUS = 0x04C,
 };
 
-static U32 read_gpio_dataout(U32 gpio_port) {
-    return Va416x0Mmio::Amba::read_u32(GPIO_ADDRESS | (gpio_port * GPIO_PORT_STRIDE) | DATAOUT);
-}
-
 // ----------------------------------------------------------------------
 // Construction and destruction
 // ----------------------------------------------------------------------
@@ -103,50 +100,31 @@ AdcSamplerTester ::~AdcSamplerTester() {}
 // Tests
 // ----------------------------------------------------------------------
 
+Va416x0Mmio::Gpio::Pin mux_en_pins[] = {Va416x0Mmio::Gpio::PORTA[1], Va416x0Mmio::Gpio::PORTA[5],
+                                        Va416x0Mmio::Gpio::PORTA[3]};
+Va416x0Mmio::Gpio::Pin mux_addr_pins[] = {Va416x0Mmio::Gpio::PORTB[0], Va416x0Mmio::Gpio::PORTB[1],
+                                          Va416x0Mmio::Gpio::PORTC[2], Va416x0Mmio::Gpio::PORTD[3],
+                                          Va416x0Mmio::Gpio::PORTE[4]};
 Va416x0::AdcConfig three_mux_pin_config = {
-    5,
-    3,
-    Va416x0Mmio::Gpio::PORTA,
-    {1, 5, 3, 0, 0, 0, 0, 0, 0, 0},
-    // Address Pins
-    {Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTB, 0), Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTB, 1),
-     Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTC, 2), Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTD, 3),
-     Va416x0Mmio::Gpio::Pin(Va416x0Mmio::Gpio::PORTE, 4)}};
+    mux_en_pins,
+    FW_NUM_ARRAY_ELEMENTS(mux_en_pins),
+    mux_addr_pins,
+    FW_NUM_ARRAY_ELEMENTS(mux_addr_pins),
+    20,
+    Va416x0Mmio::Timer(18),
+    Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
+    Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
+};
 
-Va416x0::AdcRequests three_mux_pin_config_requests = {
+// FIXME: must use an intermediary array until https://github.com/nasa/fprime/issues/5331 is resolved
+U32 requests_list[ADC_MAX_REQUEST_SIZE] = {
     // AV 1
-    adc_sampler_request(1 << 0, 15, 0, 1, 0, 31),
-    adc_sampler_request(1 << 0, 15, 0, 1, 1, 1),
-    adc_sampler_request(1 << 0, 15, 0, 1, 2, 2),
-    adc_sampler_request(1 << 0, 15, 0, 1, 0, 3),
-    adc_sampler_request(1 << 0, 15, 0, 1, 1, 4),
-    adc_sampler_request(1 << 0, 15, 0, 1, 2, 16),
-    adc_sampler_request(1 << 0, 15, 0, 1, 1, 24),
-    adc_sampler_request(1 << 0, 15, 0, 1, 0, 0),
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0};
+    adc_sampler_request(1 << 0, 15, 0, 1, 0, 31), adc_sampler_request(1 << 0, 15, 0, 1, 1, 1),
+    adc_sampler_request(1 << 0, 15, 0, 1, 2, 2),  adc_sampler_request(1 << 0, 15, 0, 1, 0, 3),
+    adc_sampler_request(1 << 0, 15, 0, 1, 1, 4),  adc_sampler_request(1 << 0, 15, 0, 1, 2, 16),
+    adc_sampler_request(1 << 0, 15, 0, 1, 1, 24), adc_sampler_request(1 << 0, 15, 0, 1, 0, 0),
+};
+Va416x0::AdcRequests three_mux_pin_config_requests = requests_list;
 
 void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
     // Initialize memory addresses before access
@@ -165,28 +143,26 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         gpioPort.write_irq_enb(0);
     }
 
-    this->component.setup(three_mux_pin_config, 20, Va416x0Mmio::Timer(18), Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
-                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5);
+    this->component.configure(three_mux_pin_config);
     printf("Testing MUX index 0, pin 1, port A\n");
     {
-        // Get the mux enable gpio port
-        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(three_mux_pin_config.gpio_port);
         // Check the dummy value is set
         EXPECT_TRUE(REQ_GET_MUX_ENABLE(this->component.m_lastMuxRequest) == ADC_MUX_PINS_EN_MAX);
 
         this->component.startRead_handlerBase(0, 8, three_mux_pin_config_requests, this->m_data);
         EXPECT_TRUE(this->component.m_requestIndex == 0);
 
-        // Read in the port pin values
-        U32 pin_values = read_gpio_dataout(three_mux_pin_config.gpio_port.get_gpio_port());
-        printf("pin values 0x%08x\n", pin_values);
         // For the current request get the enable channel pin, in this case request index 0 uses mux enable 0
         U32 req_mux_enable = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
         printf("Mux enable pin %d\n", req_mux_enable);
         // Confirm that only a single mux is enabled (0) and all others are 1
-        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_enable])) == 0);
-        EXPECT_TRUE((pin_values & (1 << 5)));
-        EXPECT_TRUE((pin_values & (1 << 3)));
+        for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
+            if (i == req_mux_enable) {
+                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+            } else {
+                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+            }
+        }
         // Confirm the requests match as expected
         EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIndex]);
         // Confirm the last mux request changed
@@ -199,18 +175,17 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
     EXPECT_TRUE(this->component.m_requestIndex == 1);
     this->component.startReadInner();
     {
-        // Get the mux enable gpio port
-        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(three_mux_pin_config.gpio_port);
-        // Read in the port pin values
-        U32 pin_values = read_gpio_dataout(three_mux_pin_config.gpio_port.get_gpio_port());
-        printf("pin values 0x%08x\n", pin_values);
         // For the current request get the enable channel pin, in this case request index 0 uses mux enable 0
         U32 req_mux_enable = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
         printf("Mux enable pin %d\n", req_mux_enable);
         // Confirm that only a single mux is enabled (0) and all others are 1
-        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_enable])) == 0);
-        EXPECT_TRUE((pin_values & (1 << 1)));
-        EXPECT_TRUE((pin_values & (1 << 3)));
+        for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
+            if (i == req_mux_enable) {
+                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+            } else {
+                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+            }
+        }
         // Confirm the requests match as expected
         EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIndex]);
         // Confirm the last mux request changed
@@ -223,18 +198,17 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
     EXPECT_TRUE(this->component.m_requestIndex == 2);
     this->component.startReadInner();
     {
-        // Get the mux enable gpio port
-        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(three_mux_pin_config.gpio_port);
-        // Read in the port pin values
-        U32 pin_values = read_gpio_dataout(three_mux_pin_config.gpio_port.get_gpio_port());
-        printf("pin values 0x%08x\n", pin_values);
         // For the current request get the enable channel pin, in this case request index 0 uses mux enable 0
         U32 req_mux_enable = REQ_GET_MUX_ENABLE(this->component.m_curRequest);
         printf("Mux enable pin %d\n", req_mux_enable);
         // Confirm that only a single mux is enabled (0) and all others are 1
-        EXPECT_TRUE((pin_values & (1 << three_mux_pin_config.mux_en_output[req_mux_enable])) == 0);
-        EXPECT_TRUE((pin_values & (1 << 1)));
-        EXPECT_TRUE((pin_values & (1 << 5)));
+        for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
+            if (i == req_mux_enable) {
+                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+            } else {
+                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+            }
+        }
         // Confirm the requests match as expected
         EXPECT_TRUE(this->component.m_curRequest == three_mux_pin_config_requests[this->component.m_requestIndex]);
         // Confirm the last mux request changed
@@ -258,22 +232,13 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
         gpioPort.write_irq_enb(0);
     }
 
-    this->component.setup(three_mux_pin_config, 20, Va416x0Mmio::Timer(18), Va416x0Mmio::Nvic::PRIORITY_GROUP_5,
-                          Va416x0Mmio::Nvic::PRIORITY_GROUP_5);
+    this->component.configure(three_mux_pin_config);
     printf("Testing address indexing\n");
     {
-        for (U32 index = 0; index < three_mux_pin_config.num_en_pins; index++) {
-            Va416x0Mmio::Gpio::Port gpioPort =
-                Va416x0Mmio::Gpio::Port(three_mux_pin_config.mux_addr_output[index].getGpioPortNumber());
-            gpioPort.write_dataout(0);
-        }
         this->component.startRead_handlerBase(0, 8, three_mux_pin_config_requests, this->m_data);
         EXPECT_TRUE(this->component.m_requestIndex == 0);
-        for (U32 index = 0; index < three_mux_pin_config.num_en_pins; index++) {
-            U32 pin_number = three_mux_pin_config.mux_addr_output[index].getPinNumber();
-
-            EXPECT_TRUE(read_gpio_dataout(three_mux_pin_config.mux_addr_output[index].getGpioPortNumber()) &
-                        static_cast<U32>(1 << pin_number));
+        for (U32 i = 0; i < three_mux_pin_config.muxAddrPinCount; i++) {
+            EXPECT_TRUE(three_mux_pin_config.muxAddrPins[i].in() == Fw::Logic::HIGH);
         }
     }
 }
