@@ -26,6 +26,8 @@ if (EXISTS "${LIBC_PATH}")
     string(REGEX MATCH "Tag_CPU_unaligned_access: ([^\n]+)" UNALIGNED_MATCH "${READELF_OUTPUT}")
 
     if (UNALIGNED_MATCH)
+        string(SUBSTRING "${READELF_OUTPUT}" 0 1000 READELF_OUTPUT_TRUNC)
+        message(INFO "${READELF_OUTPUT_TRUNC}")
         set(UNALIGNED_VALUE "${CMAKE_MATCH_1}")
         # FIXME: changed fatal to a log message
         message(FATAL_ERROR 
