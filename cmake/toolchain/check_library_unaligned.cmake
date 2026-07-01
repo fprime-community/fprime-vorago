@@ -30,6 +30,7 @@ if (EXISTS "${LIBC_PATH}")
         string(STRIP "${UNALIGNED_VALUE}" UNALIGNED_VALUE)
     endif()
 
+    # If Tag_CPU_unaligned_access was present & not None, report the error and quit
     if (UNALIGNED_MATCH AND NOT UNALIGNED_VALUE STREQUAL "None")
         string(SUBSTRING "${READELF_OUTPUT}" 0 1000 READELF_OUTPUT_TRUNC)
         message(INFO "${READELF_OUTPUT_TRUNC}")
