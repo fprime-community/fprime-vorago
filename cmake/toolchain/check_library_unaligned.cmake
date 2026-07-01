@@ -26,10 +26,13 @@ if (EXISTS "${LIBC_PATH}")
     string(REGEX MATCH "Tag_CPU_unaligned_access: ([^\n]+)" UNALIGNED_MATCH "${READELF_OUTPUT}")
 
     if (UNALIGNED_MATCH)
+        set(UNALIGNED_VALUE "${CMAKE_MATCH_1}")
+        string(STRIP "${UNALIGNED_VALUE}" UNALIGNED_VALUE)
+    endif()
+
+    if (UNALIGNED_MATCH AND NOT UNALIGNED_VALUE STREQUAL "None")
         string(SUBSTRING "${READELF_OUTPUT}" 0 1000 READELF_OUTPUT_TRUNC)
         message(INFO "${READELF_OUTPUT_TRUNC}")
-        set(UNALIGNED_VALUE "${CMAKE_MATCH_1}")
-        # FIXME: changed fatal to a log message
         message(FATAL_ERROR 
             "Selected C library was built with unaligned access support: ${UNALIGNED_VALUE}n"
             "Library: ${LIBC_PATH}\n"
