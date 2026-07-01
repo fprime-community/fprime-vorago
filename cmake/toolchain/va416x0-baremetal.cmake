@@ -150,7 +150,7 @@ make_directory("${BUILD_INFO_AC_DIR}")
 # FIXME - Related F' ticket: https://github.com/nasa/fprime/issues/4032
 make_directory("${CMAKE_BINARY_DIR}/.fprime-build-dir")
 
-
+# Verify that the libc selected was built without unlaligned-access enabled 
 include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
 
 

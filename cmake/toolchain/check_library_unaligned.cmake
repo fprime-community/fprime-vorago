@@ -33,9 +33,9 @@ if (EXISTS "${LIBC_PATH}")
     # If Tag_CPU_unaligned_access was present & not None, report the error and quit
     if (UNALIGNED_MATCH AND NOT UNALIGNED_VALUE STREQUAL "None")
         string(SUBSTRING "${READELF_OUTPUT}" 0 1000 READELF_OUTPUT_TRUNC)
-        message(INFO "${READELF_OUTPUT_TRUNC}")
+        message(VERBOSE "${READELF_OUTPUT_TRUNC}")
         message(FATAL_ERROR 
-            "Selected C library was built with unaligned access support: ${UNALIGNED_VALUE}n"
+            "Selected C library was built with unaligned access support: ${UNALIGNED_VALUE}\n"
             "Library: ${LIBC_PATH}\n"
             "fprime-vorago does not allow unaligned memory accesses.\n"
             "A library built with -mno-unaligned-access is required.\n")
