@@ -24,6 +24,7 @@
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Mmio/SysControl/SysControl.hpp"
+#include "Va416x0/Mmio/SysTick/SysTick.hpp"
 #include "Va416x0/Types/ExceptionNumberEnumAc.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
 
@@ -41,16 +42,15 @@ namespace Va416x0Svc {
 
 VectorTable ::VectorTable(const char* const compName)
     : VectorTableComponentBase(compName),
-      m_hasBeenCalled(false),
+      m_firstRtiCompleted(false),
+      m_rtiCurrentDutyUtilTicks(0),
+      m_rtiHwmIrqDutyUtilTicks(0),
       m_rtiCurrentAllCnt(0),
       m_rtiCurrentOuterCnt(0),
-      m_rtiCurrentDutyUtilTicks(0),
       m_rtiHwmIrqOuterCnt(0),
       m_rtiHwmIrqAllCnt(0),
-      m_rtiHwmIrqDutyUtilTicks(0),
       m_rtiHwmIrqLongestTicks(0),
-      m_rtiHwmIrqLongestExc(0),
-      m_nestingDepth(0) {}
+      m_rtiHwmIrqLongestExc(0) {}
 
 VectorTable ::~VectorTable() {}
 
@@ -60,15 +60,28 @@ VectorTable ::~VectorTable() {}
 
 void VectorTable::EndRti_handler(FwIndexType portNum, U32 context) {
     // Ignore artifacts accumulated before metrics collection started.
-    if (!m_hasBeenCalled) {
-        this->m_rtiCurrentAllCnt = 0;
-        this->m_rtiCurrentOuterCnt = 0;
-        this->m_rtiCurrentDutyUtilTicks = 0;
+    if (!m_firstRtiCompleted) {
+        // Atomic store with relaxed ordering (no synchronization needed, just atomicity)
+        this->m_rtiCurrentDutyUtilTicks.store(0, std::memory_order_relaxed);
+        if (DEBUG) {
+            // Disable interrupts for non-atomic debug counters
+            Va416x0Mmio::Cpu::disable_interrupts();
+            this->m_rtiCurrentAllCnt = 0;
+            this->m_rtiCurrentOuterCnt = 0;
+            Va416x0Mmio::Cpu::enable_interrupts();
+        }
     }
 
-    this->endRti();
+    // Call endRti - atomic is thread-safe, but disable interrupts for DEBUG variables
+    if (DEBUG) {
+        Va416x0Mmio::Cpu::disable_interrupts();
+        this->endRti();
+        Va416x0Mmio::Cpu::enable_interrupts();
+    } else {
+        this->endRti();
+    }
 
-    m_hasBeenCalled = true;
+    m_firstRtiCompleted = true;
 }
 
 // ----------------------------------------------------------------------
@@ -77,30 +90,28 @@ void VectorTable::EndRti_handler(FwIndexType portNum, U32 context) {
 
 void VectorTable::REPORT_RTI_STATS_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
     // Report the RTI interrupt statistics
-    this->log_ACTIVITY_LO_RtiStats(this->m_rtiHwmIrqDutyUtilTicks, this->m_rtiHwmIrqAllCnt, this->m_rtiHwmIrqOuterCnt,
-                                   this->m_rtiHwmIrqLongestExc, this->m_rtiHwmIrqLongestTicks);
+    this->log_ACTIVITY_LO_RtiStats(this->m_rtiHwmIrqDutyUtilTicks);
+
+    // Print debug statistics if enabled
+    if (DEBUG) {
+        printf("DEBUG RTI Stats:\n");
+        printf("  HWM All IRQ Count: %lu\n", static_cast<unsigned long>(this->m_rtiHwmIrqAllCnt));
+        printf("  HWM Outer IRQ Count: %lu\n", static_cast<unsigned long>(this->m_rtiHwmIrqOuterCnt));
+        printf("  HWM Longest IRQ: Exception %u = %lu ticks\n", this->m_rtiHwmIrqLongestExc,
+               static_cast<unsigned long>(this->m_rtiHwmIrqLongestTicks));
+    }
+
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
 void VectorTable::handle_exception(U8 exception) {
-    // SysTick CVR register address (24-bit down-counter)
-    constexpr U32 SYSTICK_CVR = 0xE000E018;
-
     // Special case: EXCEPTION_RESET is called at startup and never returns,
-    // so don't track nesting depth for it.
-    // NOTICE: Check of isResetException can be eliminated (it would save 6-7 cycles)
-    // if calling handle_exception(EXCEPTION_RESET) was replaced with direct port call:
-    // va416x0_vector_table_instance->exceptions_out(Va416x0Types::ExceptionNumber::EXCEPTION_RESET).
-    constexpr U8 EXCEPTION_RESET = 1;
-    const bool isResetException = (exception == EXCEPTION_RESET);
+    // so don't collect any metrics for it.
 
-    // Determine if this is an outer interrupt (nesting depth is 0)
-    const bool isOuterInterrupt = (this->m_nestingDepth == 0);
-
-    // Increment nesting depth (except for reset)
-    if (!isResetException) {
-        this->m_nestingDepth++;
-    }
+    // Determine if this is an outer interrupt using ARM's hardware RETTOBASE bit.
+    // RETTOBASE (bit 11 of ICSR) is 1 when there are no preempted active exceptions,
+    // meaning this is an outer (not nested) interrupt.
+    const bool isOuterInterrupt = (Va416x0Mmio::SysControl::read_icsr() & Va416x0Mmio::SysControl::ICSR_RETTOBASE) != 0;
 
     // Clear the interrupt immediately so that if the exception handler
     // re-enables it, we can't accidentally clear it when we shouldn't.
@@ -109,59 +120,66 @@ void VectorTable::handle_exception(U8 exception) {
         [[clang::always_inline]] Va416x0Mmio::Nvic::set_interrupt_pending(
             Va416x0Types::ExceptionNumber(static_cast<const Va416x0Types::ExceptionNumber::T>(exception)), false);
     }
-    // Read start time.
-    const U32 startTicks = *reinterpret_cast<volatile U32*>(SYSTICK_CVR);
+    // Read start time from SysTick CVR (24-bit down-counter).
+    const U32 startTicks = Va416x0Mmio::SysTick::read_cvr();
 
     [[clang::always_inline]] this->exceptions_out(exception);
 
     // Read end time.
-    const U32 endTicks = *reinterpret_cast<volatile U32*>(SYSTICK_CVR);
+    const U32 endTicks = Va416x0Mmio::SysTick::read_cvr();
 
     // Calculate elapsed ticks (SysTick counts DOWN, mask to 24-bit).
     // Branchless: subtraction with 24-bit mask handles wraparound automatically.
+    // Note: this will not work correctly if the IRQ duration value cannot fit within 24 bits.
+    // For example, the maximum individual IRQ duration on the 80 MHz target (1 tick = 12.5 nsec)
+    // is expected not to exceed 209,715,187 nsec.
     const U32 deltaTicks = (startTicks - endTicks) & 0x00FFFFFF;
 
-    // Increment count of all interrupts (outer + nested)
-    this->m_rtiCurrentAllCnt++;
+    // Debug: Increment count of all interrupts (outer + nested)
+    if (DEBUG) {
+        this->m_rtiCurrentAllCnt++;
+    }
 
     // If this is an outer interrupt, count it and accumulate its duty utilization ticks.
     if (isOuterInterrupt) {
-        this->m_rtiCurrentOuterCnt++;
-        this->m_rtiCurrentDutyUtilTicks += deltaTicks;
-    }
+        // Primary metric: accumulate duty utilization ticks atomically with relaxed ordering
+        // Relaxed is sufficient because we only need atomicity, not ordering with other variables
+        this->m_rtiCurrentDutyUtilTicks.fetch_add(deltaTicks, std::memory_order_relaxed);
 
-    // Update per-RTI statistics for the longest single outer interrupt.
-    if (deltaTicks > this->m_rtiHwmIrqLongestTicks) {
-        this->m_rtiHwmIrqLongestTicks = deltaTicks;
-        this->m_rtiHwmIrqLongestExc = exception;
-    }
-
-    // Decrement nesting depth (except for reset)
-    if (!isResetException) {
-        this->m_nestingDepth--;
+        // Debug statistics
+        if (DEBUG) {
+            this->m_rtiCurrentOuterCnt++;
+            // Update per-RTI statistics for the longest single outer interrupt.
+            if (deltaTicks > this->m_rtiHwmIrqLongestTicks) {
+                this->m_rtiHwmIrqLongestTicks = deltaTicks;
+                this->m_rtiHwmIrqLongestExc = exception;
+            }
+        }
     }
 }
 
 void VectorTable::endRti() {
-    // Update HWM for outer interrupt count.
-    if (this->m_rtiCurrentOuterCnt > this->m_rtiHwmIrqOuterCnt) {
-        this->m_rtiHwmIrqOuterCnt = this->m_rtiCurrentOuterCnt;
+    // Atomically read and reset duty utilization ticks (primary metric)
+    // Use exchange to atomically swap the current value with 0 and get the old value
+    U32 currentDutyUtil = this->m_rtiCurrentDutyUtilTicks.exchange(0, std::memory_order_relaxed);
+
+    // Update HWM if this RTI period had higher duty utilization
+    if (currentDutyUtil > this->m_rtiHwmIrqDutyUtilTicks) {
+        this->m_rtiHwmIrqDutyUtilTicks = currentDutyUtil;
     }
 
-    // Update HWM for total interrupt count (all outer and nested interrupts).
-    if (this->m_rtiCurrentAllCnt > this->m_rtiHwmIrqAllCnt) {
-        this->m_rtiHwmIrqAllCnt = this->m_rtiCurrentAllCnt;
+    // Debug: Update HWMs for additional metrics (interrupts already disabled if DEBUG is true)
+    if (DEBUG) {
+        if (this->m_rtiCurrentOuterCnt > this->m_rtiHwmIrqOuterCnt) {
+            this->m_rtiHwmIrqOuterCnt = this->m_rtiCurrentOuterCnt;
+        }
+        if (this->m_rtiCurrentAllCnt > this->m_rtiHwmIrqAllCnt) {
+            this->m_rtiHwmIrqAllCnt = this->m_rtiCurrentAllCnt;
+        }
+        // Reset debug counters for next RTI period
+        this->m_rtiCurrentAllCnt = 0;
+        this->m_rtiCurrentOuterCnt = 0;
     }
-
-    // Update HWM for duty utilization ticks (cumulative ticks of all outer interrupts).
-    if (this->m_rtiCurrentDutyUtilTicks > this->m_rtiHwmIrqDutyUtilTicks) {
-        this->m_rtiHwmIrqDutyUtilTicks = this->m_rtiCurrentDutyUtilTicks;
-    }
-
-    // Reset counters for next RTI period.
-    this->m_rtiCurrentAllCnt = 0;
-    this->m_rtiCurrentOuterCnt = 0;
-    this->m_rtiCurrentDutyUtilTicks = 0;
 }
 
 }  // namespace Va416x0Svc

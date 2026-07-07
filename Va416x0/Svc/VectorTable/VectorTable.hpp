@@ -22,6 +22,7 @@
 #ifndef Components_Va416x0_VectorTable_HPP
 #define Components_Va416x0_VectorTable_HPP
 
+#include <atomic>
 #include "Va416x0/Svc/VectorTable/VectorTableComponentAc.hpp"
 
 namespace Va416x0Svc {
@@ -71,20 +72,23 @@ class VectorTable : public VectorTableComponentBase {
     // Member variables for exception timing
     // ----------------------------------------------------------------------
 
-    // Per-RTI tracking
-    bool m_hasBeenCalled;           //!< First iteration, it is false. Subsequent calls, it is true.
-    U32 m_rtiCurrentAllCnt;         //!< Count of all interrupts (outer + nested) in current RTI period
-    U32 m_rtiCurrentOuterCnt;       //!< Count of outer interrupts only in current RTI period
-    U32 m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current RTI period
+    // Debug mode: enables additional statistics collection
+    static constexpr bool DEBUG = false;
 
-    // Nesting tracking
-    U32 m_nestingDepth;  //!< Current interrupt nesting level (0 = not in interrupt)
+    // Per-RTI tracking (required for duty utilization)
+    bool m_firstRtiCompleted;                    //!< True after the first RTI period completes, false initially
+    std::atomic<U32> m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current RTI period
 
-    U32 m_rtiHwmIrqOuterCnt;       //!< High Water Mark of outer interrupts per RTI Period
-    U32 m_rtiHwmIrqAllCnt;         //!< High Water Mark of all (outer and nested)  interrupts per RTI period
+    // High water mark (primary metric)
     U32 m_rtiHwmIrqDutyUtilTicks;  //!< High water mark for cumulative ticks of all outer interrupts in any RTI period
-    U32 m_rtiHwmIrqLongestTicks;   //!< High water mark ticks for any single interrupt in any RTI (24-bit CVR ticks)
-    U8 m_rtiHwmIrqLongestExc;      //!< Exception number that caused the longest outer IRQ
+
+    // Debug-only statistics
+    U32 m_rtiCurrentAllCnt;       //!< Count of all interrupts (outer + nested) in current RTI period
+    U32 m_rtiCurrentOuterCnt;     //!< Count of outer interrupts only in current RTI period
+    U32 m_rtiHwmIrqOuterCnt;      //!< High Water Mark of outer interrupts per RTI Period
+    U32 m_rtiHwmIrqAllCnt;        //!< High Water Mark of all (outer and nested)  interrupts per RTI period
+    U32 m_rtiHwmIrqLongestTicks;  //!< High water mark ticks for any single interrupt in any RTI (24-bit CVR ticks)
+    U8 m_rtiHwmIrqLongestExc;     //!< Exception number that caused the longest outer IRQ
 };
 
 }  // namespace Va416x0Svc

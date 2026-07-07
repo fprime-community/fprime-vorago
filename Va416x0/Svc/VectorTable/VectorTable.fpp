@@ -36,13 +36,9 @@ module Va416x0Svc {
         @ RTI interrupt statistics report
         event RtiStats(
             rtiHwmIrqDutyUtilTicks: U32 @< HWM for cumulative ticks of all outer interrupts in any RTI period
-            rtiHwmIrqAllCnt: U32 @< HWM of all interrupts in any RTI
-            rtiHwmIrqOuterCnt: U32 @< HWM of outer interrupts in any RTI
-            rtiHwmIrqLongestExc: U32 @< HWM of ticks for longest outer interrupt in any RTI (24-bit CVR ticks)
-            rtiHwmIrqLongestTicks: U32 @< Exception ID of the longest outer interrupt
         ) \
         severity activity low \
-        format "Per-RTI HWMs: IRQ duty cycle: {} ticks, all IRQ cnt: {}, outer IRQ cnt: {}, longest outer IRQ {} = {} ticks"
+        format "Per-RTI HWM IRQ duty cycle: {} ticks"
 
         ###########################################################################
         # Standard Ports
