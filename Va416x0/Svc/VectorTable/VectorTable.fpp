@@ -22,12 +22,22 @@ module Va416x0Svc {
         @ Mark end of RTI period for interrupt statistics tracking
         sync input port EndRti: Svc.Sched
 
+        @ Scheduled port to push telemetry from non-interrupt context
+        sync input port Run: Svc.Sched
+
         ###########################################################################
         # Commands
         ###########################################################################
 
         @ Report RTI interrupt statistics
         sync command REPORT_RTI_STATS
+
+        ###############################################################################
+        # Telemetry
+        ###############################################################################
+
+        # Interrupt per-RTI duty cycle high-water mark.
+        telemetry RtiIrqDutyCycleHwm: U32 update on change
 
         ###########################################################################
         # Events
@@ -52,6 +62,9 @@ module Va416x0Svc {
 
         @ Command response port
         command resp port CmdStatus
+
+        @ Telemetry port
+        telemetry port tlmOut
 
         @ Event port
         event port Log

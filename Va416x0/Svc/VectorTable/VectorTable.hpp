@@ -59,6 +59,12 @@ class VectorTable : public VectorTableComponentBase {
                         U32 context           //!< The call order
     );
 
+    //! Handler implementation for Run.
+    //! It will be called at RTI frequency in non-IRQ context.
+    void Run_handler(FwIndexType portNum,  //!< The port number
+                     U32 context           //!< The call order
+    );
+
     // ----------------------------------------------------------------------
     // Handler implementations for commands
     // ----------------------------------------------------------------------
@@ -72,23 +78,14 @@ class VectorTable : public VectorTableComponentBase {
     // Member variables for exception timing
     // ----------------------------------------------------------------------
 
-    // Debug mode: enables additional statistics collection
-    static constexpr bool DEBUG = false;
-
     // Per-RTI tracking (required for duty utilization)
-    bool m_firstRtiCompleted;                    //!< True after the first RTI period completes, false initially
-    std::atomic<U32> m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current RTI period
+    bool m_firstRtiCompleted;  //!< True after the first RTI period completes, false initially
+    // TBD REMOVE std::atomic<U32> m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current
+    // RTI period
+    U32 m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current RTI period
 
     // High water mark (primary metric)
     U32 m_rtiHwmIrqDutyUtilTicks;  //!< High water mark for cumulative ticks of all outer interrupts in any RTI period
-
-    // Debug-only statistics
-    U32 m_rtiCurrentAllCnt;       //!< Count of all interrupts (outer + nested) in current RTI period
-    U32 m_rtiCurrentOuterCnt;     //!< Count of outer interrupts only in current RTI period
-    U32 m_rtiHwmIrqOuterCnt;      //!< High Water Mark of outer interrupts per RTI Period
-    U32 m_rtiHwmIrqAllCnt;        //!< High Water Mark of all (outer and nested)  interrupts per RTI period
-    U32 m_rtiHwmIrqLongestTicks;  //!< High water mark ticks for any single interrupt in any RTI (24-bit CVR ticks)
-    U8 m_rtiHwmIrqLongestExc;     //!< Exception number that caused the longest outer IRQ
 };
 
 }  // namespace Va416x0Svc

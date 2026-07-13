@@ -44,13 +44,7 @@ VectorTable ::VectorTable(const char* const compName)
     : VectorTableComponentBase(compName),
       m_firstRtiCompleted(false),
       m_rtiCurrentDutyUtilTicks(0),
-      m_rtiHwmIrqDutyUtilTicks(0),
-      m_rtiCurrentAllCnt(0),
-      m_rtiCurrentOuterCnt(0),
-      m_rtiHwmIrqOuterCnt(0),
-      m_rtiHwmIrqAllCnt(0),
-      m_rtiHwmIrqLongestTicks(0),
-      m_rtiHwmIrqLongestExc(0) {}
+      m_rtiHwmIrqDutyUtilTicks(0) {}
 
 VectorTable ::~VectorTable() {}
 
@@ -62,24 +56,10 @@ void VectorTable::EndRti_handler(FwIndexType portNum, U32 context) {
     // Ignore artifacts accumulated before metrics collection started.
     if (!m_firstRtiCompleted) {
         // Atomic store with relaxed ordering (no synchronization needed, just atomicity)
-        this->m_rtiCurrentDutyUtilTicks.store(0, std::memory_order_relaxed);
-        if (DEBUG) {
-            // Disable interrupts for non-atomic debug counters
-            Va416x0Mmio::Cpu::disable_interrupts();
-            this->m_rtiCurrentAllCnt = 0;
-            this->m_rtiCurrentOuterCnt = 0;
-            Va416x0Mmio::Cpu::enable_interrupts();
-        }
+        this->m_rtiCurrentDutyUtilTicks = 0;
     }
 
-    // Call endRti - atomic is thread-safe, but disable interrupts for DEBUG variables
-    if (DEBUG) {
-        Va416x0Mmio::Cpu::disable_interrupts();
-        this->endRti();
-        Va416x0Mmio::Cpu::enable_interrupts();
-    } else {
-        this->endRti();
-    }
+    this->endRti();
 
     m_firstRtiCompleted = true;
 }
@@ -91,15 +71,6 @@ void VectorTable::EndRti_handler(FwIndexType portNum, U32 context) {
 void VectorTable::REPORT_RTI_STATS_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
     // Report the RTI interrupt statistics
     this->log_ACTIVITY_LO_RtiStats(this->m_rtiHwmIrqDutyUtilTicks);
-
-    // Print debug statistics if enabled
-    if (DEBUG) {
-        printf("DEBUG RTI Stats:\n");
-        printf("  HWM All IRQ Count: %lu\n", static_cast<unsigned long>(this->m_rtiHwmIrqAllCnt));
-        printf("  HWM Outer IRQ Count: %lu\n", static_cast<unsigned long>(this->m_rtiHwmIrqOuterCnt));
-        printf("  HWM Longest IRQ: Exception %u = %lu ticks\n", this->m_rtiHwmIrqLongestExc,
-               static_cast<unsigned long>(this->m_rtiHwmIrqLongestTicks));
-    }
 
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
@@ -135,51 +106,30 @@ void VectorTable::handle_exception(U8 exception) {
     // is expected not to exceed 209,715,187 nsec.
     const U32 deltaTicks = (startTicks - endTicks) & 0x00FFFFFF;
 
-    // Debug: Increment count of all interrupts (outer + nested)
-    if (DEBUG) {
-        this->m_rtiCurrentAllCnt++;
-    }
-
     // If this is an outer interrupt, count it and accumulate its duty utilization ticks.
     if (isOuterInterrupt) {
         // Primary metric: accumulate duty utilization ticks atomically with relaxed ordering
         // Relaxed is sufficient because we only need atomicity, not ordering with other variables
-        this->m_rtiCurrentDutyUtilTicks.fetch_add(deltaTicks, std::memory_order_relaxed);
-
-        // Debug statistics
-        if (DEBUG) {
-            this->m_rtiCurrentOuterCnt++;
-            // Update per-RTI statistics for the longest single outer interrupt.
-            if (deltaTicks > this->m_rtiHwmIrqLongestTicks) {
-                this->m_rtiHwmIrqLongestTicks = deltaTicks;
-                this->m_rtiHwmIrqLongestExc = exception;
-            }
-        }
+        m_rtiCurrentDutyUtilTicks += deltaTicks;
     }
 }
 
 void VectorTable::endRti() {
-    // Atomically read and reset duty utilization ticks (primary metric)
-    // Use exchange to atomically swap the current value with 0 and get the old value
-    U32 currentDutyUtil = this->m_rtiCurrentDutyUtilTicks.exchange(0, std::memory_order_relaxed);
-
+    // Ensure the integrity of the metrics in the unlikely event that this interrupt
+    // is preempted by another pending interrupt
+    Va416x0Mmio::Cpu::disable_interrupts();
     // Update HWM if this RTI period had higher duty utilization
-    if (currentDutyUtil > this->m_rtiHwmIrqDutyUtilTicks) {
-        this->m_rtiHwmIrqDutyUtilTicks = currentDutyUtil;
+    if (this->m_rtiCurrentDutyUtilTicks > this->m_rtiHwmIrqDutyUtilTicks) {
+        this->m_rtiHwmIrqDutyUtilTicks = this->m_rtiCurrentDutyUtilTicks;
     }
+    this->m_rtiCurrentDutyUtilTicks = 0;
+    Va416x0Mmio::Cpu::enable_interrupts();
+}
 
-    // Debug: Update HWMs for additional metrics (interrupts already disabled if DEBUG is true)
-    if (DEBUG) {
-        if (this->m_rtiCurrentOuterCnt > this->m_rtiHwmIrqOuterCnt) {
-            this->m_rtiHwmIrqOuterCnt = this->m_rtiCurrentOuterCnt;
-        }
-        if (this->m_rtiCurrentAllCnt > this->m_rtiHwmIrqAllCnt) {
-            this->m_rtiHwmIrqAllCnt = this->m_rtiCurrentAllCnt;
-        }
-        // Reset debug counters for next RTI period
-        this->m_rtiCurrentAllCnt = 0;
-        this->m_rtiCurrentOuterCnt = 0;
-    }
+void VectorTable::Run_handler(FwIndexType portNum, U32 context) {
+    // Telemetry is updated atomically in interrupt context, but written to the telemetry buffer
+    // from the safe, scheduled PassiveRateGroup context.
+    this->tlmWrite_RtiIrqDutyCycleHwm(this->m_rtiHwmIrqDutyUtilTicks);
 }
 
 }  // namespace Va416x0Svc
