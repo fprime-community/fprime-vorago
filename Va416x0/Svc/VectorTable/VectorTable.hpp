@@ -80,11 +80,11 @@ class VectorTable : public VectorTableComponentBase {
 
     // Per-RTI tracking (required for duty utilization)
     bool m_firstRtiCompleted;  //!< True after the first RTI period completes, false initially
-    // TBD REMOVE std::atomic<U32> m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current
-    // RTI period
+
+    // Last RTI IRQ duty cycle.
     U32 m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current RTI period
 
-    // High water mark (primary metric)
+    // Per-RTI IRQ duty cycle High Water Mark.
     U32 m_rtiHwmIrqDutyUtilTicks;  //!< High water mark for cumulative ticks of all outer interrupts in any RTI period
 };
 
