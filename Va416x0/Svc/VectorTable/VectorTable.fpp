@@ -46,9 +46,10 @@ module Va416x0Svc {
         @ RTI interrupt statistics report
         event RtiStats(
             rtiHwmIrqDutyUtilTicks: U32 @< HWM for cumulative ticks of all outer interrupts in any RTI period
+            usec: U32 @< Ticks converted to usec
         ) \
         severity activity low \
-        format "Per-RTI HWM IRQ duty cycle: {} ticks"
+        format "Per-RTI HWM IRQ duty cycle: {} ticks, {} usec"
 
         ###########################################################################
         # Standard Ports

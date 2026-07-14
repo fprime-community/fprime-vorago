@@ -22,6 +22,7 @@
 #include "VectorTable.hpp"
 #include <Va416x0/Mmio/Cpu/Cpu.hpp>
 #include "Va416x0/Mmio/Amba/Amba.hpp"
+#include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Mmio/SysControl/SysControl.hpp"
 #include "Va416x0/Mmio/SysTick/SysTick.hpp"
@@ -69,8 +70,12 @@ void VectorTable::EndRti_handler(FwIndexType portNum, U32 context) {
 // ----------------------------------------------------------------------
 
 void VectorTable::REPORT_RTI_STATS_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
+    // Convert ticks to microseconds using the active system clock frequency
+    const U32 sysclkFreq = Va416x0Mmio::ClkTree::getActiveSysclkFreq();
+    FW_ASSERT(sysclkFreq != 0);
+    const U32 usec = (static_cast<U64>(this->m_rtiHwmIrqDutyUtilTicks) * 1000000ULL) / sysclkFreq;
     // Report the RTI interrupt statistics
-    this->log_ACTIVITY_LO_RtiStats(this->m_rtiHwmIrqDutyUtilTicks);
+    this->log_ACTIVITY_LO_RtiStats(this->m_rtiHwmIrqDutyUtilTicks, usec);
 
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
@@ -103,6 +108,7 @@ void VectorTable::handle_exception(U8 exception) {
     // Branchless: subtraction with 24-bit mask handles wraparound automatically.
     // Note: this will not work correctly if the IRQ duration value cannot fit within 24 bits.
     // For example, the maximum individual IRQ duration on the 80 MHz target (1 tick = 12.5 nsec)
+    // The maximum individual IRQ duration on the 40 MHz target (1 tick = 25 nsec)
     // is expected not to exceed 209,715,187 nsec.
     const U32 deltaTicks = (startTicks - endTicks) & 0x00FFFFFF;
 
