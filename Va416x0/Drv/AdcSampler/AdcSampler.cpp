@@ -316,7 +316,6 @@ void AdcSampler::startReadInner() {
 U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
     U32 pin_values = 0;
     U8 numAddrPins = this->m_config->muxAddrPinCount;
-    U8 numEnPins = this->m_config->muxEnPinCount;
     U8 mux_chan = REQ_GET_MUX_CHAN(request);
     FW_ASSERT(mux_chan < (1 << numAddrPins), mux_chan, numAddrPins);
 
