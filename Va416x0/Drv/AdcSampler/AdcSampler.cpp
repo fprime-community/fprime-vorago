@@ -255,8 +255,8 @@ void AdcSampler::startReadInner() {
             // Disable the previous MUX_EN pin, unless the previous pin index is the dummy value
             // which indicates that no MUX request has been received yet
             if (previousMuxEnIndex != ADC_MUX_PINS_EN_MAX) {
-                FW_ASSERT(previousMuxEnIndex < this->m_config->muxEnPinCount, previousMuxEnIndex, this->m_curRequest,
-                          this->m_config->muxEnPinCount);
+                FW_ASSERT(previousMuxEnIndex < this->m_config->muxEnPinCount, previousMuxEnIndex,
+                          this->m_lastMuxRequest, this->m_config->muxEnPinCount);
                 this->m_config->muxEnPins[previousMuxEnIndex].out(Fw::Logic::HIGH);
                 // Delay after disabling the previous MUX_EN pin
                 Va416x0Mmio::Amba::memory_barrier();
