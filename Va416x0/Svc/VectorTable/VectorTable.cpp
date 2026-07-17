@@ -56,7 +56,6 @@ VectorTable ::~VectorTable() {}
 void VectorTable::EndRti_handler(FwIndexType portNum, U32 context) {
     // Ignore artifacts accumulated before metrics collection started.
     if (!m_firstRtiCompleted) {
-        // Atomic store with relaxed ordering (no synchronization needed, just atomicity)
         this->m_rtiCurrentDutyUtilTicks = 0;
     }
 
@@ -114,8 +113,7 @@ void VectorTable::handle_exception(U8 exception) {
 
     // If this is an outer interrupt, count it and accumulate its duty utilization ticks.
     if (isOuterInterrupt) {
-        // Primary metric: accumulate duty utilization ticks atomically with relaxed ordering
-        // Relaxed is sufficient because we only need atomicity, not ordering with other variables
+        // Accumulate duty utilization ticks per-RTI.
         m_rtiCurrentDutyUtilTicks += deltaTicks;
     }
 }
