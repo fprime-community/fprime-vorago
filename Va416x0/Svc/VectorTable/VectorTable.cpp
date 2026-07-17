@@ -83,11 +83,6 @@ void VectorTable::handle_exception(U8 exception) {
     // Special case: EXCEPTION_RESET is called at startup and never returns,
     // so don't collect any metrics for it.
 
-    // Determine if this is an outer interrupt using ARM's hardware RETTOBASE bit.
-    // RETTOBASE (bit 11 of ICSR) is 1 when there are no preempted active exceptions,
-    // meaning this is an outer (not nested) interrupt.
-    const bool isOuterInterrupt = (Va416x0Mmio::SysControl::read_icsr() & Va416x0Mmio::SysControl::ICSR_RETTOBASE) != 0;
-
     // Clear the interrupt immediately so that if the exception handler
     // re-enables it, we can't accidentally clear it when we shouldn't.
     if (exception >= Va416x0Types::BASE_NVIC_INTERRUPT) {
@@ -110,6 +105,11 @@ void VectorTable::handle_exception(U8 exception) {
     // The maximum individual IRQ duration on the 40 MHz target (1 tick = 25 nsec)
     // is expected not to exceed 209,715,187 nsec.
     const U32 deltaTicks = (startTicks - endTicks) & 0x00FFFFFF;
+
+    // Determine if this is an outer interrupt using ARM's hardware RETTOBASE bit.
+    // RETTOBASE (bit 11 of ICSR) is 1 when there are no preempted active exceptions,
+    // meaning this is an outer (not nested) interrupt.
+    const bool isOuterInterrupt = (Va416x0Mmio::SysControl::read_icsr() & Va416x0Mmio::SysControl::ICSR_RETTOBASE) != 0;
 
     // If this is an outer interrupt, count it and accumulate its duty utilization ticks.
     if (isOuterInterrupt) {
