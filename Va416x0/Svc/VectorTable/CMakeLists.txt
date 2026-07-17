@@ -46,6 +46,7 @@ set(MOD_DEPS
     Va416x0/Mmio/Amba
     Va416x0/Mmio/Nvic
     Va416x0/Mmio/SysControl
+    Va416x0/Mmio/SysTick
     Os
 )
 

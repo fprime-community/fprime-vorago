@@ -188,6 +188,10 @@ void Metronome ::main_timer_isr_handler(FwIndexType portNum) {
     FW_ASSERT(execution_index == MAX_CLIENTS, execution_index);
     execution_index = 0;
 
+    if (this->isConnected_end_rti_OutputPort(0)) {
+        this->end_rti_out(0, 0 /* ignored */);
+    }
+
     // Trigger the top of the next RTI.
     this->start_rti_out(0, 0 /* ignored */);
 
