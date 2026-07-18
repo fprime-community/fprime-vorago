@@ -29,11 +29,9 @@ import time
 from fprime_gds.common.communication.adapters.base import BaseAdapter
 from fprime_gds.plugin.definitions import gds_plugin_implementation
 from Va416x0.Os.SeggerTerminal.terminal import JLinkRTT
-from jlinksdk import JLinkError
+from pylink.errors import JLinkException as JLinkError
 
 LOGGER = logging.getLogger("segger_rtt_adapter")
-# FIXME: Get rid of this once https://github.com/nasa/fprime/issues/3561 is implemented
-LOGGER.setLevel(logging.DEBUG)
 
 
 class SeggerRttAdapter(BaseAdapter):
@@ -66,34 +64,54 @@ class SeggerRttAdapter(BaseAdapter):
         assert self.stdout_thread is None
 
         LOGGER.info("Opening SEGGER RTT connection...")
-        self.rtt.open()
+        try:
+            self.rtt.open()
+            LOGGER.info("SEGGER RTT connection opened successfully")
+        except Exception as e:
+            LOGGER.error("Failed to open SEGGER RTT connection: %s", e)
+            raise
 
-        LOGGER.debug(
-            "%s",
-            f"Found {len(self.rtt.up_buffers)} up buffers and {len(self.rtt.down_buffers)} down buffers:",
+        if not self.rtt.up_buffers or not self.rtt.down_buffers:
+            LOGGER.error("RTT buffers not found after open()")
+            raise RuntimeError("Failed to find RTT buffers")
+
+        LOGGER.info(
+            "Found %d up buffers and %d down buffers",
+            len(self.rtt.up_buffers),
+            len(self.rtt.down_buffers),
         )
         for buffer_index, up_buffer in enumerate(self.rtt.up_buffers):
             if up_buffer.SizeOfBuffer:
                 LOGGER.debug(
-                    "%s",
-                    f"   Up Buffer {buffer_index} is named {up_buffer.sName} with size {up_buffer.SizeOfBuffer} and flags {up_buffer.Flags}",
+                    "   Up Buffer %d is named %s with size %d and flags %d",
+                    buffer_index,
+                    up_buffer.name,
+                    up_buffer.SizeOfBuffer,
+                    up_buffer.Flags,
                 )
         for buffer_index, down_buffer in enumerate(self.rtt.down_buffers):
             if down_buffer.SizeOfBuffer:
                 LOGGER.debug(
-                    "%s",
-                    f" Down Buffer {buffer_index} is named {down_buffer.sName} with size {down_buffer.SizeOfBuffer} and flags {down_buffer.Flags}",
+                    " Down Buffer %d is named %s with size %d and flags %d",
+                    buffer_index,
+                    down_buffer.name,
+                    down_buffer.SizeOfBuffer,
+                    down_buffer.Flags,
                 )
 
+        LOGGER.debug("Creating stream for buffer 0 (stdio)")
         self.stdio_stream = self.rtt.stream_blocking(0)
+        LOGGER.debug("Creating stream for buffer 1 (gds)")
         self.gds_stream = self.rtt.stream_blocking(1)
         self.read_buffer_size = self.rtt.up_buffers[1].SizeOfBuffer
+        LOGGER.info("GDS stream read buffer size: %d", self.read_buffer_size)
         assert self.read_buffer_size >= 16
 
         self.stdout_thread = threading.Thread(
             target=self.stdout_thread_main, daemon=True
         )
         self.stdout_thread.start()
+        LOGGER.info("SEGGER RTT adapter fully initialized and ready")
 
     def close(self):
         if self.stdout_thread is None:
@@ -139,7 +157,10 @@ class SeggerRttAdapter(BaseAdapter):
                 self.read_buffer_size, timeout_at=time.time() + timeout
             )
             if data:
+                LOGGER.debug("Read %d bytes from GDS stream", len(data))
                 return data
+            else:
+                LOGGER.debug("No data available from GDS stream (timeout)")
         except JLinkError as e:
             LOGGER.error("J-Link read failed: %s", e)
             self.close()

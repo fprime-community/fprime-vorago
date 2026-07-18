@@ -28,7 +28,7 @@ import aiofile
 import Va416x0.Os.SeggerTerminal.config as config
 
 try:
-    import jlinksdk
+    import pylink
 except ImportError:
     print("\033[31m", file=sys.stderr)
     print(
@@ -119,6 +119,9 @@ async def copy_stream_to_stream(
                 break
         except asyncio.TimeoutError:
             continue
+        # Ctrl+C raises pylink.errors.JLinkException, so we need to handle it
+        except pylink.errors.JLinkException as e:
+            raise RuntimeError(f"Exception from pylink: {e}") from e
         else:
             output.write(data)
             await output.drain()
@@ -143,12 +146,7 @@ class JLinkRTT:
         os.environ["DISPLAY"] = ""
 
         # Load the J-Link DLL, which needs to be installed on the host
-        self.jlink = jlinksdk.JLink()
-
-        # Make sure that J-Link will not pop up GUI windows
-        self.jlink.EnableLog(None)
-        self.jlink.SetWarnOutHandler(None)
-        self.jlink.SetErrorOutHandler(None)
+        self.jlink = pylink.JLink()
 
         self.up_buffers: list = None
         self.down_buffers: list = None
@@ -158,53 +156,57 @@ class JLinkRTT:
 
     def _sync_connect_to_daemon(self):
         # Establish TCP connection to J-Link daemon via 127.0.0.1:19020
-        self.jlink.Open(HostIF=jlinksdk.HOST_IF.TCPIP, sIP="127.0.0.1")
+        self.jlink.open(ip_addr="127.0.0.1:19020")
 
     def _sync_connect_to_target(self):
         print(f"Connect JLink with speed {self.speed}")
         # Tell the J-Link daemon what kind of device we're talking to, and how to talk to it
-        self.jlink.Connect(
-            sDevice="VA416xx", TargetIF=jlinksdk.TIF.SWD, TIFSpeed=self.speed
-        )
+        self.jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
+        # Convert speed to int if it's a string, otherwise use as-is
+        speed = int(self.speed, 0) if isinstance(self.speed, str) else self.speed
+        self.jlink.connect("VA416xx", speed=speed)
 
         # Find the SEGGER RTT block
-        self.jlink.RTTerminal.Start(SEGGER_RTT_BLOCK_ADDRESS)
+        self.jlink.rtt_start(SEGGER_RTT_BLOCK_ADDRESS)
 
     def _sync_find_buffers(self):
         # Since there is no scanning for the RTT block, it should be found promptly.
         time.sleep(0.1)
 
         # Make sure the buffers were found
-        num_up_buffers = self.jlink.RTTerminal.GetNumBuf(
-            self.jlink.RTTerminal.BUFFER_DIR.UP
-        )
-        num_down_buffers = self.jlink.RTTerminal.GetNumBuf(
-            self.jlink.RTTerminal.BUFFER_DIR.DOWN
-        )
-        if num_up_buffers is None or num_down_buffers is None:
+        try:
+            num_up_buffers = self.jlink.rtt_get_num_up_buffers()
+            num_down_buffers = self.jlink.rtt_get_num_down_buffers()
+        except pylink.errors.JLinkRTTException as e:
             print(
-                f"Could not find RTT buffer(s) at address {SEGGER_RTT_BLOCK_ADDRESS:#08x}"
-                f"NumUpBuf = {num_up_buffers!r}, NumDownBuf = {num_down_buffers!r}",
+                f"Could not find RTT control block at address {SEGGER_RTT_BLOCK_ADDRESS:#08x}: {e}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        if num_up_buffers <= 0 or num_down_buffers <= 0:
+            print(
+                f"RTT control block found but no buffers configured at address {SEGGER_RTT_BLOCK_ADDRESS:#08x} "
+                f"(NumUpBuf = {num_up_buffers}, NumDownBuf = {num_down_buffers})",
                 file=sys.stderr,
             )
             sys.exit(1)
 
         self.up_buffers = [
-            self.jlink.RTTerminal.GetDesc(i, self.jlink.RTTerminal.BUFFER_DIR.UP)
-            for i in range(num_up_buffers)
+            self.jlink.rtt_get_buf_descriptor(i, up=True) for i in range(num_up_buffers)
         ]
         self.down_buffers = [
-            self.jlink.RTTerminal.GetDesc(i, self.jlink.RTTerminal.BUFFER_DIR.DOWN)
+            self.jlink.rtt_get_buf_descriptor(i, up=False)
             for i in range(num_down_buffers)
         ]
 
     def _sync_disconnect_from_target(self):
         # FIXME: Do we care about the return value?
-        self.jlink.RTTerminal.Stop()
+        self.jlink.rtt_stop()
 
     def _sync_disconnect_from_daemon(self):
         # FIXME: Do we care about the return value?
-        self.jlink.Close()
+        self.jlink.close()
 
     def open(self):
         assert not self.up_buffers and not self.down_buffers
@@ -239,7 +241,7 @@ class JLinkRTT:
         assert buffer_index < len(self.up_buffers) and buffer_index < len(
             self.down_buffers
         ), (buffer_index, len(self.up_buffers), len(self.down_buffers))
-        return JLinkRTTStreamNonblocking(self.jlink.RTTerminal, buffer_index)
+        return JLinkRTTStreamNonblocking(self.jlink, buffer_index)
 
     def stream_blocking(self, buffer_index: int) -> "JLinkRTTStreamBlocking":
         return JLinkRTTStreamBlocking(self.stream_nonblocking(buffer_index))
@@ -249,8 +251,8 @@ class JLinkRTT:
 
 
 class JLinkRTTStreamNonblocking:
-    def __init__(self, rtt: jlinksdk.jlink._RTTERMINAL_API, buffer_index: int):
-        self.rtt = rtt
+    def __init__(self, jlink: pylink.JLink, buffer_index: int):
+        self.jlink = jlink
         self.buffer_index = buffer_index
 
     closed = False
@@ -260,11 +262,12 @@ class JLinkRTTStreamNonblocking:
 
     def read(self, max_bytes: int) -> bytes:
         # Non-blocking: we will return None if no data is available
-        return self.rtt.Read(self.buffer_index, max_bytes) or None
+        data = self.jlink.rtt_read(self.buffer_index, max_bytes)
+        return bytes(data) if data else None
 
     def write(self, data: bytes):
         # Non-blocking: we will return the actual number of bytes written, or None if we cannot write
-        written = self.rtt.Write(self.buffer_index, data)
+        written = self.jlink.rtt_write(self.buffer_index, list(data))
         assert 0 <= written <= len(data)
         return written or None
 
@@ -373,29 +376,59 @@ async def main_async():
             for buffer_index, up_buffer in enumerate(rtt.up_buffers):
                 if up_buffer.SizeOfBuffer:
                     print(
-                        f"   Up Buffer {buffer_index} is named {up_buffer.sName} with size {up_buffer.SizeOfBuffer} and flags {up_buffer.Flags}"
+                        f"   Up Buffer {buffer_index} is named {up_buffer.name} with size {up_buffer.SizeOfBuffer} and flags {up_buffer.Flags}"
                     )
             for buffer_index, down_buffer in enumerate(rtt.down_buffers):
                 if down_buffer.SizeOfBuffer:
                     print(
-                        f" Down Buffer {buffer_index} is named {down_buffer.sName} with size {down_buffer.SizeOfBuffer} and flags {down_buffer.Flags}"
+                        f" Down Buffer {buffer_index} is named {down_buffer.name} with size {down_buffer.SizeOfBuffer} and flags {down_buffer.Flags}"
                     )
 
             target_stdio = rtt.stream_async(0)
             await stdout_fd.awrite(b"\n\n\n**** TERMINAL CONNECTED ****\n")
-            await asyncio.wait(
-                [
-                    asyncio.create_task(copy_stream_to_stream(target_stdio, stdout_fd)),
-                    asyncio.create_task(copy_stream_to_stream(stdin, target_stdio)),
-                ]
-            )
+
+            # Create tasks and track them for proper cleanup
+            task1 = asyncio.create_task(copy_stream_to_stream(target_stdio, stdout_fd))
+            task2 = asyncio.create_task(copy_stream_to_stream(stdin, target_stdio))
+
+            try:
+                # Wait for both tasks, but return when first completes/errors
+                done, pending = await asyncio.wait(
+                    [task1, task2], return_when=asyncio.FIRST_COMPLETED
+                )
+
+                # If any task completed, cancel the others
+                for task in pending:
+                    task.cancel()
+
+                # Wait for cancellation to complete
+                await asyncio.wait(pending)
+
+                # Check if any task raised an exception
+                for task in done:
+                    if task.exception() is not None:
+                        raise task.exception()
+
+            except (KeyboardInterrupt, asyncio.CancelledError):
+                # Cancel both tasks on Ctrl+C
+                task1.cancel()
+                task2.cancel()
+                # Wait for cancellation, suppressing exceptions
+                await asyncio.gather(task1, task2, return_exceptions=True)
+                raise
 
 
 def main():
     try:
         asyncio.run(main_async())
-    except (KeyboardInterrupt, RuntimeError):
+    except KeyboardInterrupt:
         print("\n --- Terminated by Ctrl + C ---\n")
+    except RuntimeError as e:
+        # Check if this is a JLink-related error
+        if "pylink" in str(e):
+            print(f"\nERROR: {e}", file=sys.stderr)
+            sys.exit(1)
+        raise
 
 
 if __name__ == "__main__":
