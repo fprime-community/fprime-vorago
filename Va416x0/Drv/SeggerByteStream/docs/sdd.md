@@ -16,7 +16,7 @@ This library depends on [the J-Link SDK][1]. Your organization will need a licen
 
  [1]: https://shop-us.segger.com/product/j-link-sdk-8-08-06/
 
-Once the `fprime-vorago` package and the `jlinksdk` package are installed, you can use the `segger_rtt` communication adapter when launching the F Prime GDS:
+Once the `fprime-vorago` package is installed, you can use the `segger_rtt` communication adapter when launching the F Prime GDS:
 
 ```
 fprime-gds --deployment build-artifacts/TOOLCHAIN/DEPLOYMENT_NAME_GOES_HERE/ --no-app --communication-selection segger_rtt
