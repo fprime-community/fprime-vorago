@@ -27,19 +27,7 @@ import aiofile
 
 import Va416x0.Os.SeggerTerminal.config as config
 
-try:
-    import pylink
-except ImportError:
-    print("\033[31m", file=sys.stderr)
-    print(
-        "This library depends on the J-Link SDK being installed, but it could not be found."
-        "If you are seeing this error, it means that your build environment does not have the proper dependencies installed."
-        "Please ensure that the J-Link SDK is included in your Dockerfile or similar build environment setup script."
-        "Ask if your organization has a license to the SDK.",
-        file=sys.stderr,
-    )
-    print("\033[0m", file=sys.stderr)
-    raise
+import pylink
 
 # We can hard-code this address (and avoid needing to scan through a binary) because va416x0.ld enforces that the
 # SEGGER RTT block is always located at the start of RAM.
