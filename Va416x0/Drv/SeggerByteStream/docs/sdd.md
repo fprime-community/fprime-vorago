@@ -12,10 +12,6 @@ pip install --editable ./fprime-vorago
 
 You can also drop the `--editable` if you don't need the ability to modify the code.
 
-This library depends on [the J-Link SDK][1]. Your organization will need a license, and you will need to install the SDK into your development environment. Ask around to make sure your organization doesn't already have a license before purchasing one.
-
- [1]: https://shop-us.segger.com/product/j-link-sdk-8-08-06/
-
 Once the `fprime-vorago` package is installed, you can use the `segger_rtt` communication adapter when launching the F Prime GDS:
 
 ```
