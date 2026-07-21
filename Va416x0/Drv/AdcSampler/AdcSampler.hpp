@@ -50,6 +50,11 @@ U32 static inline adc_sampler_request(U16 chan_en, U8 cnt, bool is_sweep, bool i
 // FIXME: should be Va416x0Drv
 namespace Va416x0 {
 
+enum AdcMuxEnInversion {
+    NO_MUX_EN_INVERSION,
+    INVERT_MUX_EN,
+};
+
 struct AdcConfig {
     //! Array of GPIO pins used to enable a MUX. When an ADC request specifies enable_pin=i, the
     //! pin at index i is used. If a request specifies enable_pin=ADC_MUX_PINS_EN_MAX, no enable
@@ -58,7 +63,7 @@ struct AdcConfig {
     //! Number of MUX_EN pins
     U8 muxEnPinCount;
     //! Invert MUX_EN pin values so that pins are enabled when LOW and disabled when HIGH
-    bool invertMuxEn;
+    AdcMuxEnInversion invertMuxEn;
     //! Array of GPIO pins used for MUX address selection. All MUXes must use the same pins for
     //! address selection signals. The pin at index i is the pin that sets 1 << i when selecting
     //! the MUX channel
