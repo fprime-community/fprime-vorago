@@ -135,7 +135,7 @@ void AdcSampler::configure(const AdcConfig& config) {
     for (U32 i = 0; i < config.muxEnPinCount; i++) {
         auto pin = &config.muxEnPins[i];
         // Default MUX enable pins to be disabled
-        auto pinDisabled = (config.invertMuxEn == INVERT_MUX_EN) ? Fw::Logic::HIGH : Fw::Logic::LOW;
+        auto pinDisabled = (config.muxEnActive == MUX_PIN_ACTIVE_HIGH) ? Fw::Logic::LOW : Fw::Logic::HIGH;
         pin->out(pinDisabled);
         pin->configure_as_gpio(Fw::Direction::OUT);
     }
@@ -258,7 +258,8 @@ void AdcSampler::startReadInner() {
             if (previousMuxEnIndex != ADC_MUX_PINS_EN_MAX) {
                 FW_ASSERT(previousMuxEnIndex < this->m_config->muxEnPinCount, previousMuxEnIndex,
                           this->m_lastMuxRequest, this->m_config->muxEnPinCount);
-                auto pinDisabled = (this->m_config->invertMuxEn == INVERT_MUX_EN) ? Fw::Logic::HIGH : Fw::Logic::LOW;
+                auto pinDisabled =
+                    (this->m_config->muxEnActive == MUX_PIN_ACTIVE_HIGH) ? Fw::Logic::LOW : Fw::Logic::HIGH;
                 this->m_config->muxEnPins[previousMuxEnIndex].out(pinDisabled);
                 // Delay after disabling the previous MUX_EN pin
                 Va416x0Mmio::Amba::memory_barrier();
@@ -269,7 +270,8 @@ void AdcSampler::startReadInner() {
             if (muxEnIndex != ADC_MUX_PINS_EN_MAX) {
                 FW_ASSERT(muxEnIndex < this->m_config->muxEnPinCount, muxEnIndex, this->m_curRequest,
                           this->m_config->muxEnPinCount);
-                auto pinEnabled = (this->m_config->invertMuxEn == INVERT_MUX_EN) ? Fw::Logic::LOW : Fw::Logic::HIGH;
+                auto pinEnabled =
+                    (this->m_config->muxEnActive == MUX_PIN_ACTIVE_HIGH) ? Fw::Logic::HIGH : Fw::Logic::LOW;
                 this->m_config->muxEnPins[muxEnIndex].out(pinEnabled);
             }
         }
