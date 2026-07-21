@@ -22,6 +22,7 @@
 #ifndef Components_Va416x0_VectorTable_HPP
 #define Components_Va416x0_VectorTable_HPP
 
+#include <atomic>
 #include "Va416x0/Svc/VectorTable/VectorTableComponentAc.hpp"
 
 namespace Va416x0Svc {
@@ -40,6 +41,51 @@ class VectorTable : public VectorTableComponentBase {
     ~VectorTable();
 
     void handle_exception(U8 exception);
+
+    // ----------------------------------------------------------------------
+    // Public accessor methods for timing data
+    // ----------------------------------------------------------------------
+
+    //! Mark end of RTI period (call from rate group)
+    void endRti();
+
+  private:
+    // ----------------------------------------------------------------------
+    // Handler implementations for typed input ports
+    // ----------------------------------------------------------------------
+
+    //! Handler implementation for EndRti
+    void EndRti_handler(FwIndexType portNum,  //!< The port number
+                        U32 context           //!< The call order
+    );
+
+    //! Handler implementation for Run.
+    //! It will be called at RTI frequency in non-IRQ context.
+    void Run_handler(FwIndexType portNum,  //!< The port number
+                     U32 context           //!< The call order
+    );
+
+    // ----------------------------------------------------------------------
+    // Handler implementations for commands
+    // ----------------------------------------------------------------------
+
+    //! Handler for command REPORT_RTI_STATS
+    void REPORT_RTI_STATS_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+                                     U32 cmdSeq            //!< The command sequence number
+    );
+
+    // ----------------------------------------------------------------------
+    // Member variables for exception timing
+    // ----------------------------------------------------------------------
+
+    // Per-RTI tracking (required for duty utilization)
+    bool m_firstRtiCompleted;  //!< True after the first RTI period completes, false initially
+
+    // Last RTI IRQ duty cycle.
+    U32 m_rtiCurrentDutyUtilTicks;  //!< Cumulative ticks of all outer interrupts in current RTI period
+
+    // Per-RTI IRQ duty cycle High Water Mark.
+    U32 m_rtiHwmIrqDutyUtilTicks;  //!< High water mark for cumulative ticks of all outer interrupts in any RTI period
 };
 
 }  // namespace Va416x0Svc

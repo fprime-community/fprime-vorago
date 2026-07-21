@@ -255,7 +255,9 @@ void AdcSampler::startReadInner() {
         if (muxEnIndex != previousMuxEnIndex) {
             // Disable the previous MUX_EN pin, unless the previous pin index is the dummy value
             // which indicates that no MUX request has been received yet
-            if (previousMuxEnIndex < ADC_MUX_PINS_EN_MAX) {
+            if (previousMuxEnIndex != ADC_MUX_PINS_EN_MAX) {
+                FW_ASSERT(previousMuxEnIndex < this->m_config->muxEnPinCount, previousMuxEnIndex,
+                          this->m_lastMuxRequest, this->m_config->muxEnPinCount);
                 auto pinDisabled = this->m_config->invertMuxEn ? Fw::Logic::HIGH : Fw::Logic::LOW;
                 this->m_config->muxEnPins[previousMuxEnIndex].out(pinDisabled);
                 // Delay after disabling the previous MUX_EN pin
@@ -263,11 +265,13 @@ void AdcSampler::startReadInner() {
                 Va416x0Mmio::Cpu::delay_cycles(this->m_muxEnaDisDelay);
             }
 
-            // Enable the new MUX_EN pin
-            FW_ASSERT(muxEnIndex < this->m_config->muxEnPinCount, muxEnIndex, this->m_curRequest,
-                      this->m_config->muxEnPinCount);
-            auto pinEnabled = this->m_config->invertMuxEn ? Fw::Logic::LOW : Fw::Logic::HIGH;
-            this->m_config->muxEnPins[muxEnIndex].out(pinEnabled);
+            // Enable the new MUX_EN pin (unless the new one is the dummy value)
+            if (muxEnIndex != ADC_MUX_PINS_EN_MAX) {
+                FW_ASSERT(muxEnIndex < this->m_config->muxEnPinCount, muxEnIndex, this->m_curRequest,
+                          this->m_config->muxEnPinCount);
+                auto pinEnabled = this->m_config->invertMuxEn ? Fw::Logic::LOW : Fw::Logic::HIGH;
+                this->m_config->muxEnPins[muxEnIndex].out(pinEnabled);
+            }
         }
 
         // Calculate the values for the MUX address selection pins
@@ -315,11 +319,8 @@ void AdcSampler::startReadInner() {
 U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
     U32 pin_values = 0;
     U8 numAddrPins = this->m_config->muxAddrPinCount;
-    U8 numEnPins = this->m_config->muxEnPinCount;
     U8 mux_chan = REQ_GET_MUX_CHAN(request);
-    U8 mux_en_index = REQ_GET_MUX_ENABLE(request);
     FW_ASSERT(mux_chan < (1 << numAddrPins), mux_chan, numAddrPins);
-    FW_ASSERT(mux_en_index < numEnPins, mux_en_index, numEnPins);
 
     // The address pins should be set as a binary translation of the mux channel
     // where HI=1 and LO=0 (selecting Chan31 = 0b11111, selecting Chan0=0b0000)

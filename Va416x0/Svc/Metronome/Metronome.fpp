@@ -31,5 +31,8 @@ module Va416x0Svc {
 
         output port client_trigger_isr: [MAX_CLIENTS] Svc.Sched
 
+        @ Signal end of RTI period for interrupt statistics tracking
+        output port end_rti: Svc.Sched
+
     }
 }
