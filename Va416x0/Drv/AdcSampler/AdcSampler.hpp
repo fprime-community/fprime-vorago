@@ -57,6 +57,8 @@ struct AdcConfig {
     const Va416x0Mmio::Gpio::Pin* muxEnPins;
     //! Number of MUX_EN pins
     U8 muxEnPinCount;
+    //! Invert MUX_EN pin values so that pins are enabled when LOW and disabled when HIGH
+    bool invertMuxEn;
     //! Array of GPIO pins used for MUX address selection. All MUXes must use the same pins for
     //! address selection signals. The pin at index i is the pin that sets 1 << i when selecting
     //! the MUX channel
