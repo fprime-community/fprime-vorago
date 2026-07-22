@@ -108,6 +108,7 @@ Va416x0Mmio::Gpio::Pin mux_addr_pins[] = {Va416x0Mmio::Gpio::PORTB[0], Va416x0Mm
 Va416x0::AdcConfig three_mux_pin_config = {
     mux_en_pins,
     FW_NUM_ARRAY_ELEMENTS(mux_en_pins),
+    Va416x0::AdcMuxEnActive::MUX_PIN_ACTIVE_LOW,
     mux_addr_pins,
     FW_NUM_ARRAY_ELEMENTS(mux_addr_pins),
     20,
