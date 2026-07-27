@@ -19,9 +19,11 @@ module Va416x0Drv {
         # Commands
         ###############################################################################
 
-        @ Set the duty cycle of the signal. Note that setting the duty cycle to 0.0 has the effect
+        @ [DEBUG] Set the duty cycle of the signal. Note that setting the duty cycle to 0.0 has the effect
         @ of immediately driving the signal to low.
-        sync command SET_DUTY_CYCLE(dutyCycle: F32) opcode 0x0000
+        sync command SET_DUTY_CYCLE(
+            dutyCycle: F32  @< Percent of one time period that signal is "on"
+        ) opcode 0x0000
 
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters

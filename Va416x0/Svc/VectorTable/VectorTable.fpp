@@ -29,7 +29,7 @@ module Va416x0Svc {
         # Commands
         ###########################################################################
 
-        @ Report RTI interrupt statistics
+        @ [DEBUG] Report RTI interrupt statistics
         sync command REPORT_RTI_STATS
 
         ###############################################################################
