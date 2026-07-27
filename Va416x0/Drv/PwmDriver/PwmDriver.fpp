@@ -22,7 +22,7 @@ module Va416x0Drv {
         @ [DEBUG] Set the duty cycle of the signal. Note that setting the duty cycle to 0.0 has the effect
         @ of immediately driving the signal to low.
         sync command SET_DUTY_CYCLE(
-            dutyCycle: F32  @< Percent of one time period that signal is "on"
+            dutyCycle: F32  @< Percent of one time period that signal is "on" (valid range 0.0 (0%) - 1.0 (100%))
         ) opcode 0x0000
 
         ###############################################################################
