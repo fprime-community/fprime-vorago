@@ -197,7 +197,7 @@ function(register_with_bsp TARGET_NAME)
         # Copy the map file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.map"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
         # Create the hex format for flash loader
         COMMAND arm-none-eabi-objcopy -O ihex
             "$<TARGET_FILE:${TARGET_NAME}>"
@@ -206,7 +206,7 @@ function(register_with_bsp TARGET_NAME)
         # Copy the new hex file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.hex"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
         # Create the bin format for flash loader
         COMMAND arm-none-eabi-objcopy -O binary
             "$<TARGET_FILE:${TARGET_NAME}>"
@@ -215,7 +215,7 @@ function(register_with_bsp TARGET_NAME)
         # Copy the new bin file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.bin"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
         # Objdump the ELF file
         COMMAND arm-none-eabi-objdump -xD --visualize-jumps "$<TARGET_FILE:${TARGET_NAME}>"
             >"$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
@@ -223,7 +223,7 @@ function(register_with_bsp TARGET_NAME)
         # Copy the dump into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
     )
 
     if (VA416X0_VERIFY_NO_STRB)
