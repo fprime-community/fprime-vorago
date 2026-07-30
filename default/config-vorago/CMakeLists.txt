@@ -23,6 +23,5 @@ register_fprime_config(
     DEPENDS
         Fw_Types
     INTERFACE
-    BASE_CONFIG
 )
 
