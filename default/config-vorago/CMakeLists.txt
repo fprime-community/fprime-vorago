@@ -20,6 +20,7 @@ register_fprime_config(
         "${CMAKE_CURRENT_LIST_DIR}/AdcCfg.fpp"
     HEADERS
         "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
+        "${CMAKE_CURRENT_LIST_DIR}/RawTimeSource.hpp"
     DEPENDS
         Fw_Types
     INTERFACE

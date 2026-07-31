@@ -19,16 +19,22 @@
 // \brief sets default Os::RawTime Posix implementation via linker
 // ======================================================================
 #include "Os/Delegate.hpp"
+#include "Os/RawTimeSource.hpp"
 #include "TimerRawTime.hpp"
 
 namespace Os {
 
-//! \brief get a delegate for RawTimeInterface that intercepts calls for Posix
+//! \brief get a delegate for RawTimeInterface that intercepts calls for VA416x0 TimerRawTime
 //! \param aligned_new_memory: aligned memory to fill
 //! \param to_copy: pointer to copy-constructor input
+//! \param source: timer source selection (RAWTIME_DEFAULT, RAWTIME_SYSTICK, or RAWTIME_TIMER_CASCADE)
 //! \return: pointer to delegate
 RawTimeInterface* RawTimeInterface::getDelegate(RawTimeHandleStorage& aligned_new_memory,
-                                                const RawTimeInterface* to_copy) {
+                                                const RawTimeInterface* to_copy,
+                                                RawTimeSource source) {
+    // TODO: Implement timer source selection based on source parameter
+    // For now, always use TimerRawTime (existing behavior)
+    (void)source;
     return Os::Delegate::makeDelegate<RawTimeInterface, Va416x0Os::TimerRawTime, RawTimeHandleStorage>(
         aligned_new_memory, to_copy);
 }
