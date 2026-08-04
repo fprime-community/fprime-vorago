@@ -50,12 +50,12 @@ class SysTick final {
 
     static U32 read_calib();
 
-  private:
     constexpr static U32 REG_CSR = 0xE000E010;
     constexpr static U32 REG_RVR = 0xE000E014;
     constexpr static U32 REG_CVR = 0xE000E018;
     constexpr static U32 REG_CALIB = 0xE000E01C;
 
+  private:
     constexpr static U32 CSR_COUNTFLAG = 1 << 16;
     constexpr static U32 CSR_CLKSOURCE = 1 << 2;
     constexpr static U32 CSR_TICKINT = 1 << 1;
