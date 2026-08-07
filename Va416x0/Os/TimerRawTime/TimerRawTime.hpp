@@ -22,7 +22,6 @@
 #define Va416x0_TimerRawTime_HPP
 
 #include "Os/RawTime.hpp"
-#include "Va416x0/Mmio/Timer/Timer.hpp"
 
 //! Implement F Prime Os/RawTime interface using two Va416x0 timers
 //! cascaded to form a single 64-bit timer. Using 64-bits for this

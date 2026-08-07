@@ -21,6 +21,7 @@
 
 #include "TimerRawTime.hpp"
 #include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
+#include "Va416x0/Mmio/Timer/Timer.hpp"
 
 #include <limits>
 
