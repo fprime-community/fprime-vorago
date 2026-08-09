@@ -1,0 +1,58 @@
+# Based on https://github.com/nasa/fprime/blob/c98eb751ce5a296c2f07cbd92c412ce365532264/.github/workflows/format-check.yml
+
+name: "Code Format Check"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths-ignore:
+      - '.github/actions/spelling/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CHECKED_DIRS: >-
+    cmake/
+    Va416x0/
+
+  # Third party code that does not satisfy our formatting rules
+  EXCLUDED_DIR: >-
+    Va416x0/Os/SeggerTerminal/RTT
+
+jobs:
+  cpp-formatting:
+    name: C++ Formatting
+    runs-on: ubuntu-22.04
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: "Setup Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: "Install Dependencies"
+        run: pip install fprime-tools
+
+      - name: "Check C++ Formatting"
+        run: |
+          fprime-util format --check --dirs $CHECKED_DIRS --exclude $EXCLUDED_DIR
+
+      - name: "Comment on PR in case of Failure"
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'C++ formatting checks failed on the submitted code. To fix, you can run this command on your branch:\n\n```bash\ngit diff --name-only origin/main...HEAD | fprime-util format --stdin\n```'
+            })
