@@ -22,8 +22,8 @@ register_fprime_config(
         "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
     DEPENDS
         Fw_Types
-    # CONFIGURATION_OVERRIDES
-    #     "${CMAKE_CURRENT_LIST_DIR}/OsDelegateRawTime.hpp"
+    CONFIGURATION_OVERRIDES
+        "${CMAKE_CURRENT_LIST_DIR}/OsDelegateRawTime.hpp"
     INTERFACE
 )
 
