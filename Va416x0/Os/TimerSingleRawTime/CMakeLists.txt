@@ -14,14 +14,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/TimerRawTime")
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SysTickRawTime")
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/TimerSingleRawTime")
 
-if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/AtomicMutex")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SeggerConsole")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SeggerTerminal")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/MaskingMutex")
-    add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/IsrSafeQueue")
-endif ()
+register_fprime_module(
+        Va416x0_Os_TimerSingleRawTime
+    SOURCES
+        "${CMAKE_CURRENT_LIST_DIR}/TimerSingleRawTime.cpp"
+    HEADERS
+        "${CMAKE_CURRENT_LIST_DIR}/TimerSingleRawTime.hpp"
+    DEPENDS
+        Os
+        Va416x0_Mmio_Timer
+)

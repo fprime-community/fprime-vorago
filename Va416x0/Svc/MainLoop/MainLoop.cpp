@@ -32,18 +32,25 @@ namespace Va416x0Svc {
 // ----------------------------------------------------------------------
 // Component construction and destruction
 // ----------------------------------------------------------------------
-MainLoop ::MainLoop(const char* const compName) : MainLoopComponentBase(compName) {
+MainLoop ::MainLoop(const char* const compName)
+    : MainLoopComponentBase(compName), m_rawTimeSource(Os::RAWTIME_TIMER_SINGLE) {
     FW_ASSERT(this->m_readyToRun.is_lock_free());
 }
 
 void MainLoop ::configure(Va416x0Mmio::ClkTree system_clk_configuration,
                           bool enable_performance,
-                          U32 dispatch_per_rti) {
+                          U32 dispatch_per_rti,
+                          Os::RawTimeSource raw_time_source) {
     system_clk_configuration.applyClkTree();
 
     this->m_enablePerformanceTest = enable_performance;
     this->m_dispatchPerRti = dispatch_per_rti;
+    this->m_rawTimeSource = raw_time_source;
     FW_ASSERT(this->m_readyToRun.is_lock_free());
+}
+
+Os::RawTime MainLoop::createRawTime() const {
+    return Os::RawTime(this->m_rawTimeSource);
 }
 
 // ----------------------------------------------------------------------
@@ -210,7 +217,7 @@ __attribute__((noinline)) void MainLoop ::wait_for_next_rti() {
 
 // NOTE: marked with noinline so that it appears in profile traces
 __attribute__((noinline)) void MainLoop ::execute_main_loop() {
-    Os::RawTime raw_time;
+    Os::RawTime raw_time = this->createRawTime();
     auto status = raw_time.now();
     FW_ASSERT(status == Os::RawTime::Status::OP_OK, status);
 
