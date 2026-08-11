@@ -11,11 +11,9 @@ namespace Os {
 //!
 //! The Vorago VA416x0 platform provides multiple timer sources:
 //! - RAWTIME_DEFAULT: Uses the platform's default cascade register timer (maintains backward compatibility)
-//! - RAWTIME_SYSTICK: ARM Cortex-M SysTick timer
 //! - RAWTIME_TIMER_SINGLE: Single-register timer (high resolution, no cascade)
 enum RawTimeSource {
     RAWTIME_DEFAULT = 0,      //!< Platform's default timer (current behavior)
-    RAWTIME_SYSTICK = 1,      //!< ARM SysTick timer
     RAWTIME_TIMER_SINGLE = 2  //!< Single-register timer (high resolution)
 };
 

@@ -27,20 +27,14 @@
 namespace Va416x0Os {
 
 // Initialize static state
-U8 TimerSingleRawTime::m_timer_num = 0;
-U32 TimerSingleRawTime::m_timer_reset = 0xFFFFFFFF;
-bool TimerSingleRawTime::m_timer_initialized = false;
+U8 TimerSingleRawTime::m_timer_num = MAX_TIMER_VAL + 1;  // Sentinel value before being configured
 
-TimerSingleRawTime::TimerSingleRawTime() : m_handle() {
-    m_handle.m_val = 0;
-}
+TimerSingleRawTime::TimerSingleRawTime() : m_handle() {}
 
 void TimerSingleRawTime::configure(const U8 timer_num) {
+    FW_ASSERT(timer_num <= MAX_TIMER_VAL, timer_num);  // VA416x0 has timers 0-23
     m_timer_num = timer_num;
-    m_timer_reset = 0xFFFFFFFF;  // 32-bit timer
-}
 
-void TimerSingleRawTime::initPeripherals() {
     Va416x0Mmio::Timer timer(m_timer_num);
 
     // Reset and enable clock for this timer
@@ -51,14 +45,12 @@ void TimerSingleRawTime::initPeripherals() {
     timer.write_ctrl(0);
 
     // Set 32-bit reset value to maximum
-    timer.write_rst_value(m_timer_reset);
-    timer.write_cnt_value(m_timer_reset);
+    timer.write_rst_value(TIMER_RESET_VAL);
+    timer.write_cnt_value(TIMER_RESET_VAL);
 
     // Enable timer to start counting (no cascade, no IRQ needed for timing reads)
     U32 ctrl = Va416x0Mmio::Timer::CTRL_ENABLE;
     timer.write_ctrl(ctrl);
-
-    m_timer_initialized = true;
 }
 
 Os::RawTimeHandle* TimerSingleRawTime::getHandle() {
@@ -66,7 +58,7 @@ Os::RawTimeHandle* TimerSingleRawTime::getHandle() {
 }
 
 Os::RawTimeInterface::Status TimerSingleRawTime::now() {
-    FW_ASSERT(m_timer_initialized, m_timer_num);
+    FW_ASSERT(m_timer_num <= MAX_TIMER_VAL, m_timer_num);  // Must call configure() first
 
     // OPTIMAL: Single U32 register read - no redundant reads
     Va416x0Mmio::Timer timer(m_timer_num);
@@ -77,15 +69,26 @@ Os::RawTimeInterface::Status TimerSingleRawTime::now() {
     // start raw value = 0x00000002   inverted value = 0xFFFFFFFE
     // end   raw value = 0xFFFFFFFE   inverted value = 0x00000002
     // delta           =          4                             4
-    m_handle.m_val = m_timer_reset - raw;
+    m_handle.m_val = TIMER_RESET_VAL - raw;
 
     return OP_OK;
 }
 
 Os::RawTimeInterface::Status TimerSingleRawTime::getTimeInterval(const Os::RawTime& other,
                                                                  Fw::TimeInterval& interval) const {
-    // Not needed for performance-critical code - use getDiffUsec instead
-    return NOT_SUPPORTED;
+    // Get total microseconds using getDiffUsec
+    U32 totalUseconds;
+    Status status = getDiffUsec(other, totalUseconds);
+    if (status != OP_OK) {
+        return status;
+    }
+
+    // Split into seconds and microseconds
+    const I32 seconds = static_cast<I32>(totalUseconds / 1000000UL);
+    const I32 useconds = static_cast<I32>(totalUseconds % 1000000UL);
+
+    interval.set(seconds, useconds);
+    return OP_OK;
 }
 
 Os::RawTimeInterface::Status TimerSingleRawTime::getDiffUsec(const Os::RawTime& other, U32& result) const {

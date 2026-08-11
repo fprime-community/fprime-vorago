@@ -38,21 +38,21 @@
 namespace Va416x0Os {
 
 struct TimerSingleRawTimeHandle : public Os::RawTimeHandle {
-    U32 m_val;  // Store raw 32-bit timer value
+    U32 m_val = 0;  // Store raw 32-bit timer value
 };
 
 class TimerSingleRawTime : public Os::RawTimeInterface {
   public:
+    static constexpr U32 TIMER_RESET_VAL = 0xFFFFFFFF;  // U32 max value.
+    static constexpr U8 MAX_TIMER_VAL = 23;             // Per VA416xx Programmers Guide
+
     TimerSingleRawTime();
     TimerSingleRawTime(const TimerSingleRawTime& other) = default;
     TimerSingleRawTime& operator=(const TimerSingleRawTime& other) = default;
     ~TimerSingleRawTime() override = default;
 
-    //! Configure the timer to use for all TimerSingleRawTime instances
+    //! Configure and initialize the timer to use for all TimerSingleRawTime instances
     static void configure(const U8 timer_num);
-
-    //! Initialize the timer peripheral (must call configure first)
-    static void initPeripherals();
 
     // ------------------------------------------------------------
     // Implementation-specific RawTime overrides
@@ -64,7 +64,7 @@ class TimerSingleRawTime : public Os::RawTimeInterface {
     //! Get the current time (single U32 register read - optimal performance)
     Status now() override;
 
-    //! Calculate the time interval (stub - use getDiffUsec for performance)
+    //! Calculate the time interval between two timestamps
     Status getTimeInterval(const Os::RawTime& other, Fw::TimeInterval& interval) const override;
 
     //! Fast microsecond difference using masked subtraction (VectorTable pattern)
@@ -84,12 +84,6 @@ class TimerSingleRawTime : public Os::RawTimeInterface {
 
     //! Timer peripheral number
     static U8 m_timer_num;
-
-    //! Timer reset value (for down-counter inversion)
-    static U32 m_timer_reset;
-
-    //! Whether timer has been initialized
-    static bool m_timer_initialized;
 };
 
 }  // namespace Va416x0Os

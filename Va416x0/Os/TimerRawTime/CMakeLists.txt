@@ -31,7 +31,6 @@ if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
             Va416x0_Mmio_SysConfig
             Va416x0_Mmio_Timer
             Va416x0_Mmio_ClkTree
-            Va416x0_Os_SysTickRawTime
             Va416x0_Os_TimerSingleRawTime
 
     )
@@ -48,7 +47,6 @@ else()
         DEPENDS
             Os
             Va416x0_Mmio_ClkTree
-            Va416x0_Os_SysTickRawTime
             Va416x0_Os_TimerSingleRawTime
 
     )
