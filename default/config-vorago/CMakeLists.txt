@@ -20,6 +20,8 @@ register_fprime_config(
         "${CMAKE_CURRENT_LIST_DIR}/AdcCfg.fpp"
     HEADERS
         "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
+    DEPENDS
+        Fw_Types
     INTERFACE
 )
 
