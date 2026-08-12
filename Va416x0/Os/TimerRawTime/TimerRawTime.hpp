@@ -52,6 +52,10 @@ class TimerRawTime : public Os::RawTimeInterface {
     //! through standard Os::RawTime interfaces
     TimerRawTime();
 
+    //! \brief Constructor with timer source selection (source parameter ignored)
+    //! \param source Timer source (ignored - TimerRawTime always uses hardware timer)
+    explicit TimerRawTime(Os::RawTimeSource source);
+
     TimerRawTime(const TimerRawTime& other) = default;
     TimerRawTime& operator=(const TimerRawTime& other) = default;
 

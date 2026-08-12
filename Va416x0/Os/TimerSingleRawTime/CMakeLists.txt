@@ -24,4 +24,5 @@ register_fprime_module(
     DEPENDS
         Os
         Va416x0_Mmio_Timer
+        Va416x0_Mmio_ClkTree
 )

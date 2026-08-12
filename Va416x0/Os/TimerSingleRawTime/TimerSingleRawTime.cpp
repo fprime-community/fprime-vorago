@@ -31,6 +31,10 @@ U8 TimerSingleRawTime::m_timer_num = MAX_TIMER_VAL + 1;  // Sentinel value befor
 
 TimerSingleRawTime::TimerSingleRawTime() : m_handle() {}
 
+TimerSingleRawTime::TimerSingleRawTime(Os::RawTimeSource source) : m_handle() {
+    (void)source;  // Ignore source parameter - TimerSingleRawTime always uses hardware timer
+}
+
 void TimerSingleRawTime::configure(const U8 timer_num) {
     FW_ASSERT(timer_num <= MAX_TIMER_VAL, timer_num);  // VA416x0 has timers 0-23
     m_timer_num = timer_num;

@@ -47,6 +47,11 @@ class TimerSingleRawTime : public Os::RawTimeInterface {
     static constexpr U8 MAX_TIMER_VAL = 23;             // Per VA416xx Programmers Guide
 
     TimerSingleRawTime();
+
+    //! \brief Constructor with timer source selection (source parameter ignored)
+    //! \param source Timer source (ignored - TimerSingleRawTime always uses hardware timer)
+    explicit TimerSingleRawTime(Os::RawTimeSource source);
+
     TimerSingleRawTime(const TimerSingleRawTime& other) = default;
     TimerSingleRawTime& operator=(const TimerSingleRawTime& other) = default;
     ~TimerSingleRawTime() override = default;
