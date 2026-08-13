@@ -43,8 +43,8 @@ struct TimerSingleRawTimeHandle : public Os::RawTimeHandle {
 
 class TimerSingleRawTime : public Os::RawTimeInterface {
   public:
-    static constexpr U32 TIMER_RESET_VAL = 0xFFFFFFFF;          // U32 max value.
-    static constexpr U8 MAX_TIMER_VAL = Timer::NUM_TIMERS - 1;  // Per VA416xx Programmers Guide
+    static constexpr U32 TIMER_RESET_VAL = 0xFFFFFFFF;                       // U32 max value.
+    static constexpr U8 MAX_TIMER_VAL = Va416x0Mmio::Timer::NUM_TIMERS - 1;  // Per VA416xx Programmers Guide
 
     TimerSingleRawTime();
 

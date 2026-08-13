@@ -38,7 +38,7 @@ bool TimerRawTime::s_timers_initialized = false;
 TimerRawTime::TimerRawTime() : m_handle() {}
 
 TimerRawTime::TimerRawTime(Os::RawTimeSource source) : m_handle() {
-    FW_ASSERT(source == RAWTIME_DEFAULT, source);
+    FW_ASSERT(source == Os::RAWTIME_DEFAULT, source);
 }
 
 void TimerRawTime::configure(const U8 timer_hi, const U8 timer_lo, const BitDepth timer_bits) {
