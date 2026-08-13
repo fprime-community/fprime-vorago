@@ -32,7 +32,7 @@ U8 TimerSingleRawTime::m_timer_num = MAX_TIMER_VAL + 1;  // Sentinel value befor
 TimerSingleRawTime::TimerSingleRawTime() : m_handle() {}
 
 TimerSingleRawTime::TimerSingleRawTime(Os::RawTimeSource source) : m_handle() {
-    (void)source;  // Ignore source parameter - TimerSingleRawTime always uses hardware timer
+    FW_ASSERT(source == RAWTIME_TIMER_SINGLE, source);
 }
 
 void TimerSingleRawTime::configure(const U8 timer_num) {

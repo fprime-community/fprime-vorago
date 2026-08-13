@@ -38,11 +38,12 @@ RawTimeInterface* RawTimeInterface::getDelegate(RawTimeHandleStorage& aligned_ne
             return Os::Delegate::makeDelegate<RawTimeInterface, Va416x0Os::TimerSingleRawTime, RawTimeHandleStorage>(
                 aligned_new_memory, to_copy);
         case RAWTIME_DEFAULT:
-            // Fall through
-        default:
-            // Fallback to default implementation
             return Os::Delegate::makeDelegate<RawTimeInterface, Va416x0Os::TimerRawTime, RawTimeHandleStorage>(
                 aligned_new_memory, to_copy);
+        default:
+            // Unrecognized timer source - programming error
+            FW_ASSERT(0, source);
+            return nullptr;  // Unreachable, but satisfies compiler
     }
 }
 
