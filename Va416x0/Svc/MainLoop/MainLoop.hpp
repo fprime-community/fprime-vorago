@@ -40,7 +40,8 @@ class MainLoop : public MainLoopComponentBase {
 
     void configure(Va416x0Mmio::ClkTree system_clk_configuration,
                    bool enable_performance = false,
-                   U32 dispatch_per_rti = 4);
+                   U32 dispatch_per_rti = 4,
+                   Os::RawTimeSource raw_time_source = Os::RAWTIME_TIMER_SINGLE);
 
     // ----------------------------------------------------------------------
     // struct & helper functions for performance tracking (requires setting ENABLE_PERFORMANCE_TEST to true)
@@ -104,10 +105,15 @@ class MainLoop : public MainLoopComponentBase {
     void ensure_rti_not_elapsed();
     void execute_main_loop();
 
+    //! Create a RawTime object using the configured raw time source.
+    //! It will return RawTime object configured with m_rawTimeSource.
+    Os::RawTime createRawTime() const;
+
     Va416x0Types::Optional<Va416x0Mmio::ClkTree> m_systemClkConfiguration;
     std::atomic<U32> m_readyToRun;
     bool m_enablePerformanceTest;
     U32 m_dispatchPerRti;
+    Os::RawTimeSource m_rawTimeSource;
 
     volatile PerformanceCounts m_performanceResults = {0xFFFFFFFF, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0};
 };
