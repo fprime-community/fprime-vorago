@@ -28,6 +28,9 @@ namespace Va416x0Os {
 
 // Initialize static state
 U8 TimerSingleRawTime::m_timer_num = MAX_TIMER_VAL + 1;  // Sentinel value before being configured
+U32 TimerSingleRawTime::m_timer_hz = 0;
+U32 TimerSingleRawTime::m_timer_mhz = 0;
+U32 TimerSingleRawTime::m_timer_khz = 0;
 
 TimerSingleRawTime::TimerSingleRawTime() : m_handle() {}
 
@@ -55,6 +58,22 @@ void TimerSingleRawTime::configure(const U8 timer_num) {
     // Enable timer to start counting (no cascade, no IRQ needed for timing reads)
     U32 ctrl = Va416x0Mmio::Timer::CTRL_ENABLE;
     timer.write_ctrl(ctrl);
+
+    // Cache timer frequency and precompute conversion factors
+    m_timer_hz = Va416x0Mmio::ClkTree::getActiveTimerFreq(timer);
+    FW_ASSERT(m_timer_hz != 0, m_timer_hz);
+
+    // Determine which conversion path to use (done once at configuration)
+    if (m_timer_hz % (1000 * 1000) == 0) {
+        m_timer_mhz = m_timer_hz / 1000 / 1000;
+        m_timer_khz = 0;  // MHz path takes precedence
+    } else if (m_timer_hz % 1000 == 0) {
+        m_timer_mhz = 0;
+        m_timer_khz = m_timer_hz / 1000;
+    } else {
+        m_timer_mhz = 0;
+        m_timer_khz = 0;  // Will use floating point fallback
+    }
 }
 
 Os::RawTimeHandle* TimerSingleRawTime::getHandle() {
@@ -103,13 +122,21 @@ Os::RawTimeInterface::Status TimerSingleRawTime::getDiffUsec(const Os::RawTime& 
     // Calculate delta ticks with wraparound (mask handles 32-bit overflow)
     const U32 deltaTicks = (m_handle.m_val - otherHandle->m_val) & 0xFFFFFFFF;  // Mask 32 bits
 
-    // Convert ticks to microseconds
-    const U32 timer_hz = Va416x0Mmio::ClkTree::getActiveTimerFreq(Va416x0Mmio::Timer(m_timer_num));
-    FW_ASSERT(timer_hz != 0, timer_hz);
+    // Convert ticks to microseconds using cached frequency values
+    // Conversion path was precomputed in configure() to avoid repeated modulo checks
+    FW_ASSERT(m_timer_hz != 0, m_timer_hz);
 
-    // Simple conversion: ticks * 1000000 / frequency,  where 1000000 is microseconds per second
-    const U64 deltaTicks64 = static_cast<U64>(deltaTicks);
-    result = static_cast<U32>((deltaTicks64 * 1000000ULL) / timer_hz);
+    if (m_timer_mhz != 0) {
+        // MHz path: simple U32 division (fastest)
+        result = deltaTicks / m_timer_mhz;
+    } else if (m_timer_khz != 0) {
+        // kHz path: F32 arithmetic with reduced values
+        result = static_cast<U32>(static_cast<F32>(deltaTicks) / (static_cast<F32>(m_timer_khz) / 1000.F));
+    } else {
+        // Fallback: use floating point for non-standard frequencies
+        const F32 seconds = static_cast<F32>(deltaTicks) / m_timer_hz;
+        result = static_cast<U32>(seconds * (1000.F * 1000.F));
+    }
 
     return OP_OK;
 }
