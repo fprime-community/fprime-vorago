@@ -90,10 +90,9 @@ class TimerSingleRawTime : public Os::RawTimeInterface {
     //! Timer peripheral number
     static U8 m_timer_num;
 
-    //! Cached timer frequency and conversion mode (set during configure())
-    static U32 m_timer_hz;
-    static U32 m_timer_mhz;  // Non-zero if frequency is in MHz
-    static U32 m_timer_khz;  // Non-zero if frequency is in kHz (and not MHz)
+    //! Cached timer frequency and conversion factors (set during configure())
+    static U32 m_timer_mhz;        // Non-zero if frequency is in MHz (enables fast integer path)
+    static F32 m_timer_mhz_float;  // Precomputed MHz as float for non-MHz frequencies
 };
 
 }  // namespace Va416x0Os
