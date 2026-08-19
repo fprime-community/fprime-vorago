@@ -28,6 +28,8 @@ namespace Va416x0Os {
 
 // Initialize static state
 U8 TimerSingleRawTime::m_timer_num = MAX_TIMER_VAL + 1;  // Sentinel value before being configured
+U32 TimerSingleRawTime::m_timer_mhz = 0;
+F32 TimerSingleRawTime::m_timer_mhz_float = 0.0F;
 
 TimerSingleRawTime::TimerSingleRawTime() : m_handle() {}
 
@@ -55,6 +57,21 @@ void TimerSingleRawTime::configure(const U8 timer_num) {
     // Enable timer to start counting (no cascade, no IRQ needed for timing reads)
     U32 ctrl = Va416x0Mmio::Timer::CTRL_ENABLE;
     timer.write_ctrl(ctrl);
+
+    // Cache timer frequency and precompute conversion factors
+    const U32 timer_hz = Va416x0Mmio::ClkTree::getActiveTimerFreq(timer);
+    FW_ASSERT(timer_hz != 0, timer_hz);
+
+    // Determine which conversion path to use (done once at configuration)
+    if (timer_hz % (1000 * 1000) == 0) {
+        // Fast integer path: frequency is a multiple of 1 MHz
+        m_timer_mhz = timer_hz / 1000 / 1000;
+        m_timer_mhz_float = 0.0F;  // Not used in integer path
+    } else {
+        // Floating-point fallback: precompute Hz -> MHz conversion
+        m_timer_mhz = 0;  // Indicates float path should be used
+        m_timer_mhz_float = static_cast<F32>(timer_hz) / 1000000.0F;
+    }
 }
 
 Os::RawTimeHandle* TimerSingleRawTime::getHandle() {
@@ -103,13 +120,16 @@ Os::RawTimeInterface::Status TimerSingleRawTime::getDiffUsec(const Os::RawTime& 
     // Calculate delta ticks with wraparound (mask handles 32-bit overflow)
     const U32 deltaTicks = (m_handle.m_val - otherHandle->m_val) & 0xFFFFFFFF;  // Mask 32 bits
 
-    // Convert ticks to microseconds
-    const U32 timer_hz = Va416x0Mmio::ClkTree::getActiveTimerFreq(Va416x0Mmio::Timer(m_timer_num));
-    FW_ASSERT(timer_hz != 0, timer_hz);
-
-    // Simple conversion: ticks * 1000000 / frequency,  where 1000000 is microseconds per second
-    const U64 deltaTicks64 = static_cast<U64>(deltaTicks);
-    result = static_cast<U32>((deltaTicks64 * 1000000ULL) / timer_hz);
+    // Convert ticks to microseconds using precomputed conversion factors
+    // Conversion path was selected and precomputed in configure()
+    if (m_timer_mhz != 0) {
+        // Fast integer path: frequency is a multiple of 1 MHz
+        result = deltaTicks / m_timer_mhz;
+    } else {
+        // Floating-point fallback: use precomputed MHz float (works for kHz and arbitrary Hz)
+        FW_ASSERT(m_timer_mhz_float != 0.0F, static_cast<U32>(m_timer_mhz_float));
+        result = static_cast<U32>(static_cast<F32>(deltaTicks) / m_timer_mhz_float);
+    }
 
     return OP_OK;
 }
