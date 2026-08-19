@@ -33,7 +33,7 @@ namespace Va416x0Svc {
 // Component construction and destruction
 // ----------------------------------------------------------------------
 MainLoop ::MainLoop(const char* const compName)
-    : MainLoopComponentBase(compName), m_rawTimeSource(Os::RAWTIME_TIMER_SINGLE) {
+    : MainLoopComponentBase(compName), m_rawTimeSource(Os::defaultRawTimeSource) {
     FW_ASSERT(this->m_readyToRun.is_lock_free());
 }
 

@@ -19,18 +19,18 @@
 // \brief implementation for Va416x0Os::MaskingMutex
 // ======================================================================
 
+#include "MaskingMutex.hpp"
 #include "Os/Delegate.hpp"
 #include "Os/Stub/ConditionVariable.hpp"
 #include "Va416x0/Mmio/Cpu/Cpu.hpp"
-
-#include "MaskingMutex.hpp"
+#include "config/RawTimeSource.hpp"
 
 namespace Va416x0Os {
 namespace MaskingMutex {
 
 U32 MaskingMutex::s_nestingDepth = 0;
 U32 MaskingMutex::s_lastPrimask = 0;
-Os::RawTime MaskingMutex::s_lastTakeTime(Os::RAWTIME_DEFAULT);
+Os::RawTime MaskingMutex::s_lastTakeTime(Os::defaultRawTimeSource);
 U32 MaskingMutex::s_highWaterMarkUs = 0;
 U32 MaskingMutex::s_durationLimitUs = 0;
 

@@ -17,6 +17,8 @@ enum RawTimeSource {
     RAWTIME_TIMER_SINGLE = 2  //!< Single-register timer (high resolution)
 };
 
+constexpr RawTimeSource defaultRawTimeSource = RawTimeSource::RAWTIME_DEFAULT;
+
 }  // namespace Os
 
 #endif  // CONFIG_VORAGO_RAWTIMESOURCE_HPP_
