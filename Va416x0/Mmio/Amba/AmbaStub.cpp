@@ -20,6 +20,7 @@
 // ======================================================================
 
 #include "Amba.hpp"
+#include "AmbaTestSupport.hpp"
 
 #include <atomic>
 #include <cassert>
@@ -34,6 +35,12 @@ constexpr U32 bits_per_byte = 8;
 
 std::map<U32, U32> bus_map;
 
+static U32 read_u8_count = 0;
+static U32 write_u8_count = 0;
+static U32 read_u32_count = 0;
+static U32 write_u32_count = 0;
+static U32 memory_barrier_count = 0;
+
 static void notSupported() {
     fputs("Raw AMBA access not supported in unit tests.\n", stderr);
     abort();
@@ -45,8 +52,9 @@ static void readBeforeWriteNotSupported(U32 bus_address) {
 }
 
 U8 read_u8(U32 bus_address) {
-    U8 bit_shift = (bus_address & 0b11) * bits_per_byte;  // Get the bit offset within the word,
-    U8 word_address = bus_address & ~0b11;                // Get the word aligned address
+    read_u8_count++;
+    U32 bit_shift = (bus_address & 0b11) * bits_per_byte;  // Get the bit offset within the word,
+    U32 word_address = bus_address & ~0b11;                // Get the word aligned address
     auto iter = bus_map.find(word_address);
     if (iter != bus_map.end()) {
         return ((iter->second >> bit_shift) & 0xFF);
@@ -57,15 +65,18 @@ U8 read_u8(U32 bus_address) {
 }
 
 void write_u8(U32 bus_address, U8 value) {
+    write_u8_count++;
     U32 bit_shift = (bus_address & 0b11) * bits_per_byte;  // Get the bit offset within the word,
     U32 word_address = bus_address & ~0b11;                // Get the word aligned address
+    // Shift as U32: a byte shifted into the top of the word overflows a signed int
+    U32 shifted_value = static_cast<U32>(value) << bit_shift;
+    U32 byte_mask = static_cast<U32>(0xFF) << bit_shift;
     auto iter = bus_map.find(word_address);
     if (iter != bus_map.end()) {
         // Clear byte then replace
-        bus_map[word_address] = (iter->second & ~(0xFF << bit_shift)) | (value << bit_shift);
+        bus_map[word_address] = (iter->second & ~byte_mask) | shifted_value;
     } else {
-        std::pair<std::map<U32, U32>::iterator, bool> insert_status =
-            bus_map.insert({word_address, (value << bit_shift)});
+        std::pair<std::map<U32, U32>::iterator, bool> insert_status = bus_map.insert({word_address, shifted_value});
         // Assert status is success?
     }
 }
@@ -80,6 +91,7 @@ void write_u16(U32 bus_address, U16 value) {
 }
 
 U32 read_u32(U32 bus_address) {
+    read_u32_count++;
     // Cross word access not supported
     assert(!(bus_address & 0b11));
     U32 word_address = bus_address & ~0b11;  // Get the word aligned address
@@ -93,6 +105,7 @@ U32 read_u32(U32 bus_address) {
 }
 
 void write_u32(U32 bus_address, U32 value) {
+    write_u32_count++;
     // Cross word access not supported
     assert(!(bus_address & 0b11));
     U32 word_address = bus_address & ~0b11;  // Get the word aligned address
@@ -105,8 +118,42 @@ void write_u32(U32 bus_address, U32 value) {
 }
 
 void memory_barrier() {
+    memory_barrier_count++;
     std::atomic_signal_fence(std::memory_order_seq_cst);
 }
+
+namespace TestSupport {
+
+void reset() {
+    bus_map.clear();
+    read_u8_count = 0;
+    write_u8_count = 0;
+    read_u32_count = 0;
+    write_u32_count = 0;
+    memory_barrier_count = 0;
+}
+
+U32 getReadU8CallCount() {
+    return read_u8_count;
+}
+
+U32 getWriteU8CallCount() {
+    return write_u8_count;
+}
+
+U32 getReadU32CallCount() {
+    return read_u32_count;
+}
+
+U32 getWriteU32CallCount() {
+    return write_u32_count;
+}
+
+U32 getMemoryBarrierCallCount() {
+    return memory_barrier_count;
+}
+
+}  // namespace TestSupport
 
 }  // namespace Amba
 }  // namespace Va416x0Mmio
