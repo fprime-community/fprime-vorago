@@ -15,7 +15,13 @@ module Va416x0Svc {
         # NOTE: FPP does not support zero-padding the hex values, tracked in https://github.com/nasa/fpp/issues/459
         @ Captures status information used to identify the exception
         event ExceptionStatus( \
-            exception: Va416x0Types.ExceptionNumber, hfsr: U32, mmfsr: U32, mmfar: U32, bfsr: U32, bfar: U32, ufsr: U32 \
+            exception: Va416x0Types.ExceptionNumber @< Exception that occurred
+            hfsr: U32 @< HardFault Status Register (HFSR) value
+            mmfsr: U32 @< MemManage Status Register (MMFSR) value
+            mmfar: U32 @< MemManage Fault Address Register (MMFAR) value
+            bfsr: U32 @< BusFault Status Register (BFSR) value
+            bfar: U32 @< BusFault Address Register (BFAR) value
+            ufsr: U32 @< UsageFault Status Register (UFSR) value
         ) \
             severity warning high \
             id 0x00 \
@@ -26,7 +32,14 @@ module Va416x0Svc {
         # TODO: expand to include callee-saved registers R4-R11 if they can be captured as well
         @ Captures additional context information that may be useful in diagnosing the exception
         event ExceptionContext( \
-            R0: U32, R1: U32, R2: U32, R3: U32, R12: U32, LR: U32, PC: U32, XPSR: U32 \
+            R0: U32 @< R0 register value at time of exception
+            R1: U32 @< R1 register value at time of exception
+            R2: U32 @< R2 register value at time of exception
+            R3: U32 @< R3 register value at time of exception
+            R12: U32 @< R12 register value at time of exception
+            LR: U32 @< Link register (LR) value at time of exception
+            PC: U32 @< Program counter (PC) value at time of exception
+            XPSR: U32 @< Program Status Register (xPSR) value at time of exception
         ) \
             severity fatal \
             id 0x01 \
