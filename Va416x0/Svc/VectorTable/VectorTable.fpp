@@ -36,7 +36,7 @@ module Va416x0Svc {
         # Telemetry
         ###############################################################################
 
-        # Interrupt per-RTI duty cycle high-water mark.
+        @ High water mark (in ticks) of the maximum observed amount of time spent executing interrupts across all RTIs executed since the last microcontroller reset
         telemetry RtiIrqDutyCycleHwm: U32 update on change
 
         ###########################################################################
