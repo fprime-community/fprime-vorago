@@ -39,7 +39,6 @@ class MainLoop : public MainLoopComponentBase {
     MainLoop(const char* const compName);
 
     void configure(Va416x0Mmio::ClkTree system_clk_configuration,
-                   bool enable_performance = false,
                    U32 dispatch_per_rti = 4,
                    Os::RawTimeSource raw_time_source = Os::RAWTIME_TIMER_SINGLE);
 
@@ -111,7 +110,6 @@ class MainLoop : public MainLoopComponentBase {
 
     Va416x0Types::Optional<Va416x0Mmio::ClkTree> m_systemClkConfiguration;
     std::atomic<U32> m_readyToRun;
-    bool m_enablePerformanceTest;
     U32 m_dispatchPerRti;
     Os::RawTimeSource m_rawTimeSource;
 
