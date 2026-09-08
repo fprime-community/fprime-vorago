@@ -14,17 +14,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-register_fprime_config(
-        config-fprime-vorago
-    AUTOCODER_INPUTS
-        "${CMAKE_CURRENT_LIST_DIR}/AdcCfg.fpp"
-        "${CMAKE_CURRENT_LIST_DIR}/GdsConfig.fpp"
-    HEADERS
-        "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
-    CONFIGURATION_OVERRIDES
-        "${CMAKE_CURRENT_LIST_DIR}/RawTimeSource.hpp"
-    DEPENDS
-        Fw_Types
-    INTERFACE
-)
+module Va416x0 {
 
+    @ Version for the GDS JLink communication protocol. This value must be incremented whenever the
+    @ protocol is modified.
+    dictionary constant GdsJLinkProtocolVersion = 1
+
+}
