@@ -39,6 +39,12 @@ U32 getReadU8CallCount();
 //! Number of Amba::write_u8 calls since the last reset()
 U32 getWriteU8CallCount();
 
+//! Number of Amba::read_u16 calls since the last reset()
+U32 getReadU16CallCount();
+
+//! Number of Amba::write_u16 calls since the last reset()
+U32 getWriteU16CallCount();
+
 //! Number of Amba::read_u32 calls since the last reset()
 U32 getReadU32CallCount();
 

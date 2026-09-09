@@ -17,6 +17,7 @@
 #include "Fw/Types/Assert.hpp"
 #include "Os/Mutex.hpp"
 #include "Port.hpp"
+#include "PortTestSupport.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Gpio/Pin.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
@@ -307,6 +308,14 @@ bool Port::operator!=(const Port& other) const {
 U32 Port::get_gpio_port() const {
     return gpio_port;
 }
+
+namespace TestSupport {
+
+void resetPorts() {
+    pinStates.clear();
+}
+
+}  // namespace TestSupport
 
 }  // namespace Gpio
 }  // namespace Va416x0Mmio

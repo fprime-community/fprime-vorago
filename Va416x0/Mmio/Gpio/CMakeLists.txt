@@ -17,12 +17,24 @@
 if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
     set(GPIO_SOURCES
         Pin.cpp
+        PinCommon.cpp
         Port.cpp
+    )
+    set(GPIO_HEADERS
+        Pin.hpp
+        Port.hpp
     )
 else()
     set(GPIO_SOURCES
-        Pin.cpp
+        PinCommon.cpp
+        PinStubs.cpp
         PortStubs.cpp
+    )
+    set(GPIO_HEADERS
+        Pin.hpp
+        PinTestSupport.hpp
+        Port.hpp
+        PortTestSupport.hpp
     )
 endif()
 
@@ -30,8 +42,7 @@ register_fprime_library(
     SOURCES
         ${GPIO_SOURCES}
     HEADERS
-        Pin.hpp
-        Port.hpp
+        ${GPIO_HEADERS}
     DEPENDS
         Fw_Types
         Va416x0_Mmio_Amba
