@@ -4,20 +4,20 @@ Component responsible for storing telemetry values to ping/pong buffers in exter
 
 ## Integration Requirements
 
-The ID-partitioning scheme used to map a channel ID to a component/item index is deployment-specific,
-so each consuming project must provide a `project-config` module with:
+The ID-partitioning scheme used to map a channel ID to a component/item index is defined by the
+dictionary constants `Va416x0.ComponentIdMask`, `Va416x0.ComponentIdOffset`,
+`Va416x0.DictionaryItemIdMask`, and `Va416x0.DictionaryItemIdOffset` in
+`default/config-vorago/TlmChanIdCfg.fpp`. This library ships a default partitioning; a consuming
+project may override it via `CONFIGURATION_OVERRIDES` if its scale requires a different split.
 
-1. **`project-config/TlmChanIdCfg.fpp`** — defines the dictionary constants `Va416x0.ComponentIdMask`,
-   `Va416x0.ComponentIdOffset`, `Va416x0.DictionaryItemIdMask`, `Va416x0.DictionaryItemIdOffset`.
-   Autocodes to `project-config/FppConstantsAc.hpp`, which `TlmGdsChan.cpp` includes directly.
+The library ships `Va416x0/Svc/TlmGdsChan/TlmCfg.hpp`, declaring `Va416x0::TlmCfg::CHANNEL_COUNT`,
+`COMPONENT_COUNT`, `CHANNEL_TABLE`, `ComponentLookup`, and `createComponentLookupTable(...)` — this
+interface is stable across deployments, so it does not need to be supplied by the consuming project.
 
-2. **`project-config/TlmCfg.hpp`** — declares `Va416x0::TlmCfg::CHANNEL_COUNT`, `COMPONENT_COUNT`,
-   `CHANNEL_TABLE`, `ComponentLookup`, and `createComponentLookupTable(...)`. The header itself is
-   stable across deployments, but its implementation (populating `CHANNEL_TABLE`, etc.) should be
-   generated per-deployment from the telemetry dictionary, since channel layout varies by deployment.
-
-Without both, building `TlmGdsChan` fails with a missing-header error on `FppConstantsAc.hpp` or
-`TlmCfg.hpp`.
+Each consuming project must instead provide the *implementation* of that interface (a `.cpp`
+populating `CHANNEL_COUNT`, `CHANNEL_TABLE`, etc.), generated per-deployment from the telemetry
+dictionary, since channel layout varies by deployment. There is no library default for this —
+`TlmGdsChan` will fail to link without it.
 
 ## Usage Examples
 Add usage examples here

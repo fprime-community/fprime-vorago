@@ -24,11 +24,11 @@
 
 #include "Fw/Com/ComBuffer.hpp"
 #include "Fw/Types/MemAllocator.hpp"
+#include "Va416x0/Svc/TlmGdsChan/TlmCfg.hpp"
 #include "Va416x0/Svc/TlmGdsChan/TlmGdsChanComponentAc.hpp"
 #include "Va416x0/Svc/TlmGdsChan/TlmGdsChan_TlmItemLengthTypeAliasAc.hpp"
 #include "Va416x0/Svc/TlmGdsChan/TlmGdsChan_TlmItemSequenceTypeAliasAc.hpp"
 #include "Va416x0/Types/Optional.hpp"
-#include "project-config/TlmCfg.hpp"
 
 namespace Va416x0 {
 
@@ -159,7 +159,8 @@ class TlmGdsChan final : public TlmGdsChanComponentBase {
     PingPong m_pingPongSelection;
 
     //! Component lookup table, stores the offset and length of the channels for each component in
-    //! the deployment. This is autocoded using the function provided in project-config/TlmCfg.hpp
+    //! the deployment. This is autocoded using the function provided in
+    //! Va416x0/Svc/TlmGdsChan/TlmCfg.hpp
     ComponentLookup* m_componentLookupTable;
 
     //! Maps each channel ID to the offset in the ping-pong buffers at which it can be found. This

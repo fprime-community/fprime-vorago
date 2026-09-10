@@ -23,9 +23,8 @@
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Lock/Lock.hpp"
 #include "Va416x0/Svc/TlmGdsChan/FppConstantsAc.hpp"
+#include "Va416x0/Svc/TlmGdsChan/TlmCfg.hpp"
 #include "default/config-vorago/FppConstantsAc.hpp"
-#include "project-config/FppConstantsAc.hpp"
-#include "project-config/TlmCfg.hpp"
 
 #include <stdio.h>
 #include <string.h>
