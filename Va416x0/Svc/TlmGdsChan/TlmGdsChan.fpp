@@ -1,3 +1,19 @@
+# Copyright 2026 California Institute of Technology
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
 module Va416x0 {
 
     @ Stores telemetry for retrieval by other flight software elements and by the F Prime GDS
@@ -23,7 +39,9 @@ module Va416x0 {
         dictionary constant PongBufferOffset = PingBufferOffset + PingBufferSize
         dictionary constant PongBufferSize = TlmGdsChanCfg.PingPongBufferSize
 
+        @ Type of the sequence number prefixing each telemetry item in the ping/pong buffer
         dictionary type TlmItemSequenceType = U8
+        @ Type of the length prefix for each telemetry item in the ping/pong buffer
         dictionary type TlmItemLengthType = U8
 
         ###############################################################################
@@ -43,7 +61,10 @@ module Va416x0 {
         sync input port TlmGetNoTime: UartPackets.TlmGetNoTime
 
         @ Found an invalid ping-pong selector in external SRAM
-        event InvalidPingPongSelector(selector: U16, current: U16) \
+        event InvalidPingPongSelector( \
+            selector: U16 @< Ping/pong selector value that was read
+            current: U16 @< Ping/pong selector value that was expected
+        ) \
             severity warning high \
             id 0x00 \
             format "Invalid ping-pong selector: {}: keeping current selection: {}"
