@@ -14,6 +14,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Ebi does not need a UT / linux stub because it only interacts with HDW
+# through other modules
 register_fprime_library(
     SOURCES
         Ebi.cpp

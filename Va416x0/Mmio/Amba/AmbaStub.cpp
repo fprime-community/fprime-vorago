@@ -21,12 +21,18 @@
 
 #include "Amba.hpp"
 #include "AmbaTestSupport.hpp"
+#include "Fw/Types/Assert.hpp"
 
 #include <atomic>
-#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
+
+// FIXME: A sub-word write to an address that has never been written inserts a full word whose
+// other bytes/halfwords are implicitly zero. Those siblings then read back as 0 instead of
+// tripping readBeforeWriteNotSupported, so this stub silently under-reports read-before-write
+// once any part of the word has been touched. Tracking per-byte validity in bus_map would close
+// the gap.
 
 namespace Va416x0Mmio {
 namespace Amba {
@@ -37,6 +43,8 @@ std::map<U32, U32> bus_map;
 
 static U32 read_u8_count = 0;
 static U32 write_u8_count = 0;
+static U32 read_u16_count = 0;
+static U32 write_u16_count = 0;
 static U32 read_u32_count = 0;
 static U32 write_u32_count = 0;
 static U32 memory_barrier_count = 0;
@@ -77,23 +85,48 @@ void write_u8(U32 bus_address, U8 value) {
         bus_map[word_address] = (iter->second & ~byte_mask) | shifted_value;
     } else {
         std::pair<std::map<U32, U32>::iterator, bool> insert_status = bus_map.insert({word_address, shifted_value});
-        // Assert status is success?
+        FW_ASSERT(insert_status.second, word_address, shifted_value);
     }
 }
 
 U16 read_u16(U32 bus_address) {
-    notSupported();
-    return 0;
+    read_u16_count++;
+    // Cross halfword access not supported
+    FW_ASSERT((bus_address & 0b1) == 0, bus_address);
+    U32 bit_shift = (bus_address & 0b10) * bits_per_byte;  // Get the bit offset within the word,
+    U32 word_address = bus_address & ~0b11;                // Get the word aligned address
+    auto iter = bus_map.find(word_address);
+    if (iter != bus_map.end()) {
+        return ((iter->second >> bit_shift) & 0xFFFF);
+    } else {
+        readBeforeWriteNotSupported(bus_address);
+        return 0;
+    }
 }
 
 void write_u16(U32 bus_address, U16 value) {
-    notSupported();
+    write_u16_count++;
+    // Cross halfword access not supported
+    FW_ASSERT((bus_address & 0b1) == 0, bus_address);
+    U32 bit_shift = (bus_address & 0b10) * bits_per_byte;  // Get the bit offset within the word,
+    U32 word_address = bus_address & ~0b11;                // Get the word aligned address
+    // Shift as U32: a halfword shifted into the top of the word overflows a signed int
+    U32 shifted_value = static_cast<U32>(value) << bit_shift;
+    U32 halfword_mask = static_cast<U32>(0xFFFF) << bit_shift;
+    auto iter = bus_map.find(word_address);
+    if (iter != bus_map.end()) {
+        // Clear halfword then replace
+        bus_map[word_address] = (iter->second & ~halfword_mask) | shifted_value;
+    } else {
+        std::pair<std::map<U32, U32>::iterator, bool> insert_status = bus_map.insert({word_address, shifted_value});
+        FW_ASSERT(insert_status.second, word_address, shifted_value);
+    }
 }
 
 U32 read_u32(U32 bus_address) {
     read_u32_count++;
     // Cross word access not supported
-    assert(!(bus_address & 0b11));
+    FW_ASSERT((bus_address & 0b11) == 0, bus_address);
     U32 word_address = bus_address & ~0b11;  // Get the word aligned address
     auto iter = bus_map.find(word_address);
     if (iter != bus_map.end()) {
@@ -107,7 +140,7 @@ U32 read_u32(U32 bus_address) {
 void write_u32(U32 bus_address, U32 value) {
     write_u32_count++;
     // Cross word access not supported
-    assert(!(bus_address & 0b11));
+    FW_ASSERT((bus_address & 0b11) == 0, bus_address);
     U32 word_address = bus_address & ~0b11;  // Get the word aligned address
     auto iter = bus_map.find(word_address);
     if (iter != bus_map.end()) {
@@ -128,6 +161,8 @@ void reset() {
     bus_map.clear();
     read_u8_count = 0;
     write_u8_count = 0;
+    read_u16_count = 0;
+    write_u16_count = 0;
     read_u32_count = 0;
     write_u32_count = 0;
     memory_barrier_count = 0;
@@ -139,6 +174,14 @@ U32 getReadU8CallCount() {
 
 U32 getWriteU8CallCount() {
     return write_u8_count;
+}
+
+U32 getReadU16CallCount() {
+    return read_u16_count;
+}
+
+U32 getWriteU16CallCount() {
+    return write_u16_count;
 }
 
 U32 getReadU32CallCount() {

@@ -326,18 +326,6 @@ void Pin::configure_as_function(Signal::FunctionSignal function, Gpio::IoInversi
     IoConfig::write_port_config(gpio_port.get_gpio_port(), gpio_pin, config);
 }
 
-Pin::operator Signal::CascadeSignal() const {
-    return Signal::CascadeSignal(gpio_port.get_base_cascade_index() + gpio_pin);
-}
-
-Pin::operator Va416x0Types::Optional<Signal::CascadeSignal>() const {
-    return Signal::CascadeSignal(*this);
-}
-
-Va416x0Types::ExceptionNumber Pin::get_exception() const {
-    return Va416x0Types::ExceptionNumber::T(gpio_port.get_base_exception() + gpio_pin);
-}
-
 void Pin::out(Fw::Logic state) const {
     if (state == Fw::Logic::LOW) {
         gpio_port.write_clrout(1 << gpio_pin);
@@ -348,22 +336,6 @@ void Pin::out(Fw::Logic state) const {
 
 Fw::Logic Pin::in() const {
     return (gpio_port.read_datainraw() & (1 << gpio_pin)) != 0 ? Fw::Logic::HIGH : Fw::Logic::LOW;
-}
-
-U8 Pin::getPinNumber() const {
-    return this->gpio_pin;
-}
-
-U32 Pin::getGpioPortNumber() const {
-    return this->gpio_port.get_gpio_port();
-}
-
-bool Pin::operator==(const Pin& other) const {
-    return gpio_port == other.gpio_port && gpio_pin == other.gpio_pin;
-}
-
-bool Pin::operator!=(const Pin& other) const {
-    return !(*this == other);
 }
 
 }  // namespace Gpio
