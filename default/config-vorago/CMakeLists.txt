@@ -19,6 +19,7 @@ register_fprime_config(
     AUTOCODER_INPUTS
         "${CMAKE_CURRENT_LIST_DIR}/AdcCfg.fpp"
         "${CMAKE_CURRENT_LIST_DIR}/GdsConfig.fpp"
+        "${CMAKE_CURRENT_LIST_DIR}/TlmGdsChanCfg.fpp"
     HEADERS
         "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
     CONFIGURATION_OVERRIDES
