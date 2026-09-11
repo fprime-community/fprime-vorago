@@ -24,11 +24,11 @@
 
 #include "Fw/Com/ComBuffer.hpp"
 #include "Fw/Types/MemAllocator.hpp"
-#include "Va416x0/Svc/TlmGdsChan/TlmCfg.hpp"
 #include "Va416x0/Svc/TlmGdsChan/TlmGdsChanComponentAc.hpp"
 #include "Va416x0/Svc/TlmGdsChan/TlmGdsChan_TlmItemLengthTypeAliasAc.hpp"
 #include "Va416x0/Svc/TlmGdsChan/TlmGdsChan_TlmItemSequenceTypeAliasAc.hpp"
 #include "Va416x0/Types/Optional.hpp"
+#include "default/config-vorago/TlmCfg.hpp"
 
 namespace Va416x0 {
 

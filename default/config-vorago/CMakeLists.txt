@@ -23,6 +23,7 @@ register_fprime_config(
         "${CMAKE_CURRENT_LIST_DIR}/TlmGdsChanCfg.fpp"
     HEADERS
         "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
+        "${CMAKE_CURRENT_LIST_DIR}/TlmCfg.hpp"
     CONFIGURATION_OVERRIDES
         "${CMAKE_CURRENT_LIST_DIR}/RawTimeSource.hpp"
     DEPENDS
