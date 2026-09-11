@@ -1,4 +1,4 @@
-# Copyright 2025 California Institute of Technology
+# Copyright 2026 California Institute of Technology
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-register_fprime_config(
-        config-fprime-vorago
-    AUTOCODER_INPUTS
-        "${CMAKE_CURRENT_LIST_DIR}/AdcCfg.fpp"
-        "${CMAKE_CURRENT_LIST_DIR}/GdsConfig.fpp"
-        "${CMAKE_CURRENT_LIST_DIR}/TlmChanIdCfg.fpp"
-        "${CMAKE_CURRENT_LIST_DIR}/TlmGdsChanCfg.fpp"
-    HEADERS
-        "${CMAKE_CURRENT_LIST_DIR}/ProfilerCfg.hpp"
-    CONFIGURATION_OVERRIDES
-        "${CMAKE_CURRENT_LIST_DIR}/RawTimeSource.hpp"
-    DEPENDS
-        Fw_Types
-    INTERFACE
-)
+module Va416x0 {
 
+    module TlmGdsChanCfg {
+
+        @ Size of each ping-pong buffer used by TlmGdsChan. This must be sized appropriately in order
+        @ to fit all channels for any single deployment (currently 3 KiB)
+        dictionary constant PingPongBufferSize = 3072
+    }
+}
