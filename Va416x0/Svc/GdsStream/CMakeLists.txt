@@ -33,6 +33,11 @@ register_fprime_library(
         "${CMAKE_CURRENT_LIST_DIR}/GdsStream.cpp"
     DEPENDS
         Va416x0_Mmio_Amba
+        Fw_Cmd
+        Fw_Com
+        Fw_Log
+        Svc_Fatal
+        Svc_Sched
 )
 
 ### Unit Tests ###
