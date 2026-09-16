@@ -240,8 +240,12 @@ function(register_with_bsp TARGET_NAME)
 
             # C vector table for initializing arrays
             __preinit_array_start
+            __bothinit_array_start
             __postinit_array_start
             __init_array_start
+
+            # Other linker labels
+            __text_end
         )
 
         add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
