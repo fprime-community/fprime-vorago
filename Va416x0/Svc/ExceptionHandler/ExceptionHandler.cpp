@@ -20,9 +20,11 @@
 // ======================================================================
 
 #include "Va416x0/Svc/ExceptionHandler/ExceptionHandler.hpp"
-#include <Fw/Logger/Logger.hpp>
+#include "Fw/Logger/Logger.hpp"
 #include "Va416x0/Mmio/SysControl/SysControl.hpp"
 #include "Va416x0/Svc/ExceptionHandler/FppConstantsAc.hpp"
+
+#include <cstdlib>
 
 namespace Va416x0Svc {
 
