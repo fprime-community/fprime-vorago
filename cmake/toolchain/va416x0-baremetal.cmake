@@ -21,9 +21,9 @@ set(CMAKE_SYSTEM_PROCESSOR armv7l)
 # This toolchain file is intended to be used with the toolchain available from:
 #   https://github.com/fprime-community/llvm-vorago-arm-toolchain
 # See README.md for suggested development container.
-set(CMAKE_C_COMPILER clang-20)
-set(CMAKE_CXX_COMPILER clang-20)
-set(CMAKE_ASM_COMPILER clang-20)
+set(CMAKE_C_COMPILER clang-23)
+set(CMAKE_CXX_COMPILER clang-23)
+set(CMAKE_ASM_COMPILER clang-23)
 
 # FIXME: This is only needed because our linker script and linker arguments
 #  necessitate the use of symbols provided by Va416x0/Svc/VectorTable.
@@ -150,7 +150,7 @@ make_directory("${BUILD_INFO_AC_DIR}")
 # FIXME - Related F' ticket: https://github.com/nasa/fprime/issues/4032
 make_directory("${CMAKE_BINARY_DIR}/.fprime-build-dir")
 
-# Verify that the libc selected was built without unlaligned-access enabled 
+# Verify that the libc selected was built without unlaligned-access enabled
 include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
 
 
