@@ -38,7 +38,8 @@ jobs:
 
       - name: "Install Dependencies"
         # FIXME: Release 4.3.0 does not include the fix in https://github.com/nasa/fprime-tools/pull/331, so we have to install a more recent commit
-        run: pip install git+https://github.com/nasa/fprime-tools@f5835682f34f10d8fbb97dc80b0d9cc66c38a375
+        # Note: We need to use clang-format==20.1.8 for consistency with the F Prime python environment, or the formatting will be wrong
+        run: pip install git+https://github.com/nasa/fprime-tools@f5835682f34f10d8fbb97dc80b0d9cc66c38a375 clang-format==20.1.8
 
       - name: "Check C++ Formatting"
         run: |
