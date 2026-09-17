@@ -37,7 +37,8 @@ jobs:
           cache: 'pip'
 
       - name: "Install Dependencies"
-        run: pip install fprime-tools
+        # FIXME: Release 4.3.0 does not include the fix in https://github.com/nasa/fprime-tools/pull/331, so we have to install a more recent commit
+        run: pip install git+https://github.com/nasa/fprime-tools@f5835682f34f10d8fbb97dc80b0d9cc66c38a375
 
       - name: "Check C++ Formatting"
         run: |
