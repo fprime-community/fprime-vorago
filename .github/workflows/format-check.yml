@@ -5,9 +5,6 @@ name: "Code Format Check"
 on:
   push:
     branches: [ main ]
-  pull_request:
-    paths-ignore:
-      - '.github/actions/spelling/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -35,7 +32,7 @@ jobs:
       - name: "Setup Python"
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.12'
           cache: 'pip'
 
       - name: "Install Dependencies"
