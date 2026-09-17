@@ -34,7 +34,8 @@ module Va416x0Svc {
         @ Signal end of RTI period for interrupt statistics tracking
         output port end_rti: Svc.Sched
 
-        @ Report the duration of the previous RTI, in microseconds
+        @ Report the duration of the previous RTI, in microseconds. If this is requested on RTI-0,
+        @ this port will return the default duration
         sync input port getPreviousRtiDuration: Va416x0.GetRtiDurationUs
 
     }

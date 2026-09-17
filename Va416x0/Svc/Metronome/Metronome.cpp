@@ -43,7 +43,8 @@ Metronome::Metronome(const char* const compName, const MetronomeConfig& config)
     : MetronomeComponentBase(compName),
       m_config(config),
       m_proxy_ic(config.proxy_timer.get_timer_done_exception()),
-      m_main_ic(config.main_timer.get_timer_done_exception()) {
+      m_main_ic(config.main_timer.get_timer_done_exception()),
+      m_previousRtiDurationUs(0) {
     FW_ASSERT(1 <= config.maximum_duration_micros && config.minimum_duration_micros <= config.default_duration_micros &&
                   config.default_duration_micros <= config.maximum_duration_micros,
               config.minimum_duration_micros, config.default_duration_micros, config.maximum_duration_micros);
@@ -170,6 +171,10 @@ void Metronome::main_timer_isr_handler(FwIndexType portNum) {
     // FIXME: Is there any chance of this already being out of date here?
     U32 rst_value = this->m_config.main_timer.read_rst_value();
 
+    // Calculate the duration of the previous RTI using the previous offset base
+    // Note: the timer reset value calculation subtracts 1 from the cycle count
+    this->m_previousRtiDurationUs = (this->m_rtiOffsetBase + 1) / this->m_cycles_per_microsecond;
+
     // Advance to the next RTI
     this->m_rtiIndex++;
     this->m_rtiOffsetBase = rst_value;
@@ -266,10 +271,11 @@ void Metronome::process_isrs_until(U32 until_cnt_value) {
 }
 
 U32 Metronome::getPreviousRtiDuration_handler(FwIndexType portNum) {
-    // Calculate the RTI duration in microseconds given the main timer reset value that was used to
-    // schedule the previous RTI
-    // Note: the timer reset value calculation subtracts 1 from the cycle count
-    return (this->m_rtiOffsetBase + 1) / this->m_cycles_per_microsecond;
+    if (this->m_previousRtiDurationUs == 0) {
+        return this->m_config.default_duration_micros;
+    } else {
+        return this->m_previousRtiDurationUs;
+    }
 }
 
 }  // namespace Va416x0Svc

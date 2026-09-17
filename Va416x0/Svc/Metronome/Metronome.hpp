@@ -111,6 +111,8 @@ class Metronome : public MetronomeComponentBase {
     U32 m_rtiIndex;
     //! Base RST value of the main timer, used to determine the current RTI offset when requested
     U32 m_rtiOffsetBase;
+    //! Duration of the previous RTI, in microseconds
+    U32 m_previousRtiDurationUs;
 
     //! Flag indicating the metronome has started
     bool m_isRunning = false;
