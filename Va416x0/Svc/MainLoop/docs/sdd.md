@@ -1,6 +1,6 @@
 # Va416x0Svc::MainLoop
 
-Initialization and main loop for REAPR FSW
+Initialization and main loop for F Prime Vorago Package
 
 ## Usage Examples
 Add usage examples here

@@ -21,9 +21,9 @@ set(CMAKE_SYSTEM_PROCESSOR armv7l)
 # This toolchain file is intended to be used with the toolchain available from:
 #   https://github.com/fprime-community/llvm-vorago-arm-toolchain
 # See README.md for suggested development container.
-set(CMAKE_C_COMPILER clang-20)
-set(CMAKE_CXX_COMPILER clang-20)
-set(CMAKE_ASM_COMPILER clang-20)
+set(CMAKE_C_COMPILER clang-23)
+set(CMAKE_CXX_COMPILER clang-23)
+set(CMAKE_ASM_COMPILER clang-23)
 
 # FIXME: This is only needed because our linker script and linker arguments
 #  necessitate the use of symbols provided by Va416x0/Svc/VectorTable.
@@ -32,6 +32,7 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 set(CMAKE_ASM_COMPILER_WORKS 1)
 
 set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
+set(SCRIPT_VERIFY_NO_STRB "${CMAKE_CURRENT_LIST_DIR}/verify_nostrb.py")
 
 # Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
 # additional compiler features.
@@ -43,6 +44,7 @@ set(VA416X0_COMMON_FLAGS "\
     --target=thumbv7m-unknown-none-eabi \
     -mcpu=${VA416X0_MCPU} \
     -mthumb \
+    -mno-unaligned-access \
     -ggdb3 \
     -mfpu=fpv4-sp-d16 \
     -mfloat-abi=hard \
@@ -148,6 +150,10 @@ make_directory("${BUILD_INFO_AC_DIR}")
 # FIXME - Related F' ticket: https://github.com/nasa/fprime/issues/4032
 make_directory("${CMAKE_BINARY_DIR}/.fprime-build-dir")
 
+# Verify that the libc selected was built without unaligned-access enabled
+include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
+
+
 # Call this in the deployment CMakeLists after register_fprime_deployment to
 # ensure App.hex is generated in addition to App.elf file
 # register_with_bsp("${PROJECT_NAME}")
@@ -191,7 +197,7 @@ function(register_with_bsp TARGET_NAME)
         # Copy the map file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.map"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
         # Create the hex format for flash loader
         COMMAND arm-none-eabi-objcopy -O ihex
             "$<TARGET_FILE:${TARGET_NAME}>"
@@ -200,7 +206,7 @@ function(register_with_bsp TARGET_NAME)
         # Copy the new hex file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.hex"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
         # Create the bin format for flash loader
         COMMAND arm-none-eabi-objcopy -O binary
             "$<TARGET_FILE:${TARGET_NAME}>"
@@ -209,7 +215,7 @@ function(register_with_bsp TARGET_NAME)
         # Copy the new bin file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.bin"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
         # Objdump the ELF file
         COMMAND arm-none-eabi-objdump -xD --visualize-jumps "$<TARGET_FILE:${TARGET_NAME}>"
             >"$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
@@ -217,6 +223,39 @@ function(register_with_bsp TARGET_NAME)
         # Copy the dump into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>.objdump"
-            "${CMAKE_INSTALL_PREFIX}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
+            "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/"
     )
+
+    if (VA416X0_VERIFY_NO_STRB)
+        # Define the default set of STRB whitelist
+        set(VA416X0_VERIFY_NO_STRB_WHITELIST
+            ${VA416X0_VERIFY_NO_STRB_WHITELIST}
+
+            # We actually _do_ want 'strb' in 'Va416x0Mmio::Amba::write_u8'
+            # This uses inline assembly to avoid the `badstrb` feature
+            _ZN11Va416x0Mmio4Amba8write_u8Ejh
+
+            # V-table data stored in .text
+            __start___lcxx_override
+
+            # C vector table for initializing arrays
+            __preinit_array_start
+            __bothinit_array_start
+            __postinit_array_start
+            __init_array_start
+
+            # Other linker labels
+            __text_end
+        )
+
+        add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
+            # Verify the .text of the objdump does not include illegal instructions
+            COMMAND "${PYTHON}" "${SCRIPT_VERIFY_NO_STRB}"
+                    "$<TARGET_FILE:${TARGET_NAME}>"
+                    --whitelist "\"${VA416X0_VERIFY_NO_STRB_WHITELIST}\""
+                    --name ${TARGET_NAME}
+
+                DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
+        )
+    endif()
 endfunction()

@@ -32,20 +32,23 @@ namespace Va416x0Svc {
 // ----------------------------------------------------------------------
 // Component construction and destruction
 // ----------------------------------------------------------------------
-MainLoop ::MainLoop(const char* const compName) : MainLoopComponentBase(compName) {
+MainLoop ::MainLoop(const char* const compName)
+    : MainLoopComponentBase(compName), m_rawTimeSource(Os::RAWTIME_TIMER_SINGLE) {
     FW_ASSERT(this->m_readyToRun.is_lock_free());
 }
 
 void MainLoop ::configure(Va416x0Mmio::ClkTree system_clk_configuration,
-                          bool enable_performance,
-                          bool enable_debugger,
-                          U32 dispatch_per_rti) {
+                          U32 dispatch_per_rti,
+                          Os::RawTimeSource raw_time_source) {
     system_clk_configuration.applyClkTree();
 
-    this->m_enablePerformanceTest = enable_performance;
-    this->m_enableDebuggerAttachWait = enable_debugger;
     this->m_dispatchPerRti = dispatch_per_rti;
+    this->m_rawTimeSource = raw_time_source;
     FW_ASSERT(this->m_readyToRun.is_lock_free());
+}
+
+Os::RawTime MainLoop::createRawTime() const {
+    return Os::RawTime(this->m_rawTimeSource);
 }
 
 // ----------------------------------------------------------------------
@@ -53,13 +56,6 @@ void MainLoop ::configure(Va416x0Mmio::ClkTree system_clk_configuration,
 // ----------------------------------------------------------------------
 
 void MainLoop ::reset_vector_handler(FwIndexType portNum) {
-    if (this->m_enableDebuggerAttachWait) {
-        // Artificial delay to let the debugger attach
-        for (U32 i = 0; i < 8000000; i++) {
-            Va416x0Mmio::Cpu::nop();
-        }
-    }
-
     this->enable_irq_router();
     this->invoke_start_ports();
 
@@ -82,9 +78,9 @@ void MainLoop ::invoke_start_ports() {
         }
     }
 
-    // Start the scheduler as the very last step, because we don't want to
+    // Start the metronome as the very last step, because we don't want to
     // inadvertently start executing late.
-    start_scheduler_out(0);
+    start_metronome_out(0);
 }
 
 void MainLoop ::resetCounts_handler(FwIndexType portNum) {
@@ -135,21 +131,21 @@ void MainLoop ::start_rti_handler(FwIndexType portNum, U32 context) {
     // FIXME: Should we FATAL here rather than fataling in the main thread?
     this->m_readyToRun.fetch_add(1);
 
-    if (this->m_enablePerformanceTest) {
-        if (this->m_performanceResults.rti_count % 640 == 0) {
-            this->m_performanceResults.hwm = 0;
-            this->m_performanceResults.last = 0xFFFFFFFF;
-            this->m_performanceResults.lwm = 0xFFFFFFFF;
+    // FIXME do we want to run this logic all the time? Or put it behind a flag like the original
+    // m_enablePerformanceTest
+    if (this->m_performanceResults.rti_count % 640 == 0) {
+        this->m_performanceResults.hwm = 0;
+        this->m_performanceResults.last = 0xFFFFFFFF;
+        this->m_performanceResults.lwm = 0xFFFFFFFF;
+    }
+    if (this->m_performanceResults.counter != 0xFFFFFFFF) {
+        this->m_performanceResults.counter_running_total += this->m_performanceResults.counter;
+        this->m_performanceResults.last = this->m_performanceResults.counter;
+        if (this->m_performanceResults.counter > this->m_performanceResults.hwm) {
+            this->m_performanceResults.hwm = this->m_performanceResults.counter;
         }
-        if (this->m_performanceResults.counter != 0xFFFFFFFF) {
-            this->m_performanceResults.counter_running_total += this->m_performanceResults.counter;
-            this->m_performanceResults.last = this->m_performanceResults.counter;
-            if (this->m_performanceResults.counter > this->m_performanceResults.hwm) {
-                this->m_performanceResults.hwm = this->m_performanceResults.counter;
-            }
-            if (this->m_performanceResults.counter < this->m_performanceResults.lwm) {
-                this->m_performanceResults.lwm = this->m_performanceResults.counter;
-            }
+        if (this->m_performanceResults.counter < this->m_performanceResults.lwm) {
+            this->m_performanceResults.lwm = this->m_performanceResults.counter;
         }
     }
 
@@ -167,59 +163,21 @@ void MainLoop ::ensure_rti_not_elapsed() {
 
 // NOTE: marked with noinline so that it appears in profile traces
 __attribute__((noinline)) void MainLoop ::wait_for_next_rti() {
-    if (this->m_enablePerformanceTest) {
-        U32 i = 0;
-        do {
-            this->m_performanceResults.counter = i++;
-        } while (this->m_readyToRun.load() == 0);
+    U32 i = 0;
+    do {
+        this->m_performanceResults.counter = i++;
+    } while (this->m_readyToRun.load() == 0);
 
-        // Make sure we didn't slip any RTIs.
-        // FIXME: Do we really want to trigger an assertion here?
-        // Maybe it should just be a FATAL.
-        U32 ready_to_run_value = this->m_readyToRun.exchange(0);
-        FW_ASSERT(ready_to_run_value == 1, ready_to_run_value);
-    } else {
-        // We need to disable interrupts before invoking WFI. This is because,
-        // if an interrupt occurs after reading ready_to_run and before
-        // executing WFI... WFI won't be able to detect the interrupt! This is
-        // a problem because we wouldn't wake up this main thread and wouldn't
-        // start executing the next RTI on time.
-
-        // FIXME: Should we use sleep-on-exit instead?
-        // Then we wouldn't need to disable interrupts...
-        Va416x0Mmio::Cpu::disable_interrupts();
-
-        // All accesses to this atomic need to be while we have interrupts disabled.
-        // FIXME: Could we use a RELAXED memory order for this atomic?
-        U32 ready_to_run_value = this->m_readyToRun.exchange(0);
-
-        // Wait for the ISR to notify us.
-        while (ready_to_run_value == 0) {
-            // Go to sleep to save power.
-            // If there's a pending interrupt, WFI will act as a NOP,
-            // so there's no race condition here.
-            Va416x0Mmio::Cpu::waitForInterrupt();
-            Va416x0Mmio::Cpu::enable_interrupts();
-
-            // Interrupts are handled here: in particular, the RTI ISR!
-
-            Va416x0Mmio::Cpu::disable_interrupts();
-            // See whether it's the top of the next RTI yet.
-            ready_to_run_value = this->m_readyToRun.exchange(0);
-        }
-
-        Va416x0Mmio::Cpu::enable_interrupts();
-
-        // Make sure we didn't slip any RTIs.
-        // FIXME: Do we really want to trigger an assertion here?
-        // Maybe it should just be a FATAL.
-        FW_ASSERT(ready_to_run_value == 1, ready_to_run_value);
-    }
+    // Make sure we didn't slip any RTIs.
+    // FIXME: Do we really want to trigger an assertion here?
+    // Maybe it should just be a FATAL.
+    U32 ready_to_run_value = this->m_readyToRun.exchange(0);
+    FW_ASSERT(ready_to_run_value == 1, ready_to_run_value);
 }
 
 // NOTE: marked with noinline so that it appears in profile traces
 __attribute__((noinline)) void MainLoop ::execute_main_loop() {
-    Os::RawTime raw_time;
+    Os::RawTime raw_time = this->createRawTime();
     auto status = raw_time.now();
     FW_ASSERT(status == Os::RawTime::Status::OP_OK, status);
 

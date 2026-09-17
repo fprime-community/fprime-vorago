@@ -22,9 +22,9 @@ module Va416x0Svc {
         sync input port run: Svc.Sched
 
         @ Interface to get the current RTI
-        output port getRtiTime: Va416x0Svc.GetRtiTime
+        output port getRtiTime: Va416x0.GetRtiTime
 
-        @ Enable the profiler
+        @ [DEBUG] Enable the profiler
         sync command ENABLE(
             rti: U32  @< RTI on which to start the profile trace
         ) opcode 0

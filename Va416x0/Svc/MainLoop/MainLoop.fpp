@@ -26,14 +26,14 @@ module Va416x0Svc {
 
     port GetPerformanceCounts() -> MlPerformanceCounts
 
-    @ Initialization and main loop for REAPR FSW
+    @ Executes the main cyclic thread for the flight software
     passive component MainLoop {
 
         sync input port reset_vector: Va416x0Types.ExceptionHandler
 
         output port start: [10] Fw.Ready
 
-        output port start_scheduler: Fw.Ready
+        output port start_metronome: Fw.Ready
         sync input port start_rti: Svc.Sched
 
         output port cycle: Svc.Cycle

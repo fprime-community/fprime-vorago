@@ -154,5 +154,11 @@ void route_all_ebi_pins(void) {
     }
 }
 
+void unrouteAllEbiPins() {
+    for (const Gpio::Pin& pin : ebi_pins) {
+        pin.configure_as_gpio(Fw::Direction::IN);
+    }
+}
+
 }  // namespace Ebi
 }  // namespace Va416x0Mmio

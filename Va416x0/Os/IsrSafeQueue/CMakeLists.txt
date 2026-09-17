@@ -22,6 +22,7 @@ register_fprime_module(
         "${CMAKE_CURRENT_LIST_DIR}/IsrSafeQueue.hpp"
     DEPENDS
         Os_Generic_Types
+        Os_Baremetal_OverrideNewDelete
 )
 
 register_fprime_implementation(

@@ -16,7 +16,8 @@
 
 NUMBER_OF_EXCEPTIONS = 212
 
-print(f"""
+print(
+    f"""
 #include "Va416x0/Svc/VectorTable/VectorTable.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
 
@@ -26,18 +27,25 @@ static_assert(Va416x0Types::NUMBER_OF_EXCEPTIONS == {NUMBER_OF_EXCEPTIONS},
 extern "C" {{
 extern void _start(void);
 extern uint8_t __stack[];
-}}""")
+}}"""
+)
 for isr_index in range(2, NUMBER_OF_EXCEPTIONS):
-    print(f"""
+    print(
+        f"""
 void arm_isr_{isr_index}(void) {{
     [[clang::always_inline]] va416x0_vector_table_instance->handle_exception({isr_index});
-}}""")
-print("""
+}}"""
+    )
+print(
+    """
 // Based on picolibc vector table.
 extern "C" void * const arm_vector_table[] __attribute__((aligned(128), used, section(".data.init.enter"))) = {
     __stack,
-    reinterpret_cast<void *>(_start),""")
+    reinterpret_cast<void *>(_start),"""
+)
 for isr_index in range(2, NUMBER_OF_EXCEPTIONS):
     print(f"    reinterpret_cast<void *>(arm_isr_{isr_index}),")
-print("""};
-""")
+print(
+    """};
+"""
+)

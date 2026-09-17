@@ -43,7 +43,7 @@ extern const ClkTree g_staticClkTree;
 
 //! Build the static clock tree from configured values
 //! Note: Although parameters are asserted at compile-time,
-//!       they are FW_ASSERT'd again in this function
+//!       they are asserted again in this function
 static ClkTree buildStaticClockTree() {
     return ClkTree::createClockTree(Cfg::EXT_CLK_FREQ, Cfg::CRYSTAL_OSC_FREQ, Cfg::PLL_REF_DIV, Cfg::PLL_FB_DIV,
                                     Cfg::PLL_OUT_DIV, Cfg::PLL_LPF_DIV, Cfg::SYSCLK_DIV, Cfg::SYSCLK_SOURCE,

@@ -109,7 +109,12 @@ void* StrictMallocAllocator::allocate(const FwEnumStoreType identifier,
         size = 0;  // set to zero if can't get memory
     } else {
         // Check id is a valid index and m_allocations has been allocated,
-        FW_ASSERT(id >= 0 && id < this->m_numIds, id, size, this->m_numIds);
+        // FIXME: Heap tracking is broken by https://github.com/nasa/fprime/issues/4499.
+        // FW_ASSERT(id >= 0 && id < this->m_numIds, id, size, this->m_numIds);
+        if (id < 0 || id >= this->m_numIds) {
+            printf("\nInvalid ID: %d, numIds = %d\n", id, this->m_numIds);
+            id = this->m_defaultId;
+        }
         FW_ASSERT(this->m_allocations != nullptr);
         // Then add actualSize this ID's memory total
         this->m_allocations[id].fetch_add(actualSize);

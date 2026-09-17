@@ -15,9 +15,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 module Va416x0Svc {
-  @ Handles FATAL calls
-  passive component FatalHandler {
-    @ FATAL event receive port
-    sync input port FatalReceive: Svc.FatalEvent
-  }
+    @ Halts the CPU when a FATAL occurs on the microcontroller
+    passive component FatalHandler {
+        @ FATAL event receive port
+        sync input port FatalReceive: Svc.FatalEvent
+    }
 }

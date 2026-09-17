@@ -21,6 +21,7 @@
 
 #include "TimerRawTime.hpp"
 #include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
+#include "Va416x0/Mmio/Timer/Timer.hpp"
 
 #include <limits>
 
@@ -35,6 +36,10 @@ U32 TimerRawTime::s_timer_lo_reset = 0;
 bool TimerRawTime::s_timers_initialized = false;
 
 TimerRawTime::TimerRawTime() : m_handle() {}
+
+TimerRawTime::TimerRawTime(Os::RawTimeSource source) : m_handle() {
+    FW_ASSERT(source == Os::RAWTIME_DEFAULT, source);
+}
 
 void TimerRawTime::configure(const U8 timer_hi, const U8 timer_lo, const BitDepth timer_bits) {
     //! Confirm the timer width in bits is valid

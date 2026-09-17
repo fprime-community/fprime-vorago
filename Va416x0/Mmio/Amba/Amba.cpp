@@ -30,8 +30,15 @@ U8 read_u8(U32 bus_address) {
     return *reinterpret_cast<volatile U8*>(bus_address);
 }
 
-void write_u8(U32 bus_address, U8 value) {
-    *reinterpret_cast<volatile U8*>(bus_address) = value;
+// FIXME: this function is marked as noinline so that the verify_nostrb.py script can properly
+// verify that there are no single-byte loads/stores for va416x0-baremetal-nostrb builds; figure
+// out a better solution at a later date
+__attribute__((noinline)) void write_u8(U32 bus_address, U8 value) {
+    asm volatile("strb %1, [%0]"
+                 :  // No output operands
+                 : "r"(bus_address), "r"(value)
+                 : "memory"  // Clobber memory
+    );
 }
 
 U16 read_u16(U32 bus_address) {

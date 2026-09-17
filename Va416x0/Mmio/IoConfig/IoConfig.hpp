@@ -24,6 +24,7 @@ namespace Va416x0Mmio {
 namespace IoConfig {
 
 constexpr U32 IO_CONFIG_INVINP = 1 << 6;
+constexpr U32 IO_CONFIG_IEWO = 1 << 7;
 constexpr U32 IO_CONFIG_INVOUT = 1 << 9;
 constexpr U32 IO_CONFIG_PLEVEL_PULLDOWN = 0 << 10;
 constexpr U32 IO_CONFIG_PLEVEL_PULLUP = 1 << 10;

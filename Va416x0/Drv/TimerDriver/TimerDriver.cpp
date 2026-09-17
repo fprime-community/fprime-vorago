@@ -34,7 +34,7 @@ constexpr U32 MICROSECONDS_PER_SECOND = 1000 * 1000;
 
 TimerDriver ::TimerDriver(const char* const compName) : TimerDriverComponentBase(compName), m_tickIndex(0) {}
 
-void TimerDriver::setup(U8 timer_peripheral_index, U32 cycle_time_microseconds) {
+void TimerDriver::setup(U8 timer_peripheral_index, U32 cycle_time_microseconds, U8 timer_interrupt_priority) {
     Va416x0Mmio::Timer timer(timer_peripheral_index);
 
     Va416x0Mmio::SysConfig::set_clk_enabled(timer, true);
@@ -55,9 +55,8 @@ void TimerDriver::setup(U8 timer_peripheral_index, U32 cycle_time_microseconds) 
 
     this->m_tickIndex = 0;
     this->m_exception = Va416x0Mmio::Nvic::InterruptControl(timer.get_timer_done_exception());
+    this->m_exception.set_interrupt_priority(timer_interrupt_priority);
     this->m_exception.set_interrupt_pending(false);
-    // Set this interrupt to a lower priority level than DMA DONE.
-    this->m_exception.set_interrupt_priority(128);
     this->m_exception.set_interrupt_enabled(true);
 }
 

@@ -46,6 +46,7 @@ else()
         DEPENDS
             Os
             Va416x0_Mmio_ClkTree
+            Va416x0_Os_TimerSingleRawTime
 
     )
 

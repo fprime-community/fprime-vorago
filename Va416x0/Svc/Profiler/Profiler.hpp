@@ -102,7 +102,7 @@ class Profiler : public ProfilerComponentBase {
     //! functionality and is set to the end of the memory region when disabled
     Event* m_writePtr;
 
-    //! RTIs per second, as configured for the microscheduler
+    //! RTIs per second, as configured for the Metronome component
     U32 m_rtisPerSecond;
     //! RTI on which the profiler should be enabled; set by the ENABLE command
     U32 m_rti;

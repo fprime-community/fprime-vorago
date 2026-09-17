@@ -60,6 +60,8 @@ enum IoInversion {
     INVERT,
 };
 
+enum InputEnable { INPUT_NOT_ENABLED_ON_OUTPUT, INPUT_ENABLED_ON_OUTPUT };
+
 class Pin final {
   public:
     // Note: This is not the recommended way to reference a pin.
@@ -77,7 +79,8 @@ class Pin final {
                            Gpio::Delay delay = Gpio::NO_DELAY,
                            Gpio::Irq irq = Gpio::IRQ_DEFAULT,
                            bool direct_interrupt = false,
-                           Gpio::Resistors resistors = Gpio::PULL_NEITHER) const;
+                           Gpio::Resistors resistors = Gpio::PULL_NEITHER,
+                           Gpio::InputEnable enable_input_read_back = Gpio::INPUT_NOT_ENABLED_ON_OUTPUT) const;
 
     // Will trip an assertion if the function in question cannot be routed to this pin.
     void configure_as_function(Signal::FunctionSignal function, Gpio::IoInversion inversion = Gpio::NO_CHANGE) const;

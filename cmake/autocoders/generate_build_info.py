@@ -24,7 +24,6 @@ import os
 import subprocess
 import sys
 
-
 # Build identifer is length limited to ensure that it's not truncated when reported
 # via channelized telemetry and events
 BUILD_ID_MAX_LEN = 49
@@ -53,14 +52,8 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate deployment build information source files"
     )
-    parser.add_argument(
-        "target",
-        help="Name of the CMake build target"
-    )
-    parser.add_argument(
-        "output_path",
-        help="Output path for the generated CPP file"
-    )
+    parser.add_argument("target", help="Name of the CMake build target")
+    parser.add_argument("output_path", help="Output path for the generated CPP file")
     return parser.parse_args(args)
 
 
@@ -71,7 +64,7 @@ def get_project_root() -> str:
 
 
 def get_date() -> str:
-    output = subprocess.check_output(["date", "+%Y-%m-%d-%H-%M-%S"])
+    output = subprocess.check_output(["date", "+%Y%m%d-%H%M"])
     return output.decode().strip()
 
 
@@ -105,13 +98,13 @@ def get_user() -> str:
 
 
 def get_build_identifier(project_root: str) -> str:
-    # $JENKINS_BUILD_ID can be set from the Jenkins environment to ensure unified identifiers
-    # across Jenkins builds
-    key = "JENKINS_BUILD_ID"
+    # $CI_BUILD_ID can be set from the CI environment to ensure that all deployments
+    # built within a CI run have the same build ID.
+    key = "CI_BUILD_ID"
     if key in os.environ:
         value = os.environ[key]
-        # If the version is set by an environment variable, assume the entire 
-        # string is required to uniquely identify the build, and fatal if it 
+        # If the version is set by an environment variable, assume the entire
+        # string is required to uniquely identify the build, and fatal if it
         # would be truncated when reported in GDS
         if len(value) > BUILD_ID_MAX_LEN:
             sys.exit(
@@ -157,6 +150,10 @@ def main(args: argparse.Namespace):
     project_root = get_project_root()
 
     build_identifier = get_build_identifier(project_root)
+
+    # Let the user know the new build identifier for this binary
+    print(f"Stamped {deployment_name} with build identifier: {build_identifier}")
+
     generate_source(args.output_path, deployment_name, build_identifier)
 
 
