@@ -29,6 +29,7 @@
 
 #include <arm_acle.h>
 #include <algorithm>
+#include <cmath>
 
 namespace Va416x0Svc {
 
@@ -100,7 +101,7 @@ void Metronome::start_metronome_handler(FwIndexType portNum) {
     U32 freq = Va416x0Mmio::ClkTree::getActiveTimerFreq(main_timer);
     FW_ASSERT(freq % MICROSECONDS_PER_SECOND == 0, freq, MICROSECONDS_PER_SECOND);
     this->m_cycles_per_microsecond = freq / MICROSECONDS_PER_SECOND;
-    main_timer.write_rst_value(this->m_config.default_duration_micros * this->m_cycles_per_microsecond - 1);
+    main_timer.write_rst_value((this->m_config.default_duration_micros * this->m_cycles_per_microsecond) - 1);
 
     // We want to start the first RTI more or less immediately.
     main_timer.write_cnt_value(1);
@@ -131,7 +132,7 @@ void Metronome::update_duration_handler(FwIndexType portNum, U32 micros) {
     Va416x0Mmio::Timer main_timer = this->m_config.main_timer;
 
     // The new duration won't take effect until next RTI.
-    main_timer.write_rst_value(micros * this->m_cycles_per_microsecond - 1);
+    main_timer.write_rst_value((micros * this->m_cycles_per_microsecond) - 1);
 }
 
 Va416x0Types::RtiTimeWithValidity Metronome::getRtiTime_handler(FwIndexType portNum) {
@@ -262,6 +263,13 @@ void Metronome::process_isrs_until(U32 until_cnt_value) {
     }
 
     this->m_execution_index = index;
+}
+
+U32 Metronome::getPreviousRtiDuration_handler(FwIndexType portNum) {
+    // Calculate the RTI duration in microseconds given the main timer reset value that was used to
+    // schedule the previous RTI
+    // Note: the timer reset value calculation subtracts 1 from the cycle count
+    return (this->m_rtiOffsetBase + 1) / this->m_cycles_per_microsecond;
 }
 
 }  // namespace Va416x0Svc

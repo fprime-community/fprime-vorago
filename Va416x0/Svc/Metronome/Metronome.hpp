@@ -82,6 +82,9 @@ class Metronome : public MetronomeComponentBase {
     //! Handler implementation for proxy_timer_isr
     void proxy_timer_isr_handler(FwIndexType portNum) override;
 
+    //! Handler implementation for getPreviousRtiDuration
+    U32 getPreviousRtiDuration_handler(FwIndexType portNum) override;
+
     // ----------------------------------------------------------------------
     // Member variables
     // ----------------------------------------------------------------------
