@@ -24,7 +24,6 @@ import os
 import subprocess
 import sys
 
-
 # Build identifer is length limited to ensure that it's not truncated when reported
 # via channelized telemetry and events
 BUILD_ID_MAX_LEN = 49
@@ -99,9 +98,9 @@ def get_user() -> str:
 
 
 def get_build_identifier(project_root: str) -> str:
-    # $JENKINS_BUILD_ID can be set from the Jenkins environment to ensure unified identifiers
-    # across Jenkins builds
-    key = "JENKINS_BUILD_ID"
+    # $CI_BUILD_ID can be set from the CI environment to ensure that all deployments
+    # built within a CI run have the same build ID.
+    key = "CI_BUILD_ID"
     if key in os.environ:
         value = os.environ[key]
         # If the version is set by an environment variable, assume the entire
