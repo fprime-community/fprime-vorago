@@ -58,6 +58,12 @@ class Metronome : public MetronomeComponentBase {
 
   private:
     // ----------------------------------------------------------------------
+    // Private interfaces
+    // ----------------------------------------------------------------------
+
+    void process_isrs_until(U32 until_cnt_value);
+
+    // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------
 
@@ -70,12 +76,18 @@ class Metronome : public MetronomeComponentBase {
     //! Handler implementation for update_duration
     void update_duration_handler(FwIndexType portNum, U32 micros) override;
 
+    //! Handler implementation for getRtiTime
     Va416x0Types::RtiTimeWithValidity getRtiTime_handler(FwIndexType portNum) override;
 
     //! Handler implementation for proxy_timer_isr
     void proxy_timer_isr_handler(FwIndexType portNum) override;
 
-    void process_isrs_until(U32 until_cnt_value);
+    //! Handler implementation for getPreviousRtiDuration
+    U32 getPreviousRtiDuration_handler(FwIndexType portNum) override;
+
+    // ----------------------------------------------------------------------
+    // Member variables
+    // ----------------------------------------------------------------------
 
     struct MetronomeClientInfo {
         U32 trigger_time_micros;
@@ -83,14 +95,24 @@ class Metronome : public MetronomeComponentBase {
         FwIndexType portNum;
     };
 
-    const MetronomeConfig config;
-    const Va416x0Mmio::Nvic::InterruptControl main_ic;
-    const Va416x0Mmio::Nvic::InterruptControl proxy_ic;
-    U32 cycles_per_microsecond;
-    MetronomeClientInfo clients[MAX_CLIENTS];
-    U32 execution_index;
+    //! Metronome configuration
+    const MetronomeConfig m_config;
+    //! Timer done exception for the main timer
+    const Va416x0Mmio::Nvic::InterruptControl m_main_ic;
+    //! Timer done exception for the proxy timer
+    const Va416x0Mmio::Nvic::InterruptControl m_proxy_ic;
+    //! Configured metronome clients
+    MetronomeClientInfo m_clients[MAX_CLIENTS];
+    //! Number of main timer cycles in each microsecond
+    U32 m_cycles_per_microsecond;
+    //! Index of the client that is currently being serviced
+    U32 m_execution_index;
+    //! Current RTI index
     U32 m_rtiIndex;
+    //! Base RST value of the main timer, used to determine the current RTI offset when requested
     U32 m_rtiOffsetBase;
+    //! Duration of the previous RTI, in microseconds
+    U32 m_previousRtiDurationUs;
 
     //! Flag indicating the metronome has started
     bool m_isRunning = false;
