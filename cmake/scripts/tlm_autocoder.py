@@ -47,10 +47,6 @@ STUB_FILE_CONTENTS = """\
 """
 
 
-# NOTE: get_constant, get_typedef, and get_type_size are vendored from
-# tools/common/dictionary.py so that this script has no project-specific dependency.
-
-
 @functools.cache
 def get_constant(dictionary: Dictionaries, name: str) -> int:
     """
@@ -163,7 +159,7 @@ def telemetry_entry_size(dictionary: Dictionaries, channel: ChTemplate) -> int:
     # (6) the channel data (variable length; for strings the maximum is FW_TLM_STRING_MAX_SIZE plus
     #     the serialized length prefix, see get_type_size)
     # NOTE: this must be kept up-to-date with the struct definition of TlmGdsChan::TlmItemHeader
-    # inside Components/Va416x0/TlmGdsChan/TlmGdsChan.hpp
+    # inside Va416x0/Svc/TlmGdsChan/TlmGdsChan.hpp
     chan_id_size = get_type_size(dictionary, name="FwChanIdType")
     sequence_size = get_type_size(
         dictionary, name="Va416x0.TlmGdsChan.TlmItemSequenceType"
