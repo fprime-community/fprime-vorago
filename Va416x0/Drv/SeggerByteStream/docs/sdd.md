@@ -34,6 +34,14 @@ And the typical usage of the component here
 ## Class Diagram
 Add a class diagram here
 
+## Behaviors
+
+<!-- Subsections listed here are incorporated into the dictionaries for any deployments that include this component. -->
+
+### RTT Buffer Receive Polling
+
+The flight software autonomously polls the configured SEGGER RTT down-buffer on each cycle.
+
 ## Port Descriptions
 | Name | Description |
 |---|---|
