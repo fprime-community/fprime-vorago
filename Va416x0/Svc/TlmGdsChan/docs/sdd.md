@@ -14,18 +14,15 @@ The library ships `Va416x0/Svc/TlmGdsChan/TlmCfg.hpp`, declaring `Va416x0::TlmCf
 `COMPONENT_COUNT`, `CHANNEL_TABLE`, `ComponentLookup`, and `createComponentLookupTable(...)` — this
 interface is stable across deployments, so it does not need to be supplied by the consuming project.
 
-Each consuming project must instead provide the *implementation* of that interface (a `.cpp`
-populating `CHANNEL_COUNT`, `CHANNEL_TABLE`, etc.), generated per-deployment from the telemetry
-dictionary, since channel layout varies by deployment. There is no library default for this —
-`TlmGdsChan` will fail to link without it.
-
-FIXME: The generator already exists as a Project-side autocoder
-(`cmake/scripts/tlm_autocoder.py` + `cmake/templates/TlmCfg.cpp.jinja` +
-`cmake/autocoders/telemetry_autocoder.cmake`, wired via `register_fprime_target` in project root
-`CMakeLists.txt`) and is planned to move into this library so consuming projects get it for free
-instead of hand-writing it. Once moved, rewrite this section to document the shipped autocoder
-(including its stub-file fallback for deployments without `TlmGdsChan`) instead of describing a
-manual per-project implementation requirement.
+The *implementation* of that interface (a `.cpp` populating `CHANNEL_COUNT`, `CHANNEL_TABLE`,
+etc.) varies by deployment, since channel layout depends on which components and channels are
+present. This library ships an autocoder that generates it automatically:
+`cmake/autocoders/telemetry_autocoder.cmake` (registered once via `register_fprime_target(...)` in
+the consuming project's root `CMakeLists.txt`) drives `cmake/scripts/tlm_autocoder.py`, which reads
+each deployment's build-generated topology dictionary JSON and renders
+`cmake/templates/TlmCfg.cpp.jinja` into `<Deployment>TlmAc.cpp` — no per-deployment hand-written
+code needed. For a deployment that does not include `Va416x0.TlmGdsChan`, the autocoder instead
+writes a stub file in place of the generated implementation.
 
 The size of each ping/pong buffer is set by the dictionary constant
 `Va416x0.TlmGdsChanCfg.PingPongBufferSize` in `default/config-vorago/TlmGdsChanCfg.fpp`. This must
