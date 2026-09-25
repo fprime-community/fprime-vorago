@@ -112,6 +112,8 @@ constexpr U32 telemetryItemAddress(TlmGdsChan::PingPong selected, U16 offset) {
         case TlmGdsChan::PingPong::Pong:
             base = PONG_BUFFER_ADDRESS();
             break;
+        default:
+            FW_ASSERT(0, selected);
     }
 
     address = base + offset;
