@@ -29,11 +29,18 @@ namespace Gpio {
 class Pin;
 
 constexpr U32 NUM_PORTS = 7;
-constexpr U32 MAX_PINS_PER_PORT = 16;
+constexpr U32 MAX_PINS_FOR_PORTA_THROUGH_PORTF = 16;
+constexpr U32 MAX_PINS_FOR_PORTG = 8;
+constexpr U32 PORTG_INDEX = 6;
 
 class Port final {
   public:
     explicit constexpr Port(U32 gpio_port) : gpio_port(gpio_port) { FW_ASSERT(gpio_port < NUM_PORTS, gpio_port); }
+
+    // PORTG is only 8 bits wide.
+    constexpr U32 get_num_pins() const {
+        return (gpio_port == PORTG_INDEX) ? MAX_PINS_FOR_PORTG : MAX_PINS_FOR_PORTA_THROUGH_PORTF;
+    }
 
     // GPIO port registers
     U32 read_datain() const;
@@ -111,7 +118,7 @@ class Port final {
         return PinType(*this, gpio_pin);
     }
 
-    U32 get_gpio_port() const;
+    constexpr U32 get_gpio_port() const { return gpio_port; }
 
   private:
     U8 gpio_port;
@@ -131,7 +138,7 @@ constexpr Port PORTC = Port(2);
 constexpr Port PORTD = Port(3);
 constexpr Port PORTE = Port(4);
 constexpr Port PORTF = Port(5);
-constexpr Port PORTG = Port(6);
+constexpr Port PORTG = Port(PORTG_INDEX);
 
 }  // namespace Gpio
 }  // namespace Va416x0Mmio

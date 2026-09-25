@@ -45,12 +45,12 @@ static void write(U32 offset, U32 value) {
 }
 
 U32 read_port_config(U32 port, U32 pin) {
-    FW_ASSERT(port < NUM_PORTS && pin < Gpio::MAX_PINS_PER_PORT, port, pin);
+    FW_ASSERT(port < NUM_PORTS && pin < Gpio::Port(port).get_num_pins(), port, pin);
     return read(PORTS + port * PORT_STRIDE + pin * PIN_STRIDE);
 }
 
 void write_port_config(U32 port, U32 pin, U32 value) {
-    FW_ASSERT(port < NUM_PORTS && pin < Gpio::MAX_PINS_PER_PORT, port, pin);
+    FW_ASSERT(port < NUM_PORTS && pin < Gpio::Port(port).get_num_pins(), port, pin);
     write(PORTS + port * PORT_STRIDE + pin * PIN_STRIDE, value);
 }
 

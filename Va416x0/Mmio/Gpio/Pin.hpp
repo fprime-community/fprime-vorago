@@ -67,8 +67,7 @@ class Pin final {
     // Note: This is not the recommended way to reference a pin.
     // It is recommended to use the syntax Va416x0Mmio::Gpio::PORTB[5].
     explicit constexpr Pin(Port gpio_port, U32 gpio_pin) : gpio_port(gpio_port), gpio_pin(gpio_pin) {
-        // FIXME: There are actually fewer pins available on PORTG... maybe consider that in this assert.
-        FW_ASSERT(gpio_pin < Gpio::MAX_PINS_PER_PORT, gpio_pin);
+        FW_ASSERT(gpio_pin < gpio_port.get_num_pins(), gpio_pin);
     }
 
     // Warning: only one context may be actively configuring any particular GPIO port at a time!

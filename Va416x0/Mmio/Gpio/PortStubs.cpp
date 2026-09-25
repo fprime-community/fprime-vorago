@@ -105,7 +105,7 @@ void Port::write_datain(U32 value) const {
 
 U32 Port::read_datainraw() const {
     U32 value = 0;
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         auto pin = std::make_tuple(gpio_port, i);
         if (pinStates.count(pin)) {
             value |= (pinStates[pin] << i);
@@ -134,7 +134,7 @@ U32 Port::read_dataoutraw() const {
 }
 
 void Port::write_dataoutraw(U32 value) const {
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         auto pin = std::make_tuple(gpio_port, i);
         auto state = (value & (1 << i)) ? Fw::Logic::HIGH : Fw::Logic::LOW;
         pinStates[pin] = state;
@@ -146,7 +146,7 @@ U32 Port::read_setout() const {
 }
 
 void Port::write_setout(U32 value) const {
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         if (value & (1 << i)) {
             auto pin = std::make_tuple(gpio_port, i);
             pinStates[pin] = Fw::Logic::HIGH;
@@ -159,7 +159,7 @@ U32 Port::read_clrout() const {
 }
 
 void Port::write_clrout(U32 value) const {
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         if (value & (1 << i)) {
             auto pin = std::make_tuple(gpio_port, i);
             pinStates[pin] = Fw::Logic::LOW;
@@ -303,10 +303,6 @@ bool Port::operator==(const Port& other) const {
 
 bool Port::operator!=(const Port& other) const {
     return !(*this == other);
-}
-
-U32 Port::get_gpio_port() const {
-    return gpio_port;
 }
 
 namespace TestSupport {

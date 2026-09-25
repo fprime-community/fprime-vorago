@@ -312,9 +312,5 @@ bool Port::operator!=(const Port& other) const {
     return !(*this == other);
 }
 
-U32 Port::get_gpio_port() const {
-    return gpio_port;
-}
-
 }  // namespace Gpio
 }  // namespace Va416x0Mmio
