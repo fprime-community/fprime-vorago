@@ -1,4 +1,4 @@
-// Copyright 2025 California Institute of Technology
+// Copyright 2026 California Institute of Technology
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,54 @@
 
 namespace Va416x0Mmio {
 namespace SysConfig {
+
+// The constants below are from "System Configuration Peripheral Register Details"
+// sections 5.3.1 (ROM_PROT), 5.3.2/5.3.3 (ROM_SCRUB/RAM0_SCRUB/RAM1_SCRUB), and
+// 5.3.4-5.3.7 (IRQ_ENB/IRQ_RAW/IRQ_END/IRQ_CLR).
+
+// constants for the ROM_PROT register
+static constexpr U32 ROM_PROT_WREN = 1 << 0;  // b0 = code RAM write-protected, b1 = code RAM writable
+
+// constants for the ROM_SCRUB / RAM0_SCRUB / RAM1_SCRUB registers (identical layout)
+static constexpr U32 SCRUB_VALUE_MASK = 0xFFFF;  // bits 15:0, scrub counter reload value; 0 disables scrubbing
+static constexpr U32 SCRUB_RESET = 1u << 31;     // write 1 to reset the scrub counter; reads always return 0
+
+// constant for the PERIPHERAL_CLK_ENABLE register (section 5.3.17); bit 22 gates the Utility
+// peripheral's clock, which must be enabled before any of its registers (e.g. the EDAC syndrome
+// encoder/decoder or ROM/RAM trap registers) can be read or written
+static constexpr U32 PERIPHERAL_CLK_ENABLE_UTILITY = 1u << 22;
+
+// constants for the IRQ_ENB register (RW, enables EDAC interrupt sources)
+static constexpr U32 IRQ_ENB_ROMMBE = 1 << 0;
+static constexpr U32 IRQ_ENB_ROMSBE = 1 << 1;
+static constexpr U32 IRQ_ENB_RAM0MBE = 1 << 2;
+static constexpr U32 IRQ_ENB_RAM0SBE = 1 << 3;
+static constexpr U32 IRQ_ENB_RAM1MBE = 1 << 4;
+static constexpr U32 IRQ_ENB_RAM1SBE = 1 << 5;
+
+// constants for the IRQ_RAW register (RO, raw interrupt status before the enable is applied)
+static constexpr U32 IRQ_RAW_ROMMBE = IRQ_ENB_ROMMBE;
+static constexpr U32 IRQ_RAW_ROMSBE = IRQ_ENB_ROMSBE;
+static constexpr U32 IRQ_RAW_RAM0MBE = IRQ_ENB_RAM0MBE;
+static constexpr U32 IRQ_RAW_RAM0SBE = IRQ_ENB_RAM0SBE;
+static constexpr U32 IRQ_RAW_RAM1MBE = IRQ_ENB_RAM1MBE;
+static constexpr U32 IRQ_RAW_RAM1SBE = IRQ_ENB_RAM1SBE;
+
+// constants for the IRQ_END register (RO, interrupt status after the enable is applied)
+static constexpr U32 IRQ_END_ROMMBE = IRQ_ENB_ROMMBE;
+static constexpr U32 IRQ_END_ROMSBE = IRQ_ENB_ROMSBE;
+static constexpr U32 IRQ_END_RAM0MBE = IRQ_ENB_RAM0MBE;
+static constexpr U32 IRQ_END_RAM0SBE = IRQ_ENB_RAM0SBE;
+static constexpr U32 IRQ_END_RAM1MBE = IRQ_ENB_RAM1MBE;
+static constexpr U32 IRQ_END_RAM1SBE = IRQ_ENB_RAM1SBE;
+
+// constants for the IRQ_CLR register (WO, writing a 1 clears the given IRQ source)
+static constexpr U32 IRQ_CLR_ROMMBE = IRQ_ENB_ROMMBE;
+static constexpr U32 IRQ_CLR_ROMSBE = IRQ_ENB_ROMSBE;
+static constexpr U32 IRQ_CLR_RAM0MBE = IRQ_ENB_RAM0MBE;
+static constexpr U32 IRQ_CLR_RAM0SBE = IRQ_ENB_RAM0SBE;
+static constexpr U32 IRQ_CLR_RAM1MBE = IRQ_ENB_RAM1MBE;
+static constexpr U32 IRQ_CLR_RAM1SBE = IRQ_ENB_RAM1SBE;
 
 U32 read_rom_prot();
 void write_rom_prot(U32 value);
