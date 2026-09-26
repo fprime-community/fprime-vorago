@@ -18,6 +18,14 @@ For more details on the exception frame, see [Diagrams](#diagrams). The procedur
    - UsageFault: UsageFault Status Register (UFSR)
 4. Downlink the FATAL `Exception` event
 
+## Behaviors
+
+<!-- Subsections listed here are incorporated into the dictionaries for any deployments that include this component. -->
+
+### Processor Exception Fault Response
+
+The flight software detects any processor exception and reports `ExceptionStatus` and `ExceptionContext` events. The processor is halted until a debugger is attached or the microcontroller watchdog expires and forces a reset.
+
 ## Usage Examples
 
 The input ports of the `ExceptionHandler` instance should be connected to the corresponding output
