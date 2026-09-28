@@ -104,6 +104,9 @@ constexpr TlmGdsChan::PingPong pingPongOpposite(TlmGdsChan::PingPong current) {
 //! Returns an address of the telemetry item within the selected ping-pong buffer, given its offset
 //! within the buffer.
 constexpr U32 telemetryItemAddress(TlmGdsChan::PingPong selected, U16 offset) {
+    // Don't allow an offset past the end of the buffer
+    FW_ASSERT(offset < PING_PONG_BUFFER_SIZE, offset, PING_PONG_BUFFER_SIZE);
+
     U32 address = 0;
 
     switch (selected) {
