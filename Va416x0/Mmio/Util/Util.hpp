@@ -85,11 +85,8 @@ void write_synd_data(U32 value);
 U32 read_synd_synd();
 void write_synd_synd(U32 value);
 U32 read_synd_enc_32_44();
-void write_synd_enc_32_44(U32 value);
 U32 read_synd_check_32_44_data();
-void write_synd_check_32_44_data(U32 value);
 U32 read_synd_check_32_44_synd();
-void write_synd_check_32_44_synd(U32 value);
 U32 read_rom_trap_addr();
 void write_rom_trap_addr(U32 value);
 U32 read_rom_trap_synd();
@@ -103,13 +100,9 @@ void write_ram_trap_addr1(U32 value);
 U32 read_ram_trap_synd1();
 void write_ram_trap_synd1(U32 value);
 U32 read_synd_enc_32_52();
-void write_synd_enc_32_52(U32 value);
 U32 read_synd_check_32_52_data();
-void write_synd_check_32_52_data(U32 value);
 U32 read_synd_check_32_52_synd();
-void write_synd_check_32_52_synd(U32 value);
 U32 read_perid();
-void write_perid(U32 value);
 
 }  // namespace Util
 }  // namespace Va416x0Mmio

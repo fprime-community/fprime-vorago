@@ -70,24 +70,12 @@ U32 read_synd_enc_32_44() {
     return read(SYND_ENC_32_44);
 }
 
-void write_synd_enc_32_44(U32 value) {
-    write(SYND_ENC_32_44, value);
-}
-
 U32 read_synd_check_32_44_data() {
     return read(SYND_CHECK_32_44_DATA);
 }
 
-void write_synd_check_32_44_data(U32 value) {
-    write(SYND_CHECK_32_44_DATA, value);
-}
-
 U32 read_synd_check_32_44_synd() {
     return read(SYND_CHECK_32_44_SYND);
-}
-
-void write_synd_check_32_44_synd(U32 value) {
-    write(SYND_CHECK_32_44_SYND, value);
 }
 
 U32 read_rom_trap_addr() {
@@ -142,32 +130,16 @@ U32 read_synd_enc_32_52() {
     return read(SYND_ENC_32_52);
 }
 
-void write_synd_enc_32_52(U32 value) {
-    write(SYND_ENC_32_52, value);
-}
-
 U32 read_synd_check_32_52_data() {
     return read(SYND_CHECK_32_52_DATA);
-}
-
-void write_synd_check_32_52_data(U32 value) {
-    write(SYND_CHECK_32_52_DATA, value);
 }
 
 U32 read_synd_check_32_52_synd() {
     return read(SYND_CHECK_32_52_SYND);
 }
 
-void write_synd_check_32_52_synd(U32 value) {
-    write(SYND_CHECK_32_52_SYND, value);
-}
-
 U32 read_perid() {
     return read(PERID);
-}
-
-void write_perid(U32 value) {
-    write(PERID, value);
 }
 
 }  // namespace Util

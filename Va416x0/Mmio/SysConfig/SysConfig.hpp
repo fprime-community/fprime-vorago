@@ -35,11 +35,6 @@ static constexpr U32 ROM_PROT_WREN = 1 << 0;  // b0 = code RAM write-protected, 
 static constexpr U32 SCRUB_VALUE_MASK = 0xFFFF;  // bits 15:0, scrub counter reload value; 0 disables scrubbing
 static constexpr U32 SCRUB_RESET = 1u << 31;     // write 1 to reset the scrub counter; reads always return 0
 
-// constant for the PERIPHERAL_CLK_ENABLE register (section 5.3.17); bit 22 gates the Utility
-// peripheral's clock, which must be enabled before any of its registers (e.g. the EDAC syndrome
-// encoder/decoder or ROM/RAM trap registers) can be read or written
-static constexpr U32 PERIPHERAL_CLK_ENABLE_UTILITY = 1u << 22;
-
 // constants for the IRQ_ENB register (RW, enables EDAC interrupt sources)
 static constexpr U32 IRQ_ENB_ROMMBE = 1 << 0;
 static constexpr U32 IRQ_ENB_ROMSBE = 1 << 1;
