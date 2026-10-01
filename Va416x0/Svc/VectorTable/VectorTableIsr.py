@@ -25,7 +25,9 @@ NUMBER_OF_EXCEPTIONS = 212
 # words, and the next power of two is 64. See your vendor documentation for the alignment details
 # of your device.
 # """
-VECTOR_TABLE_ALIGNMENT = max(128, 1 << (len(bin(NUMBER_OF_EXCEPTIONS * 4 - 1))-2))  # 1024 (-2 for '0b' str)
+VECTOR_TABLE_ALIGNMENT = max(
+    128, 1 << (len(bin(NUMBER_OF_EXCEPTIONS * 4 - 1)) - 2)
+)  # 1024 (-2 for '0b' str)
 
 print(
     f"""
@@ -50,7 +52,7 @@ void arm_isr_{isr_index}(void) {{
 print(
     f"""
 // Based on picolibc vector table.
-extern "C" void * const arm_vector_table[] __attribute__((aligned({VECTOR_TABLE_ALIGNMENT}), used, section(".data.init.enter"))) = {{
+extern "C" void * const arm_vector_table[] __attribute__((aligned({VECTOR_TABLE_ALIGNMENT}), used, section(".text.init.enter"))) = {{
     __stack,
     reinterpret_cast<void *>(_start),"""
 )
