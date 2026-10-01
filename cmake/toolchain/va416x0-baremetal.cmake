@@ -177,7 +177,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
 #   @param IS_BOOTLOADER: link as a stub bootloader into [0, VA416X0_APP_BASE) of CODE_SRAM
 #   @param BOOTLOADER:    link as a deployment booted by a stub bootloader into [VA416X0_APP_BASE, 256K) of CODE_SRAM
 #                         generates a combined <target>_with_<bootloader>.bin for each bootloader target given
-#   @param IMAGE_CHECK:   generates a <target>_${IMAGE_CHECK}_stamped.img, stamped with the given image check
+#   @param IMAGE_CHECK:   generates a <target>_${IMAGE_CHECK}_stamped.img, stamped with the given image check.
+#                         CRC-32 is stored little-endian in the last 4 bytes of the image region.
 function(register_with_bsp TARGET_NAME)
     cmake_parse_arguments(PARSE_ARGV 1 BSP "IS_BOOTLOADER" "IMAGE_CHECK" "BOOTLOADER")
     if (BSP_IS_BOOTLOADER AND (BSP_BOOTLOADER OR DEFINED BSP_IMAGE_CHECK))

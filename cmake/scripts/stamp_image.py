@@ -35,6 +35,7 @@ def stamp_image(image: bytes, image_check: Optional[str], region_size: int) -> b
     padded = image.ljust(content_size, PAD_BYTE) if check_size else image
     value = b""
     if image_check == "crc32":
+        # Stored little endian to match the Cortex-M4
         value = struct.pack("<I", zlib.crc32(padded))
 
     if len(value) != check_size:
