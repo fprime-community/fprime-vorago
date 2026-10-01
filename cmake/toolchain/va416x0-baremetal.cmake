@@ -39,10 +39,17 @@ set(SCRIPT_COMBINE_IMAGE "${CMAKE_CURRENT_LIST_DIR}/../scripts/stamp_image.py")
 set(VA416X0_CODE_SRAM_SIZE 0x40000) # 256KiB
 
 # VA416X0_APP_BASE splits CODE_SRAM between a stub bootloader [0, VA416X0_APP_BASE) and the deployment 
-# it boots [VA416X0_APP_BASE, VA416X0_CODE_SRAM_SIZE), so that each can be linked and installed separately.
+# it boots [VA416X0_APP_BASE, VA416X0_CODE_SRAM_END), so that each can be linked and installed separately.
 if (NOT DEFINED VA416X0_APP_BASE)
     set(VA416X0_APP_BASE 0x2000) # 8KiB (1/32 of 256KiB)
 endif()
+
+# Bytes reserved at the end of CODE_SRAM (e.g. for a board ID) that no image will write to.
+# Images end at VA416X0_CODE_SRAM_END instead, so an image check is stamped just below the reserved bytes.
+if (NOT DEFINED VA416X0_CODE_SRAM_RESERVED_SIZE)
+    set(VA416X0_CODE_SRAM_RESERVED_SIZE 0)
+endif()
+math(EXPR VA416X0_CODE_SRAM_END "${VA416X0_CODE_SRAM_SIZE} - ${VA416X0_CODE_SRAM_RESERVED_SIZE}" OUTPUT_FORMAT HEXADECIMAL)
 
 # Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
 # additional compiler features.
@@ -185,7 +192,7 @@ function(register_with_bsp TARGET_NAME)
     endif()
     # Select the part of CODE_SRAM this image is linked into, less the space for the image check
     set(IMAGE_START 0)
-    set(IMAGE_END "${VA416X0_CODE_SRAM_SIZE}")
+    set(IMAGE_END "${VA416X0_CODE_SRAM_END}")
     if (BSP_IS_BOOTLOADER)
         set(IMAGE_END "${VA416X0_APP_BASE}")
     elseif (BSP_BOOTLOADER)
@@ -197,7 +204,7 @@ function(register_with_bsp TARGET_NAME)
         "-Wl,--defsym=__image_start=${IMAGE_START}"
         "-Wl,--defsym=__image_end=${IMAGE_LINK_END}"
         "-Wl,--defsym=__app_image_start=${VA416X0_APP_BASE}"
-        "-Wl,--defsym=__app_image_end=${VA416X0_CODE_SRAM_SIZE}"
+        "-Wl,--defsym=__app_image_end=${VA416X0_CODE_SRAM_END}"
     )
 
     set(OUT_BASE "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>")
