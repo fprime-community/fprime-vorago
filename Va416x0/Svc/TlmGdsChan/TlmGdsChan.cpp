@@ -49,6 +49,9 @@ static_assert((PING_PONG_SELECT_OFFSET % sizeof(U16)) == 0, "Ping-pong selector 
 static_assert((PING_BUFFER_OFFSET % sizeof(U16)) == 0, "Ping buffer offset must be 16-bit aligned");
 static_assert((PONG_BUFFER_OFFSET % sizeof(U16)) == 0, "Pong buffer offset must be 16-bit aligned");
 
+// Assert that the ping-pong buffer size is a multiple of sizeof(U32)
+static_assert((PING_PONG_BUFFER_SIZE % sizeof(U32)) == 0, "Ping-pong buffer size must be a multiple of sizeof(U32)");
+
 // Assert that the bounds of the ping and pong buffers fit within the external SRAM allocation and
 // that the buffers do not overlap with one another
 static_assert((PING_BUFFER_OFFSET < EXTSRAM_ALLOCATION_SIZE) &&
