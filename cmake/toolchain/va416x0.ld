@@ -270,10 +270,6 @@ SECTIONS
 		*(.ARM.exidx*)
 	}
 
-    /* TODO: make a special section for the crc32 so we can easily ref it. - last addr of the bin 
-     * If we have that, then we should use an assert for the adddress being the last address
-     */
-
 	/* Stabs debugging sections.  */
 	.stab          0 : { *(.stab) }
 	.stabstr       0 : { *(.stabstr) }
@@ -330,17 +326,17 @@ SECTIONS
 ASSERT( __data_size == __data_source_size,
 	"ERROR: .data/.tdata CODE_SRAM size does not match DATA_SRAM0 size");
 
-/* ORIGIN(CODE_SRAM) is the start of this image for both a bootloader and a non-bootloader application.
- * Bootloader dependant applications won't be aligned with ORIGIN(CODE_SRAM) - see ARM Cortex-M4 Generic User Guide
+/* This check with the subsequent address value check force the application start to be at a valid vector start address.
+ * No padding is allowed before the vector table so the bootloader knows that the __app_image_start == address of the vector table.
  */
-ASSERT(__image_start != 0 || arm_vector_table == ORIGIN(CODE_SRAM), "Vector table must be at start of CODE_SRAM");
+ASSERT(arm_vector_table == ORIGIN(CODE_SRAM), "Vector table must be at the start of the image");
 
 /* A application with a bootloader has its vector table not at 0x0 (that's reserved for the bootloader).
- * ARM VTOR excerpt: "When setting TBLOFF, you must align the offset to the number of exception entries in the vector
- * table. The minimum alignment is 32 words, enough for up to 16 interrupts. For more interrupts, adjust the alignment 
+ * ARM Cortex-M4 Generic User Guide VTOR excerpt: "When setting TBLOFF, you must align the offset to the number of exception 
+ * entries in the vector table. The minimum alignment is 32 words, enough for up to 16 interrupts. For more interrupts, adjust the alignment 
  * by rounding up to the next power of two."
  *
- * Va416x0 vector table size: (BASE_NVIC_INTERRUPT = 16 core exceptions + 196 external (non-exception) interrupts) * 4 = 848 bytes
+ * VA416x0 vector table size: (BASE_NVIC_INTERRUPT = 16 core exceptions + 196 external (non-exception) interrupts) * 4 = 848 bytes
  * So with a 848 byte table, its alignment is 1024 bytes. 
  */
 __vector_table_size = __vector_table_end - arm_vector_table;
@@ -358,3 +354,4 @@ ASSERT(__image_end <= 256K, "Image must fit within the 256K CODE_SRAM");
 ASSERT(DEFINED(__app_image_start), "'__app_image_start' needs to be defined");
 ASSERT(DEFINED(__app_image_end), "'__app_image_end' needs to be defined");
 ASSERT(__app_image_end >= __app_image_start, "'__app_image_end' must be >= to '__app_image_start'");
+ASSERT(__image_start == 0 ? 1 : __app_image_start == __image_start, "For application images intended for bootloaders, '__app_image_start' must equal '__image_start'")
