@@ -48,9 +48,9 @@ void arm_isr_{isr_index}(void) {{
 }}"""
     )
 print(
-    """
+    f"""
 // Based on picolibc vector table.
-extern "C" void * const arm_vector_table[] __attribute__((aligned("""+str(VECTOR_TABLE_ALIGNMENT)+"""), used, section(".data.init.enter"))) = {
+extern "C" void * const arm_vector_table[] __attribute__((aligned({VECTOR_TABLE_ALIGNMENT}), used, section(".data.init.enter"))) = {{
     __stack,
     reinterpret_cast<void *>(_start),"""
 )
