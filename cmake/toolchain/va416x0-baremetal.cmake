@@ -173,7 +173,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
 #   @param IMAGE_CHECK:   generates a <target>_${IMAGE_CHECK}_stamped.img, stamped with the given image check
 function(register_with_bsp TARGET_NAME)
     cmake_parse_arguments(PARSE_ARGV 1 BSP "IS_BOOTLOADER" "IMAGE_CHECK" "BOOTLOADER")
-    # Bytes reserved at the end of the image for the image check; keep in sync with stamp_image.py
+    if (BSP_IS_BOOTLOADER AND (BSP_BOOTLOADER OR DEFINED BSP_IMAGE_CHECK))
+        message(FATAL_ERROR "register_with_bsp(${TARGET_NAME}): IS_BOOTLOADER cannot be combined with BOOTLOADER or IMAGE_CHECK")
+    endif()
+    # Bytes reserved at the end of the image for the image check
     set(IMAGE_CHECK_SIZE 0)
     if (DEFINED BSP_IMAGE_CHECK AND BSP_IMAGE_CHECK STREQUAL "crc32")
         set(IMAGE_CHECK_SIZE 4)
