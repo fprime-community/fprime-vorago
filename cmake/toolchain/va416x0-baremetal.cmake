@@ -35,13 +35,14 @@ set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
 set(SCRIPT_VERIFY_NO_STRB "${CMAKE_CURRENT_LIST_DIR}/verify_nostrb.py")
 set(SCRIPT_COMBINE_IMAGE "${CMAKE_CURRENT_LIST_DIR}/../scripts/stamp_image.py")
 
+# Must match the size of CODE_SRAM in the LINKER_SCRIPT
+set(VA416X0_CODE_SRAM_SIZE 0x40000) # 256KiB
+
 # VA416X0_APP_BASE splits CODE_SRAM between a stub bootloader [0, VA416X0_APP_BASE) and the deployment 
 # it boots [VA416X0_APP_BASE, VA416X0_CODE_SRAM_SIZE), so that each can be linked and installed separately.
 if (NOT DEFINED VA416X0_APP_BASE)
-    set(VA416X0_APP_BASE 0x4000)
+    set(VA416X0_APP_BASE 0x2000) # 8KiB (1/32 of 256KiB)
 endif()
-# Must match the size of CODE_SRAM checked in va416x0.ld
-set(VA416X0_CODE_SRAM_SIZE 0x40000)
 
 # Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
 # additional compiler features.
@@ -192,6 +193,8 @@ function(register_with_bsp TARGET_NAME)
     target_link_options("${TARGET_NAME}" PRIVATE
         "-Wl,--defsym=__image_start=${IMAGE_START}"
         "-Wl,--defsym=__image_end=${IMAGE_LINK_END}"
+        "-Wl,--defsym=__app_image_start=${VA416X0_APP_BASE}"
+        "-Wl,--defsym=__app_image_end=${VA416X0_CODE_SRAM_SIZE}"
     )
 
     set(OUT_BASE "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>")

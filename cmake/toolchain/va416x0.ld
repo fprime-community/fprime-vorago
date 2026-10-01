@@ -354,3 +354,7 @@ ASSERT(!DEFINED(_SEGGER_RTT) || _SEGGER_RTT == ORIGIN(DATA_SRAM0),
 ASSERT(__heap_start <= __heap_end, "Heap must not have negative size");
 
 ASSERT(__image_end <= 256K, "Image must fit within the 256K CODE_SRAM");
+
+ASSERT(DEFINED(__app_image_start), "'__app_image_start' needs to be defined");
+ASSERT(DEFINED(__app_image_end), "'__app_image_end' needs to be defined");
+ASSERT(__app_image_end >= __app_image_start, "'__app_image_end' must be >= to '__app_image_start'");
