@@ -210,6 +210,7 @@ function(register_with_bsp TARGET_NAME)
 
     set(OUT_BASE "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>")
     set(OUT_BIN "${FPRIME_INSTALL_DEST}/${TOOLCHAIN_NAME}/${TARGET_NAME}/bin/")
+    file(MAKE_DIRECTORY "${OUT_BIN}")
     # Differentiate the elf from hex format
     set_target_properties("${TARGET_NAME}" PROPERTIES SUFFIX ".elf")
     # Rebuild if linker script changed
