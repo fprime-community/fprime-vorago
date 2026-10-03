@@ -40,7 +40,7 @@ void I2c::configure_io_filters(I2cFilter filter, U32 apb1_freq) {
 void I2c::configure_clkscale_freq(I2cFreq freq, U32 apb1_freq) {
     const bool fast = freq >= FAST_400K;
 
-    const U32 mult = fast ? 25 : 20;
+    const U32 mult = fast ? FAST_MULT : STD_MULT;
 
     FW_ASSERT(apb1_freq != 0, apb1_freq);
     FW_ASSERT((freq * mult) != 0, freq, mult);

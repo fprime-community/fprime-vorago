@@ -40,7 +40,11 @@ ENTRY(_start)
 /* Memory regions */
 MEMORY
 {
-  CODE_SRAM (rx)   : ORIGIN = 0x00000000, LENGTH = 256K
+  /* Bootloader image CODE_SRAM domain:                 [0, VA416X0_APP_BASE)
+   * Application for bootloader image CODE_SRAM domain: [VA416X0_APP_BASE, 256K - image check value size (4 for crc32))
+   * Standalone application image CODE_SRAM domain:     [0, 256K)
+   */
+  CODE_SRAM (rx) : ORIGIN = __image_start, LENGTH = __image_end - __image_start
   /* Warning: Even though DATA_SRAM0 and DATA_SRAM1 are next to each other, and even
 	 though they SEEM to really be a single memory region, they're separate!
 
@@ -61,6 +65,7 @@ SECTIONS
 	.boot_flash : {
 		KEEP (*(.text.init.enter))
 		KEEP (*(.data.init.enter))
+		__vector_table_end = .;
 		KEEP (*(SORT_BY_NAME(.init) SORT_BY_NAME(.init.*)))
 	} >CODE_SRAM AT>CODE_SRAM :text_boot_flash
 
@@ -321,9 +326,32 @@ SECTIONS
 ASSERT( __data_size == __data_source_size,
 	"ERROR: .data/.tdata CODE_SRAM size does not match DATA_SRAM0 size");
 
-ASSERT(arm_vector_table == ORIGIN(CODE_SRAM), "Vector table must be at start of CODE_SRAM");
+/* This check with the subsequent address value check force the application start to be at a valid vector start address.
+ * No padding is allowed before the vector table so the bootloader knows that the __app_image_start == address of the vector table.
+ */
+ASSERT(arm_vector_table == ORIGIN(CODE_SRAM), "Vector table must be at the start of the image");
+
+/* A application with a bootloader has its vector table not at 0x0 (that's reserved for the bootloader).
+ * ARM Cortex-M4 Generic User Guide VTOR excerpt: "When setting TBLOFF, you must align the offset to the number of exception 
+ * entries in the vector table. The minimum alignment is 32 words, enough for up to 16 interrupts. For more interrupts, adjust the alignment 
+ * by rounding up to the next power of two."
+ *
+ * VA416x0 vector table size: (BASE_NVIC_INTERRUPT = 16 core exceptions + 196 external (non-exception) interrupts) * 4 = 848 bytes
+ * So with a 848 byte table, its alignment is 1024 bytes. 
+ */
+__vector_table_size = __vector_table_end - arm_vector_table;
+__vector_table_alignment = MAX(128, 1 << LOG2CEIL(__vector_table_size));
+ASSERT((arm_vector_table & (__vector_table_alignment - 1)) == 0, "Vector table must be aligned to its size rounded up to a power of two for the VTOR");
+
 /* This allows terminal.py to hard-code 0x1FFF8000 as the SEGGER RTT address */
 ASSERT(!DEFINED(_SEGGER_RTT) || _SEGGER_RTT == ORIGIN(DATA_SRAM0),
        "SEGGER RTT block, if present, must be at the start of DATA_SRAM0");
 
 ASSERT(__heap_start <= __heap_end, "Heap must not have negative size");
+
+ASSERT(__image_end <= 256K, "Image must fit within the 256K CODE_SRAM");
+
+ASSERT(DEFINED(__app_image_start), "'__app_image_start' needs to be defined");
+ASSERT(DEFINED(__app_image_end), "'__app_image_end' needs to be defined");
+ASSERT(__app_image_end >= __app_image_start, "'__app_image_end' must be >= to '__app_image_start'");
+ASSERT(__image_start == 0 ? 1 : __app_image_start == __image_start, "For application images intended for bootloaders, '__app_image_start' must equal '__image_start'")
