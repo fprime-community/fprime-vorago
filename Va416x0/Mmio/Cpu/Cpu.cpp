@@ -86,12 +86,12 @@ void delay_cycles(U32 cycles) {
     );
 }
 
-[[noreturn]] 
+[[noreturn]]
 void jump_application(U32 initial_sp, U32 reset_handler) {
     // Must be one asm block bc once MSP changes, any stack access would read the new stack instead of ours.
     asm volatile(
-        "msr msp, %[sp]\n\t" // main Stack Pointer == application image's initial SP
-        "bx  %[entry]"       // jump to the application image's ResetHandler
+        "msr msp, %[sp]\n\t"  // main Stack Pointer == application image's initial SP
+        "bx  %[entry]"        // jump to the application image's ResetHandler
         :
         : [sp] "r"(initial_sp), [entry] "r"(reset_handler)
         : "memory");
