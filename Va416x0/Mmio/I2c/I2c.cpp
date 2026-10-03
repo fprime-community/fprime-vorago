@@ -27,9 +27,9 @@ I2c::operator SysConfig::ClockedPeripheral() const {
 void I2c::configure_io_filters(I2cFilter filter, U32 apb1_freq) {
     const U32 sysclk_freq = apb1_freq * 2;
     const bool digital =
-        filter == DIGITAL_ONLY || filter == ANALOG_AND_DIGITAL || (filter == RECOMMENDED && sysclk_freq >= 50'000'000);
+        filter == DIGITAL_ONLY || filter == ANALOG_AND_DIGITAL || (filter == RECOMMENDED && sysclk_freq >= 50000000);
     const bool analog =
-        filter == ANALOG_ONLY || filter == ANALOG_AND_DIGITAL || (filter == RECOMMENDED && sysclk_freq <= 20'000'000);
+        filter == ANALOG_ONLY || filter == ANALOG_AND_DIGITAL || (filter == RECOMMENDED && sysclk_freq <= 20000000);
 
     U32 ctrl = read_ctrl();
     ctrl &= ~(CTRL_DGLFILTER | CTRL_ALGFILTER);

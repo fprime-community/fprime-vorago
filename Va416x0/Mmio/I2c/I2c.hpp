@@ -38,7 +38,7 @@ class I2c final {
     operator SysConfig::ClockedPeripheral() const;
 
     // Common I2C clock frequencies
-    enum I2cFreq : U32 { STD_100K = 100'000, FAST_400K = 400'000 };
+    enum I2cFreq : U32 { STD_100K = 100000, FAST_400K = 400000 };
     enum I2cFreqMultiplier: U32 { STD_MULT = 20, FAST_MULT = 25 }
 
     // I2C filter modes
