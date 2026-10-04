@@ -17,6 +17,7 @@
 NUMBER_OF_EXCEPTIONS = 212
 
 # From 'Cortex -M4 Devices Generic User Guide' (https://support.arm.com/documentation/dui0553/b/)
+# Section 4.3.4 Vector Table Offset Register
 # """
 # When setting TBLOFF, you must align the offset to the number of exception entries in the vector
 # table. The minimum alignment is 32 words, enough for up to 16 interrupts. For more interrupts,
