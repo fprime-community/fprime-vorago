@@ -35,7 +35,7 @@ U32 read_u32(U32 bus_address);
 void write_u32(U32 bus_address, U32 value);
 
 void memory_barrier();
-// A DSB followed by an ISB so that subsequent instructions are fetched after prior writes complete. 
+// A DSB followed by an ISB so that subsequent instructions are fetched after prior writes complete.
 // Needed after writes to the System Control Space (e.g. VTOR):
 // "To guarantee that the side effects of a previous SCS access are visible, software can execute a
 // DSB instruction followed by an ISB instruction."
