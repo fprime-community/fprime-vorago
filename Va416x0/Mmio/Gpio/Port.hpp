@@ -44,18 +44,13 @@ class Port final {
 
     // GPIO port registers
     U32 read_datain() const;
-    void write_datain(U32 value) const;
     U32 read_datainraw() const;
-    void write_datainraw(U32 value) const;
     U32 read_dataout() const;
     void write_dataout(U32 value) const;
     U32 read_dataoutraw() const;
     void write_dataoutraw(U32 value) const;
-    U32 read_setout() const;
     void write_setout(U32 value) const;
-    U32 read_clrout() const;
     void write_clrout(U32 value) const;
-    U32 read_togout() const;
     void write_togout(U32 value) const;
     U32 read_datamask() const;
     void write_datamask(U32 value) const;
@@ -78,11 +73,8 @@ class Port final {
     U32 read_irq_enb() const;
     void write_irq_enb(U32 value) const;
     U32 read_irq_raw() const;
-    void write_irq_raw(U32 value) const;
     U32 read_irq_end() const;
-    void write_irq_end(U32 value) const;
     U32 read_edge_status() const;
-    void write_edge_status(U32 value) const;
 
     //! Returns mutexes that can (should) be held when changing configuration.
     //! Beware that baremetal mutexes cannot safely handle contention... only lock these mutexes from

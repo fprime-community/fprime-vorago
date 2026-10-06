@@ -34,6 +34,8 @@
 #ifndef Va416x0_Mmio_SysConfigTestSupport_HPP
 #define Va416x0_Mmio_SysConfigTestSupport_HPP
 
+#include "Fw/Types/BasicTypes.hpp"
+
 namespace Va416x0Mmio {
 namespace SysConfig {
 namespace TestSupport {
@@ -54,6 +56,17 @@ namespace TestSupport {
 //! SysConfigTestSupport.cpp. A test that depends on a specific register's
 //! reset value must write that value itself.
 void reset();
+
+//! Seed-only backdoors for registers that are read-only in the public
+//! SysConfig::* API.
+void seed_irq_raw(U32 value);
+void seed_irq_end(U32 value);
+void seed_rom_retries(U32 value);
+void seed_ef_config(U32 value);
+void seed_ef_id0(U32 value);
+void seed_ef_id1(U32 value);
+void seed_procid(U32 value);
+void seed_perid(U32 value);
 
 }  // namespace TestSupport
 }  // namespace SysConfig

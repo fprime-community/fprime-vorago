@@ -98,11 +98,6 @@ U32 Port::read_datain() const {
     return read_datainraw();
 }
 
-void Port::write_datain(U32 value) const {
-    // FIXME: add masking support
-    write_datainraw(value);
-}
-
 U32 Port::read_datainraw() const {
     U32 value = 0;
     for (U32 i = 0; i < this->get_num_pins(); i++) {
@@ -112,10 +107,6 @@ U32 Port::read_datainraw() const {
         }
     }
     return value;
-}
-
-void Port::write_datainraw(U32 value) const {
-    // Write-only register
 }
 
 U32 Port::read_dataout() const {
@@ -141,10 +132,6 @@ void Port::write_dataoutraw(U32 value) const {
     }
 }
 
-U32 Port::read_setout() const {
-    return read(SETOUT);
-}
-
 void Port::write_setout(U32 value) const {
     for (U32 i = 0; i < this->get_num_pins(); i++) {
         if (value & (1 << i)) {
@@ -154,10 +141,6 @@ void Port::write_setout(U32 value) const {
     }
 }
 
-U32 Port::read_clrout() const {
-    return read(CLROUT);
-}
-
 void Port::write_clrout(U32 value) const {
     for (U32 i = 0; i < this->get_num_pins(); i++) {
         if (value & (1 << i)) {
@@ -165,10 +148,6 @@ void Port::write_clrout(U32 value) const {
             pinStates[pin] = Fw::Logic::LOW;
         }
     }
-}
-
-U32 Port::read_togout() const {
-    return read(TOGOUT);
 }
 
 void Port::write_togout(U32 value) const {
@@ -259,24 +238,12 @@ U32 Port::read_irq_raw() const {
     return read(IRQ_RAW);
 }
 
-void Port::write_irq_raw(U32 value) const {
-    write(IRQ_RAW, value);
-}
-
 U32 Port::read_irq_end() const {
     return read(IRQ_END);
 }
 
-void Port::write_irq_end(U32 value) const {
-    write(IRQ_END, value);
-}
-
 U32 Port::read_edge_status() const {
     return read(EDGE_STATUS);
-}
-
-void Port::write_edge_status(U32 value) const {
-    write(EDGE_STATUS, value);
 }
 
 Va416x0Types::ExceptionNumber::T Port::get_base_exception() const {
