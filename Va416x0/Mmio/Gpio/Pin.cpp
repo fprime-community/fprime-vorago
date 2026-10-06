@@ -260,7 +260,8 @@ void Pin::configure_as_gpio(Fw::Direction dir,
                             Gpio::Delay delay,
                             Gpio::Irq irq,
                             bool direct_interrupt,
-                            Gpio::Resistors resistors) const {
+                            Gpio::Resistors resistors,
+                            Gpio::InputEnable enable_input_read_back) const {
     // Assert that direction is only IN or OUT; INOUT is not supported in the Vorago
     FW_ASSERT(dir == Fw::Direction::IN || dir == Fw::Direction::OUT, dir);
     // Re-enforce IoConfig and GPIO clock enabled.
@@ -274,6 +275,10 @@ void Pin::configure_as_gpio(Fw::Direction dir,
         config |= IoConfig::IO_CONFIG_PEN | IoConfig::IO_CONFIG_PLEVEL_PULLUP;
     } else if (resistors == Gpio::PULL_DOWN) {
         config |= IoConfig::IO_CONFIG_PEN | IoConfig::IO_CONFIG_PLEVEL_PULLDOWN;
+    }
+    // If requested, enable input read back
+    if (enable_input_read_back == Gpio::INPUT_ENABLED_ON_OUTPUT) {
+        config |= IoConfig::IO_CONFIG_IEWO;
     }
     IoConfig::write_port_config(gpio_port.get_gpio_port(), gpio_pin, config);
 
@@ -321,18 +326,6 @@ void Pin::configure_as_function(Signal::FunctionSignal function, Gpio::IoInversi
     IoConfig::write_port_config(gpio_port.get_gpio_port(), gpio_pin, config);
 }
 
-Pin::operator Signal::CascadeSignal() const {
-    return Signal::CascadeSignal(gpio_port.get_base_cascade_index() + gpio_pin);
-}
-
-Pin::operator Va416x0Types::Optional<Signal::CascadeSignal>() const {
-    return Signal::CascadeSignal(*this);
-}
-
-Va416x0Types::ExceptionNumber Pin::get_exception() const {
-    return Va416x0Types::ExceptionNumber::T(gpio_port.get_base_exception() + gpio_pin);
-}
-
 void Pin::out(Fw::Logic state) const {
     if (state == Fw::Logic::LOW) {
         gpio_port.write_clrout(1 << gpio_pin);
@@ -343,22 +336,6 @@ void Pin::out(Fw::Logic state) const {
 
 Fw::Logic Pin::in() const {
     return (gpio_port.read_datainraw() & (1 << gpio_pin)) != 0 ? Fw::Logic::HIGH : Fw::Logic::LOW;
-}
-
-U8 Pin::getPinNumber() const {
-    return this->gpio_pin;
-}
-
-U32 Pin::getGpioPortNumber() const {
-    return this->gpio_port.get_gpio_port();
-}
-
-bool Pin::operator==(const Pin& other) const {
-    return gpio_port == other.gpio_port && gpio_pin == other.gpio_pin;
-}
-
-bool Pin::operator!=(const Pin& other) const {
-    return !(*this == other);
 }
 
 }  // namespace Gpio

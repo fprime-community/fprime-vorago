@@ -1,6 +1,14 @@
 # Va416x0Svc::MainLoop
 
-Initialization and main loop for REAPR FSW
+Initialization and main loop for F Prime Vorago Package
+
+## Behaviors
+
+<!-- Subsections listed here are incorporated into the dictionaries for any deployments that include this component. -->
+
+### Rate Group Overrun Detection
+
+The flight software detects overruns of the main rate group and forces a FATAL, which will result in a reset of the microcontroller.
 
 ## Usage Examples
 Add usage examples here

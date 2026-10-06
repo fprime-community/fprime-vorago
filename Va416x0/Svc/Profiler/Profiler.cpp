@@ -24,7 +24,7 @@
 #include "Va416x0/Mmio/Cpu/Cpu.hpp"
 #include "Va416x0/Mmio/Lock/Lock.hpp"
 #include "Va416x0/Mmio/SysTick/SysTick.hpp"
-#include "config/ProfilerCfg.hpp"
+#include "config-vorago/ProfilerCfg.hpp"
 
 namespace Va416x0Svc {
 

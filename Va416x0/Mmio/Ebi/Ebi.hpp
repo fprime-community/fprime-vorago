@@ -41,6 +41,9 @@ constexpr Signal::FunctionSignal FUNCTION = Signal::FunctionSignal(Signal::Funct
 // Route all EBI pins (Enables, Address, and Data)
 void route_all_ebi_pins();
 
+// Unroute all EBI pins back to general GPIO pins
+void unrouteAllEbiPins();
+
 }  // namespace Ebi
 }  // namespace Va416x0Mmio
 

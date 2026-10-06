@@ -26,6 +26,8 @@ U32 constexpr AIRCR_VECTKEY = 0x05FA0000;
 U32 constexpr AIRCR_SYSRESETREQ = (1 << 2);
 U32 constexpr AIRCR_VECTCLRACTIVE = (1 << 1);
 
+U32 constexpr ICSR_RETTOBASE = (1 << 11);
+
 U32 constexpr CCR_DIV_0_TRP = (1 << 4);
 U32 constexpr CCR_UNALIGN_TRP = (1 << 3);
 

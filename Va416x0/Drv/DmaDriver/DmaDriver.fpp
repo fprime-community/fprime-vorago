@@ -48,7 +48,7 @@ module Va416x0Drv {
     # Result is the number of transfers remaining
     port StopDmaTransaction() -> U32
 
-    @ Lightweight driver for ARM PrimeCell uDMA engine PL230 on VA416x0
+    @ Executes DMA transactions using the VA41630's PL230 ARM PrimeCell uDMA engine
     passive component DmaDriver {
 
         guarded input port start_dma_transaction: [Va416x0Types.NUM_DMA_CHANNELS] StartDmaTransaction

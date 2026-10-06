@@ -29,6 +29,7 @@ else()
             AmbaStub.cpp
         HEADERS
             Amba.hpp
+            AmbaTestSupport.hpp
         DEPENDS
             Fw_Types
     )

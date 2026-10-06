@@ -34,12 +34,10 @@ def main():
     parser.add_argument("filename", help="ELF binary to verify")
     parser.add_argument(
         "--whitelist",
-        action="store",
+        default="",
         help="Ignore a set of functions/labels in the binary, delimited with ';'",
     )
-    parser.add_argument(
-        "--name",
-    )
+    parser.add_argument("--name", help="Target name")
 
     args = parser.parse_args()
 

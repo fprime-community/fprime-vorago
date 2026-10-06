@@ -14,13 +14,35 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-register_fprime_library(
-    SOURCES
+if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    set(GPIO_SOURCES
         Pin.cpp
+        PinCommon.cpp
         Port.cpp
-    HEADERS
+    )
+    set(GPIO_HEADERS
         Pin.hpp
         Port.hpp
+    )
+else()
+    set(GPIO_SOURCES
+        PinCommon.cpp
+        PinStubs.cpp
+        PortStubs.cpp
+    )
+    set(GPIO_HEADERS
+        Pin.hpp
+        PinTestSupport.hpp
+        Port.hpp
+        PortTestSupport.hpp
+    )
+endif()
+
+register_fprime_library(
+    SOURCES
+        ${GPIO_SOURCES}
+    HEADERS
+        ${GPIO_HEADERS}
     DEPENDS
         Fw_Types
         Va416x0_Mmio_Amba

@@ -38,7 +38,7 @@ class TimerStatusSignal final {
 };
 
 class Timer final {
-  private:
+  public:
     static constexpr U32 timer_index_to_address(U8 peripheral_index) {
         FW_ASSERT(peripheral_index < NUM_TIMERS, peripheral_index);
         if (peripheral_index < 16) {
@@ -48,7 +48,6 @@ class Timer final {
         }
     }
 
-  public:
     explicit constexpr Timer(U8 timer_peripheral_index)
         : timer_address(timer_index_to_address(timer_peripheral_index)),
           timer_peripheral_index(timer_peripheral_index) {}

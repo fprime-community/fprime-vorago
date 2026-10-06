@@ -14,12 +14,33 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-register_fprime_library(
-    SOURCES
+if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    set(SYSCONFIG_SOURCES
         SysConfig.cpp
-    HEADERS
+    )
+    set(SYSCONFIG_HEADERS
         ClockedPeripheral.hpp
         SysConfig.hpp
+    )
+else()
+    # SysConfig.cpp itself runs on the host against the AMBA stub; the extra
+    # file only seeds the registers so that read-modify-write is legal.
+    set(SYSCONFIG_SOURCES
+        SysConfig.cpp
+        SysConfigTestSupport.cpp
+    )
+    set(SYSCONFIG_HEADERS
+        ClockedPeripheral.hpp
+        SysConfig.hpp
+        SysConfigTestSupport.hpp
+    )
+endif()
+
+register_fprime_library(
+    SOURCES
+        ${SYSCONFIG_SOURCES}
+    HEADERS
+        ${SYSCONFIG_HEADERS}
     DEPENDS
         Fw_Types
         Va416x0_Mmio_Amba

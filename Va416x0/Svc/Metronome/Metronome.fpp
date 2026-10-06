@@ -17,7 +17,7 @@
 module Va416x0Svc {
     constant MAX_CLIENTS = 25
 
-    @ Microsecond-granularity scheduling component
+    @ Schedules activities during each RTI at a microsecond granularity
     passive component Metronome {
 
         sync input port start_metronome: Fw.Ready
@@ -30,6 +30,13 @@ module Va416x0Svc {
         sync input port getRtiTime: Va416x0.GetRtiTime
 
         output port client_trigger_isr: [MAX_CLIENTS] Svc.Sched
+
+        @ Signal end of RTI period for interrupt statistics tracking
+        output port end_rti: Svc.Sched
+
+        @ Report the duration of the previous RTI, in microseconds. If this is requested on RTI-0,
+        @ this port will return the default duration
+        sync input port getPreviousRtiDuration: Va416x0.GetRtiDurationUs
 
     }
 }

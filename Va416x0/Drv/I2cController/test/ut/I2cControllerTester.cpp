@@ -70,8 +70,7 @@ void I2cControllerTester ::nominalI2c() {
     expectedRead = 8;
     readSize = 2;
     U8 read_word[] = {0, 0};
-    readBuf.setSize(2);
-    readBuf.setData(read_word);
+    readBuf = Fw::Buffer(read_word, readSize);
     returnStat = this->invoke_to_read(0, devAddr, readBuf);
     ASSERT_EQ(returnStat, Drv::I2cStatus::I2C_OK);
     ASSERT_EQ(readBuf.getData()[0], (expectedRead) & (0xFF));
@@ -91,8 +90,7 @@ void I2cControllerTester ::nominalI2c() {
     write_byte[0] = expectedWrite;
     writeBuf.setData(write_byte);
     expectedRead = 200;
-    readBuf.setSize(readSize);
-    readBuf.setData(read_three_bytes);
+    readBuf = Fw::Buffer(read_three_bytes, readSize);
     returnStat = this->invoke_to_writeRead(0, devAddr, writeBuf, readBuf);
     ASSERT_EQ(returnStat, Drv::I2cStatus::I2C_OK);
     ASSERT_EQ(readBuf.getData()[0], (expectedRead) & (0xFF));
@@ -132,8 +130,7 @@ void I2cControllerTester ::offNominalI2c() {
     write_byte[0] = expectedWrite;
     writeBuf.setData(write_byte);
     expectedRead = 67;
-    readBuf.setSize(readSize);
-    readBuf.setData(read_word);
+    readBuf = Fw::Buffer(read_word, readSize);
     returnStat = this->invoke_to_writeRead(0, devAddr, writeBuf, readBuf);
     ASSERT_EQ(returnStat, Drv::I2cStatus::I2C_WRITE_ERR);
 }

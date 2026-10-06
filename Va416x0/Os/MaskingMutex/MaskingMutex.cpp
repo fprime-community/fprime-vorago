@@ -30,7 +30,7 @@ namespace MaskingMutex {
 
 U32 MaskingMutex::s_nestingDepth = 0;
 U32 MaskingMutex::s_lastPrimask = 0;
-Os::RawTime MaskingMutex::s_lastTakeTime = {};
+Os::RawTime MaskingMutex::s_lastTakeTime(Os::RAWTIME_DEFAULT);
 U32 MaskingMutex::s_highWaterMarkUs = 0;
 U32 MaskingMutex::s_durationLimitUs = 0;
 

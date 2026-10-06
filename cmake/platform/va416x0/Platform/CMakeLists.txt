@@ -27,8 +27,9 @@ register_fprime_config(
         Os_Task_Baremetal
         Os_Cpu_Stub
         Os_Memory_Stub
-        # TimerRawTime::now() takes approximately 160 CPU cycles - deployments using MainLoop 
-        # (or another rate group driver component which calls OsRawTime) may need to override the 
+        Os_CountingSemaphore_Stub
+        # TimerRawTime::now() takes approximately 160 CPU cycles - deployments using MainLoop
+        # (or another rate group driver component which calls OsRawTime) may need to override the
         # implementation choice (done in the deployment's CMakeLists.txt) for highly sensitive  performance tests
         Va416x0_Os_TimerRawTime
         Fw_StringFormat_snprintf

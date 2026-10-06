@@ -22,7 +22,6 @@
 #define Va416x0_TimerRawTime_HPP
 
 #include "Os/RawTime.hpp"
-#include "Va416x0/Mmio/Timer/Timer.hpp"
 
 //! Implement F Prime Os/RawTime interface using two Va416x0 timers
 //! cascaded to form a single 64-bit timer. Using 64-bits for this
@@ -52,6 +51,10 @@ class TimerRawTime : public Os::RawTimeInterface {
     //! Note: It's expected that TimerRawTime will be constructed
     //! through standard Os::RawTime interfaces
     TimerRawTime();
+
+    //! \brief Constructor with timer source selection
+    //! \param source Timer source (must be RAWTIME_DEFAULT)
+    explicit TimerRawTime(Os::RawTimeSource source);
 
     TimerRawTime(const TimerRawTime& other) = default;
     TimerRawTime& operator=(const TimerRawTime& other) = default;

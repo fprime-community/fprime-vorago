@@ -15,8 +15,65 @@
 # SPDX-License-Identifier: Apache-2.0
 
 module Va416x0Svc {
-    @ Vector table describing reset and exception addresses
+    @ Dispatches responses to processor resets and exceptions (including interrupts)
     passive component VectorTable {
         output port exceptions: [Va416x0Types.NUMBER_OF_EXCEPTIONS] Va416x0Types.ExceptionHandler
+
+        @ Mark end of RTI period for interrupt statistics tracking
+        sync input port EndRti: Svc.Sched
+
+        @ Scheduled port to push telemetry from non-interrupt context
+        sync input port Run: Svc.Sched
+
+        ###########################################################################
+        # Commands
+        ###########################################################################
+
+        @ [DEBUG] Report RTI interrupt statistics
+        sync command REPORT_RTI_STATS
+
+        ###############################################################################
+        # Telemetry
+        ###############################################################################
+
+        @ High water mark (in ticks) of the maximum observed amount of time spent executing interrupts across all RTIs executed since the last microcontroller reset
+        telemetry RtiIrqDutyCycleHwm: U32 update on change
+
+        ###########################################################################
+        # Events
+        ###########################################################################
+
+        @ RTI interrupt statistics report
+        event RtiStats(
+            rtiHwmIrqDutyUtilTicks: U32 @< HWM for cumulative ticks of all outer interrupts in any RTI period
+            usec: U32 @< Ticks converted to usec
+        ) \
+        severity activity low \
+        format "Per-RTI HWM IRQ duty cycle: {} ticks, {} usec"
+
+        ###########################################################################
+        # Standard Ports
+        ###########################################################################
+
+        @ Command receive port
+        command recv port CmdDisp
+
+        @ Command registration port
+        command reg port CmdReg
+
+        @ Command response port
+        command resp port CmdStatus
+
+        @ Telemetry port
+        telemetry port tlmOut
+
+        @ Event port
+        event port Log
+
+        @ Text event port
+        text event port LogText
+
+        @ Time get port
+        time get port Time
     }
 }

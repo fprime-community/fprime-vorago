@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/TimerRawTime")
+add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/TimerSingleRawTime")
 
 if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
     add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/AtomicMutex")
