@@ -41,7 +41,7 @@ void restore_interrupts(U32 primask);
 // Delay a given number of cycles. This is accurate to within 1 cycle of the given number
 void delay_cycles(U32 cycles);
 
-// Used for bootloaders to jumpt to application space.
+// Used for bootloaders to jump to application space.
 // Switch to a new stack and branch to an application image's reset handler.
 [[noreturn]] void jump_application(U32 initial_sp, U32 reset_handler);
 
