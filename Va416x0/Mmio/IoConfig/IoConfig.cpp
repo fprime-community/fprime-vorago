@@ -60,7 +60,8 @@ U32 read_clkdiv(U32 index) {
 }
 
 void write_clkdiv(U32 index, U32 value) {
-    FW_ASSERT(index < NUM_CLKDIV);
+    // CLKDIV0 is read-only (VA416x0 Programmer's Guide); CLKDIV1-7 are RW.
+    FW_ASSERT(index > 0 && index < NUM_CLKDIV, index);
     write(CLKDIV + index * 0x04, value);
 }
 
