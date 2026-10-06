@@ -249,20 +249,11 @@ function(register_with_bsp TARGET_NAME)
     add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
         # Copy the map file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.map" "${OUT_BIN}"
-        # Create the hex format for flash loader
-        COMMAND arm-none-eabi-objcopy -O ihex
-            "$<TARGET_FILE:${TARGET_NAME}>"
-            "${OUT_BASE}.hex"
-            DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
-        # Copy the new hex file into the build-artifacts directory
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.hex" "${OUT_BIN}"
-        # Create the bin format for flash loader
+        # Create the bin format, which is stamped and installed below
         COMMAND arm-none-eabi-objcopy -O binary
             "$<TARGET_FILE:${TARGET_NAME}>"
             "${OUT_BASE}.bin"
             DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
-        # Copy the new bin file into the build-artifacts directory
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.bin" "${OUT_BIN}"
         # Objdump the ELF file
         COMMAND arm-none-eabi-objdump -xD --visualize-jumps "$<TARGET_FILE:${TARGET_NAME}>"
             >"${OUT_BASE}.objdump"
@@ -306,26 +297,39 @@ function(register_with_bsp TARGET_NAME)
 
     set(STAMP_IMAGE_CMD "${PYTHON}" "${SCRIPT_COMBINE_IMAGE}" --image-start "${IMAGE_START}" --image-end "${IMAGE_END}")
     if (DEFINED BSP_IMAGE_CHECK)
-        list(APPEND STAMP_IMAGE_CMD --image-check "${BSP_IMAGE_CHECK}")
         add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
-            # Stamp the image check into the image installed at the start of its CODE_SRAM region
-            COMMAND ${STAMP_IMAGE_CMD} "${OUT_BASE}.bin" "${OUT_BASE}_${BSP_IMAGE_CHECK}_stamped.img"
-            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                "${OUT_BASE}_${BSP_IMAGE_CHECK}_stamped.img" "${OUT_BIN}"
+            # Stamp the image check into the bin in place
+            COMMAND ${STAMP_IMAGE_CMD} --image-check "${BSP_IMAGE_CHECK}" "${OUT_BASE}.bin" "${OUT_BASE}.bin"
         )
     endif()
 
+    # Make hex file for standalone application
+    if (NOT BSP_BOOTLOADER)
+        add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
+            # Create the hex format for flash loader from the stamped bin
+            COMMAND arm-none-eabi-objcopy -I binary -O ihex --change-addresses "${IMAGE_START}"
+                "${OUT_BASE}.bin" "${OUT_BASE}.hex"
+            # Copy the bin and hex files into the build-artifacts directory
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.bin" "${OUT_BASE}.hex" "${OUT_BIN}"
+        )
+    endif()
+
+    # Create the combined bootloader-application images
     foreach(BOOTLOADER_TARGET IN LISTS BSP_BOOTLOADER)
         # Relink when the bootloader changes, so the combined image is regenerated with it
         add_dependencies("${TARGET_NAME}" "${BOOTLOADER_TARGET}")
         set_property(TARGET "${TARGET_NAME}" APPEND PROPERTY LINK_DEPENDS "$<TARGET_FILE:${BOOTLOADER_TARGET}>")
+        set(COMBINED_BASE "${OUT_BASE}_with_${BOOTLOADER_TARGET}")
         add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
             # Combine the bootloader and the stamped image into one image for the whole of CODE_SRAM
             COMMAND ${STAMP_IMAGE_CMD}
                 --bootloader "$<TARGET_FILE_DIR:${BOOTLOADER_TARGET}>/$<TARGET_FILE_BASE_NAME:${BOOTLOADER_TARGET}>.bin"
-                "${OUT_BASE}.bin" "${OUT_BASE}_with_${BOOTLOADER_TARGET}.bin"
+                "${OUT_BASE}.bin" "${COMBINED_BASE}.bin"
+            # Create the hex format for flash loader
+            COMMAND arm-none-eabi-objcopy -I binary -O ihex "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex"
             COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                "${OUT_BASE}_with_${BOOTLOADER_TARGET}.bin" "${OUT_BIN}"
+                "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex"
+                "$<TARGET_FILE:${TARGET_NAME}>" "$<TARGET_FILE:${BOOTLOADER_TARGET}>" "${OUT_BIN}"
         )
     endforeach()
 endfunction()
