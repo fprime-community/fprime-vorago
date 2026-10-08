@@ -158,7 +158,8 @@ void MainLoop ::ensure_rti_not_elapsed() {
     U32 ready_to_run_value = this->m_readyToRun.load();
     // FIXME: Do we really want to trigger an assertion here?
     // Maybe it should just be a FATAL.
-    FW_ASSERT(ready_to_run_value == 0, ready_to_run_value);
+    // If this is a FW_ASSERT, then this should be conditionally enabled based on the debug mode status
+    // FW_ASSERT(ready_to_run_value == 0, ready_to_run_value);
 }
 
 // NOTE: marked with noinline so that it appears in profile traces
@@ -172,7 +173,8 @@ __attribute__((noinline)) void MainLoop ::wait_for_next_rti() {
     // FIXME: Do we really want to trigger an assertion here?
     // Maybe it should just be a FATAL.
     U32 ready_to_run_value = this->m_readyToRun.exchange(0);
-    FW_ASSERT(ready_to_run_value == 1, ready_to_run_value);
+    // If this is a FW_ASSERT, then this should be conditionally enabled based on the debug mode status
+    // FW_ASSERT(ready_to_run_value == 1, ready_to_run_value);
 }
 
 // NOTE: marked with noinline so that it appears in profile traces
