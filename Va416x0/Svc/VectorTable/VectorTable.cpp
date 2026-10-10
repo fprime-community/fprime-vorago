@@ -149,11 +149,6 @@ extern "C" void* const arm_vector_table[];
 extern void initialize_deployment();
 
 extern "C" void _start(void) {
-    // Bootloader guard - redundant VTOR write
-    Va416x0Mmio::SysControl::write_vtor(reinterpret_cast<U32>(arm_vector_table));
-    Va416x0Mmio::Amba::memory_barrier();
-    __isb(0xF);
-
     // Artificial delay to let the debugger attach
     for (U32 i = 0; i < 8000000; i++) {
         Va416x0Mmio::Cpu::nop();
