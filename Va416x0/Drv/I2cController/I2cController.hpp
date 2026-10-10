@@ -60,7 +60,8 @@ class I2cController : public I2cControllerComponentBase {
                    bool ctrl_loopback_enable,
                    bool ctrl_tmconfig_enable);
 
-    //! Check whether the I2C bus is busy (STATUS_I2CIDLE is clear). If it is busy, poll 'poll_limit' times. Default 'poll_limit' is 0.
+    //! Check whether the I2C bus is busy (STATUS_I2CIDLE is clear). If it is busy, poll 'poll_limit' times. Default
+    //! 'poll_limit' is 0.
     bool bus_is_busy(U32 poll_limit = 0);
 
   private:

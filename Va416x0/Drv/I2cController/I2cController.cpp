@@ -90,7 +90,8 @@ bool I2cController ::bus_is_busy(U32 poll_limit) {
     FW_ASSERT(m_i2c_peripheral != Va416x0Types::ABSENT);
     Va416x0Mmio::I2c i2c_p = m_i2c_peripheral.value();
 
-    for (U32 polls = 0; (i2c_p.read_status() & Va416x0Mmio::I2c::STATUS_I2CIDLE) != Va416x0Mmio::I2c::STATUS_I2CIDLE; polls++) {
+    for (U32 polls = 0; (i2c_p.read_status() & Va416x0Mmio::I2c::STATUS_I2CIDLE) != Va416x0Mmio::I2c::STATUS_I2CIDLE;
+         polls++) {
         if (polls >= poll_limit) {
             return true;
         }

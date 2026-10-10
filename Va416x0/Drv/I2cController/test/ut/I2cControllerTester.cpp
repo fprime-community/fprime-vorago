@@ -142,7 +142,8 @@ void I2cControllerTester ::busBusyI2c() {
     fail_status_write_error_mask = false;
     i2cAddr = I2C0_ADDRESS;
 
-    component.configure(Va416x0Mmio::I2C0, Va416x0Mmio::I2c::STD_100K, Va416x0Mmio::I2c::RECOMMENDED, true, Va416x0Drv::TXFEMD_STALL, Va416x0Drv::RXFFMD_STALL, false, false);
+    component.configure(Va416x0Mmio::I2C0, Va416x0Mmio::I2c::STD_100K, Va416x0Mmio::I2c::RECOMMENDED, true,
+                        Va416x0Drv::TXFEMD_STALL, Va416x0Drv::RXFFMD_STALL, false, false);
 
     // Idle bus test. Assert that the bus is NOT busy.
     i2c_is_idle = true;
