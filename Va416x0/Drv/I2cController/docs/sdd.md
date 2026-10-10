@@ -12,6 +12,8 @@ The I2cController component supports the following interactions:
 
 Configuration of the I2C interface is handled through a struct passed into the I2cController constructor.  The constructor writes the `CLKSCALE` and `CTRL` registers for the specified I2C Peripheral and clears the Rx and Tx FIFOs.
 
+Whether the I2C bus is busy can be checked with `bus_is_busy`, which reads `STATUS` and checks the `I2CIDLE` until it's set or if the `poll_limit` hits its retry value. With the default `poll_limit` of 0 it reads `STATUS` once and returns immediately. Otherwise, it reads `STATUS` `poll_limit` more times, waiting for the bus to become idle.
+
 A write to the I2C interface is exposed through the `Drv.I2c` port.  The instantiation of that port in I2cController, `write_handler`, performs the following series of actions:
 1. Clears any existing data in the Tx FIFO by setting the `TXFIFO` bit in `FIFO_CLR`
 2. Writes input arg `serBuffer` size to `WORDS` (asserts size is <= 16)

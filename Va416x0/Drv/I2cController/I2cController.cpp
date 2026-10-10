@@ -85,6 +85,19 @@ void I2cController ::configure(Va416x0Mmio::I2c i2c_peripheral,
     i2c_peripheral.configure_io_filters(i2c_filter_setting, i2c_apb1_freq);
 }
 
+//! Check if the I2C bus is currently busy or not.
+bool I2cController ::bus_is_busy(U32 poll_limit) {
+    FW_ASSERT(m_i2c_peripheral != Va416x0Types::ABSENT);
+    Va416x0Mmio::I2c i2c_p = m_i2c_peripheral.value();
+
+    for (U32 polls = 0; (i2c_p.read_status() & Va416x0Mmio::I2c::STATUS_I2CIDLE) != Va416x0Mmio::I2c::STATUS_I2CIDLE; polls++) {
+        if (polls >= poll_limit) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // ----------------------------------------------------------------------
 // Handler implementations for user-defined typed input ports
 // ----------------------------------------------------------------------

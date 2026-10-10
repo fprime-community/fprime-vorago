@@ -33,6 +33,8 @@ extern U32 i2cAddr;
 extern U8 readSize;
 extern bool succeed_status_idle;
 extern bool fail_status_write_error_mask;
+extern bool i2c_is_idle;
+extern U32 status_read_count;
 
 class I2cControllerTester final : public I2cControllerGTestBase {
   public:
@@ -69,6 +71,8 @@ class I2cControllerTester final : public I2cControllerGTestBase {
     void nominalI2c();
 
     void offNominalI2c();
+
+    void busBusyI2c();
 
   private:
     // ----------------------------------------------------------------------
