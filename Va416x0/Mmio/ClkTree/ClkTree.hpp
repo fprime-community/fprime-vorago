@@ -182,7 +182,6 @@ class ClkTree {
             default:
                 pll_in_freq = 0;
                 break;
-                break;
         }
 
         const U32 pll_freq = ((pll_in_freq / (pll_ref_div + 1)) * (pll_fb_div + 1)) / (pll_out_div + 1);

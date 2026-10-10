@@ -54,5 +54,9 @@ void restore_interrupts(U32 primask) {}
 
 void delay_cycles(U32 num_cycles_delay) {}
 
+void jump_application(U32 initial_sp, U32 reset_handler) {
+    notSupported();
+}
+
 }  // namespace Cpu
 }  // namespace Va416x0Mmio

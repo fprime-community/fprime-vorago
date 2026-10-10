@@ -155,6 +155,10 @@ void memory_barrier() {
     std::atomic_signal_fence(std::memory_order_seq_cst);
 }
 
+void memory_and_instruction_barrier() {
+    memory_barrier();
+}
+
 namespace TestSupport {
 
 void reset() {
