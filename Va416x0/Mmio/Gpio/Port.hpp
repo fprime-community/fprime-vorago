@@ -29,26 +29,28 @@ namespace Gpio {
 class Pin;
 
 constexpr U32 NUM_PORTS = 7;
-constexpr U32 MAX_PINS_PER_PORT = 16;
+constexpr U32 MAX_PINS_FOR_PORTA_THROUGH_PORTF = 16;
+constexpr U32 MAX_PINS_FOR_PORTG = 8;
+constexpr U32 PORTG_INDEX = 6;
 
 class Port final {
   public:
     explicit constexpr Port(U32 gpio_port) : gpio_port(gpio_port) { FW_ASSERT(gpio_port < NUM_PORTS, gpio_port); }
 
+    // PORTG is only 8 bits wide.
+    constexpr U32 get_num_pins() const {
+        return (gpio_port == PORTG_INDEX) ? MAX_PINS_FOR_PORTG : MAX_PINS_FOR_PORTA_THROUGH_PORTF;
+    }
+
     // GPIO port registers
     U32 read_datain() const;
-    void write_datain(U32 value) const;
     U32 read_datainraw() const;
-    void write_datainraw(U32 value) const;
     U32 read_dataout() const;
     void write_dataout(U32 value) const;
     U32 read_dataoutraw() const;
     void write_dataoutraw(U32 value) const;
-    U32 read_setout() const;
     void write_setout(U32 value) const;
-    U32 read_clrout() const;
     void write_clrout(U32 value) const;
-    U32 read_togout() const;
     void write_togout(U32 value) const;
     U32 read_datamask() const;
     void write_datamask(U32 value) const;
@@ -71,11 +73,8 @@ class Port final {
     U32 read_irq_enb() const;
     void write_irq_enb(U32 value) const;
     U32 read_irq_raw() const;
-    void write_irq_raw(U32 value) const;
     U32 read_irq_end() const;
-    void write_irq_end(U32 value) const;
     U32 read_edge_status() const;
-    void write_edge_status(U32 value) const;
 
     //! Returns mutexes that can (should) be held when changing configuration.
     //! Beware that baremetal mutexes cannot safely handle contention... only lock these mutexes from
@@ -111,7 +110,7 @@ class Port final {
         return PinType(*this, gpio_pin);
     }
 
-    U32 get_gpio_port() const;
+    constexpr U32 get_gpio_port() const { return gpio_port; }
 
   private:
     U8 gpio_port;
@@ -131,7 +130,7 @@ constexpr Port PORTC = Port(2);
 constexpr Port PORTD = Port(3);
 constexpr Port PORTE = Port(4);
 constexpr Port PORTF = Port(5);
-constexpr Port PORTG = Port(6);
+constexpr Port PORTG = Port(PORTG_INDEX);
 
 }  // namespace Gpio
 }  // namespace Va416x0Mmio

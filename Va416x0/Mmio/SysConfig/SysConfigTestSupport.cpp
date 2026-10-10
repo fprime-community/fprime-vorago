@@ -27,6 +27,7 @@
 
 #include "SysConfigTestSupport.hpp"
 #include "SysConfig.hpp"
+#include "Va416x0/Mmio/Amba/Amba.hpp"
 
 namespace Va416x0Mmio {
 namespace SysConfig {
@@ -63,8 +64,8 @@ void reset() {
     write_ram0_scrub(DEFAULT_SEED);
     write_ram1_scrub(DEFAULT_SEED);
     write_irq_enb(DEFAULT_SEED);
-    write_irq_raw(DEFAULT_SEED);
-    write_irq_end(DEFAULT_SEED);
+    seed_irq_raw(DEFAULT_SEED);
+    seed_irq_end(DEFAULT_SEED);
     write_irq_clr(DEFAULT_SEED);
     write_ram0_sbe(DEFAULT_SEED);
     write_ram1_sbe(DEFAULT_SEED);
@@ -72,7 +73,7 @@ void reset() {
     write_ram1_mbe(DEFAULT_SEED);
     write_rom_sbe(DEFAULT_SEED);
     write_rom_mbe(DEFAULT_SEED);
-    write_rom_retries(DEFAULT_SEED);
+    seed_rom_retries(DEFAULT_SEED);
     write_refresh_config_h(DEFAULT_SEED);
     // Active-low: all-ones means "no peripheral held in reset"
     write_tim_resets(RESET_INACTIVE_SEED);
@@ -89,11 +90,11 @@ void reset() {
     write_ebi_cfg3(DEFAULT_SEED);
     write_sw_clkdiv10(DEFAULT_SEED);
     write_refresh_config_l(DEFAULT_SEED);
-    write_ef_config(DEFAULT_SEED);
-    write_ef_id0(DEFAULT_SEED);
-    write_ef_id1(DEFAULT_SEED);
-    write_procid(DEFAULT_SEED);
-    write_perid(DEFAULT_SEED);
+    seed_ef_config(DEFAULT_SEED);
+    seed_ef_id0(DEFAULT_SEED);
+    seed_ef_id1(DEFAULT_SEED);
+    seed_procid(DEFAULT_SEED);
+    seed_perid(DEFAULT_SEED);
 }
 
 }  // namespace TestSupport
