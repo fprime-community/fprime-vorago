@@ -52,6 +52,8 @@ def stamp_image(image: bytes, image_check: Optional[str], region_size: int) -> b
     if image_check == "crc32":
         # Stored little endian to match the Cortex-M4
         value = struct.pack("<I", zlib.crc32(padded))
+    elif image_check:
+        sys.exit(f"ERROR: Got unsupported stamping method: '{image_check}'.")
 
     if len(value) != check_size:
         sys.exit(
@@ -116,8 +118,6 @@ if __name__ == "__main__":
                 f"ERROR: bootloader is {len(bootloader)} bytes, which overlaps the image at 0x{start:X}"
             )
         output = bootloader.ljust(start, PAD_BYTE) + output
-
-    # Question: should I then left pad by bytes if there is no bootloader?
 
     try:
         args.output.write_bytes(output)
