@@ -322,7 +322,8 @@ function(register_with_bsp TARGET_NAME)
                 "$<TARGET_FILE_DIR:${BOOTLOADER_TARGET}>/$<TARGET_FILE_BASE_NAME:${BOOTLOADER_TARGET}>.bin"
                 "${APP_BIN}" "${COMBINED_BASE}.bin"
             COMMAND arm-none-eabi-objcopy -I binary -O ihex "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex"
-            COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex" "${OUT_BIN}"
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex" "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BIN}"
         )
     endforeach()
     # Remove the temp stand alone application binary
