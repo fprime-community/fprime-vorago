@@ -108,6 +108,8 @@ SECTIONS
 		KEEP (*(.fini_array .dtors))
 		PROVIDE_HIDDEN ( __fini_array_end = . );
 
+		FILL(0xFFFFFFFF);
+		. = ALIGN(ALIGNOF(.rodata));
 	} >CODE_SRAM AT>CODE_SRAM :text
 
 	.rodata : {
@@ -123,6 +125,8 @@ SECTIONS
 		*(.srodata.cst2)
 		*(.srodata .srodata.*)
 
+		FILL(0xFFFFFFFF);
+		. = ALIGN(MAX(MAX(ALIGNOF(.data.rel.ro), ALIGNOF(.got)), MAX(ALIGNOF(.toc), ALIGNOF(.data))));
 	} >CODE_SRAM AT>CODE_SRAM :text
 
 	.data.rel.ro : {
@@ -130,6 +134,8 @@ SECTIONS
 		/* data that needs relocating */
 		*(.data.rel.ro .data.rel.ro.*)
 
+		FILL(0xFFFFFFFF);
+		. = ALIGN(MAX(MAX(ALIGNOF(.got), ALIGNOF(.toc)), ALIGNOF(.data)));
 	} >CODE_SRAM AT>CODE_SRAM :text
 
 	/*
@@ -140,10 +146,14 @@ SECTIONS
 	.got : {
 		*(.got.plt)
 		*(.got)
+		FILL(0xFFFFFFFF);
+		. = ALIGN(MAX(ALIGNOF(.toc), ALIGNOF(.data)));
 	} >CODE_SRAM AT>CODE_SRAM :text
 
 	.toc : {
 		*(.toc .toc.*)
+		FILL(0xFFFFFFFF);
+		. = ALIGN(ALIGNOF(.data));
 	} >CODE_SRAM AT>CODE_SRAM :text
 
 	/*
