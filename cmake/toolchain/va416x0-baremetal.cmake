@@ -295,10 +295,11 @@ function(register_with_bsp TARGET_NAME)
     # If the application is to be used without a bootloader, simply make the binary and hex and return
     if (NOT BSP_BOOTLOADER)
         add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
-            # Create the bin and hex formats for flash loader, and copy them into the build-artifacts directory
+            # Create the bin and hex formats for flash loader, and copy them and the ELF into the build-artifacts directory
             COMMAND arm-none-eabi-objcopy -O binary "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BASE}.bin"
             COMMAND arm-none-eabi-objcopy -O ihex "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BASE}.hex"
-            COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.bin" "${OUT_BASE}.hex" "${OUT_BIN}"
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "${OUT_BASE}.bin" "${OUT_BASE}.hex" "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BIN}"
         )
         return()
     endif()
@@ -321,8 +322,7 @@ function(register_with_bsp TARGET_NAME)
                 "$<TARGET_FILE_DIR:${BOOTLOADER_TARGET}>/$<TARGET_FILE_BASE_NAME:${BOOTLOADER_TARGET}>.bin"
                 "${APP_BIN}" "${COMBINED_BASE}.bin"
             COMMAND arm-none-eabi-objcopy -I binary -O ihex "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex"
-            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex" "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BIN}"
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex" "${OUT_BIN}"
         )
     endforeach()
     # Remove the temp stand alone application binary
