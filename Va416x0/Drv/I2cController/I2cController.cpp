@@ -30,7 +30,8 @@ namespace Va416x0Drv {
 // ----------------------------------------------------------------------
 // Component construction and destruction
 // ----------------------------------------------------------------------
-I2cController ::I2cController(const char* const compName) : I2cControllerComponentBase(compName) {}
+I2cController ::I2cController(const char* const compName)
+    : I2cControllerComponentBase(compName), m_bus_idle_poll_limit(0) {}
 
 I2cController ::~I2cController() {}
 
@@ -59,9 +60,11 @@ void I2cController ::configure(Va416x0Mmio::I2c i2c_peripheral,
                                I2cCtrlEnums ctrl_txfemd,
                                I2cCtrlEnums ctrl_rxffmd,
                                bool ctrl_loopback_enable,
-                               bool ctrl_tmconfig_enable) {
+                               bool ctrl_tmconfig_enable,
+                               U32 bus_idle_poll_limit) {
     FW_ASSERT(m_i2c_peripheral == Va416x0Types::ABSENT);
     m_i2c_peripheral = i2c_peripheral;
+    m_bus_idle_poll_limit = bus_idle_poll_limit;
 
     // Get I2C Peripheral Frequency
     U32 i2c_apb1_freq = Va416x0Mmio::ClkTree::getActivePeripheralFreq(i2c_peripheral);
@@ -86,12 +89,13 @@ void I2cController ::configure(Va416x0Mmio::I2c i2c_peripheral,
 }
 
 //! Check if the I2C bus is currently busy or not.
-bool I2cController ::bus_is_busy(U32 poll_limit) {
+bool I2cController ::bus_is_busy() {
     FW_ASSERT(m_i2c_peripheral != Va416x0Types::ABSENT);
     Va416x0Mmio::I2c i2c_p = m_i2c_peripheral.value();
 
-    for (U32 polls = 0; (i2c_p.read_status() & Va416x0Mmio::I2c::STATUS_I2CIDLE) != Va416x0Mmio::I2c::STATUS_I2CIDLE; polls++) {
-        if (polls >= poll_limit) {
+    for (U32 polls = 0; (i2c_p.read_status() & Va416x0Mmio::I2c::STATUS_I2CIDLE) != Va416x0Mmio::I2c::STATUS_I2CIDLE;
+         polls++) {
+        if (polls >= m_bus_idle_poll_limit) {
             return true;
         }
     }
@@ -102,11 +106,17 @@ bool I2cController ::bus_is_busy(U32 poll_limit) {
 // Handler implementations for user-defined typed input ports
 // ----------------------------------------------------------------------
 
-Drv::I2cStatus I2cController ::read_helper(U32 addr,              //!< I2C subordinate device address
-                                           Fw::Buffer& serBuffer  //!< Buffer with data to read/write to/from
+Drv::I2cStatus I2cController ::read_helper(U32 addr,                //!< I2C subordinate device address
+                                           Fw::Buffer& serBuffer,   //!< Buffer with data to read/write to/from
+                                           const bool checkBusIdle  //!< Override to check idle bus for a read operation
 ) {
     FW_ASSERT(m_i2c_peripheral != Va416x0Types::ABSENT);
     Va416x0Mmio::I2c i2c_p = m_i2c_peripheral.value();
+
+    // Check that the bus is idle
+    if (checkBusIdle && this->bus_is_busy()) {
+        return Drv::I2cStatus::I2C_READ_ERR;
+    }
 
     // Clear Rx FIFO
     i2c_p.write_fifo_clr(Va416x0Mmio::I2c::FIFO_CLR_RXFIFO);
@@ -161,7 +171,7 @@ Drv::I2cStatus I2cController ::read_handler(FwIndexType portNum,
                                             U32 addr,              //!< I2C subordinate device address
                                             Fw::Buffer& serBuffer  //!< Buffer with data to read/write to/from
 ) {
-    return this->read_helper(addr, serBuffer);
+    return this->read_helper(addr, serBuffer, true);
 }
 
 Drv::I2cStatus I2cController ::write_helper(U32 addr,               //!< I2C subordinate device address
@@ -169,6 +179,11 @@ Drv::I2cStatus I2cController ::write_helper(U32 addr,               //!< I2C sub
                                             const bool withStop) {
     FW_ASSERT(m_i2c_peripheral != Va416x0Types::ABSENT);
     Va416x0Mmio::I2c i2c_p = m_i2c_peripheral.value();
+
+    // Check that the bus is idle
+    if (this->bus_is_busy()) {
+        return Drv::I2cStatus::I2C_WRITE_ERR;
+    }
 
     // Clear Tx FIFO
     i2c_p.write_fifo_clr(Va416x0Mmio::I2c::FIFO_CLR_TXFIFO);
@@ -222,6 +237,12 @@ Drv::I2cStatus I2cController ::write_helper(U32 addr,               //!< I2C sub
     if ((write_status & Va416x0Mmio::I2c::STATUS_WRITE_ERROR_MASK) ||
         (polling_timeout_counter >= polling_timeout_max)) {
         i2c_p.write_fifo_clr(Va416x0Mmio::I2c::FIFO_CLR_TXFIFO);
+        if (not withStop) {  // Assumes 'not withStop' is only ever true for write-read transactions given only
+                             // writeRead_handler sets it to false
+            // Release the bus if we still own it - VA416xx Programmers Guide, Section 13.2.1, write-read transaction
+            // step 12
+            i2c_p.write_cmd(Va416x0Mmio::I2c::CMD_STOP);
+        }
         return Drv::I2cStatus::I2C_WRITE_ERR;
     }
 
@@ -249,7 +270,7 @@ Drv::I2cStatus I2cController ::writeRead_handler(
     if (this->write_helper(addr, writeBuffer, false) == Drv::I2cStatus::I2C_WRITE_ERR) {
         return Drv::I2cStatus::I2C_WRITE_ERR;
     }
-    return this->read_helper(addr, readBuffer);
+    return this->read_helper(addr, readBuffer, false);
 }
 
 }  // namespace Va416x0Drv

@@ -49,6 +49,7 @@ bool i2c_is_idle = false;
 U32 status_read_count = 0;
 
 void I2cControllerTester ::nominalI2c() {
+    i2c_is_idle = true;
     succeed_status_idle = true;
     fail_status_write_error_mask = false;
     U32 devAddr = 48;
@@ -101,6 +102,7 @@ void I2cControllerTester ::nominalI2c() {
 }
 
 void I2cControllerTester ::offNominalI2c() {
+    i2c_is_idle = true;
     U32 devAddr = 78;
     // configure i2c
     i2cAddr = I2C0_ADDRESS;
@@ -137,30 +139,39 @@ void I2cControllerTester ::offNominalI2c() {
     ASSERT_EQ(returnStat, Drv::I2cStatus::I2C_WRITE_ERR);
 }
 
-void I2cControllerTester ::busBusyI2c() {
-    succeed_status_idle = false;
+void I2cControllerTester ::busBusyI2c(U32 poll_limit) {
+    succeed_status_idle = true;
     fail_status_write_error_mask = false;
+    U32 devAddr = 48;
     i2cAddr = I2C0_ADDRESS;
+    component.configure(Va416x0Mmio::I2C0, Va416x0Mmio::I2c::STD_100K, Va416x0Mmio::I2c::RECOMMENDED, true,
+                        Va416x0Drv::TXFEMD_STALL, Va416x0Drv::RXFFMD_STALL, false, false, poll_limit);
 
-    component.configure(Va416x0Mmio::I2C0, Va416x0Mmio::I2c::STD_100K, Va416x0Mmio::I2c::RECOMMENDED, true, Va416x0Drv::TXFEMD_STALL, Va416x0Drv::RXFFMD_STALL, false, false);
+    expectedRead = 10;
+    readSize = 1;
+    U8 read_byte[] = {0};
+    Fw::Buffer readBuf(read_byte, readSize);
+    expectedWrite = 25;
+    U8 write_byte[] = {expectedWrite};
+    Fw::Buffer writeBuf(write_byte, 1);
 
-    // Idle bus test. Assert that the bus is NOT busy.
-    i2c_is_idle = true;
-    status_read_count = 0;
-    ASSERT_FALSE(component.bus_is_busy());
-    ASSERT_EQ(status_read_count, 1);
-    status_read_count = 0;
-    ASSERT_FALSE(component.bus_is_busy(5));
-    ASSERT_EQ(status_read_count, 1);
-
-    // Busy bus test. Assert that the bus is busy.
+    // Busy bus: each transaction reads STATUS and should fail after reading for poll_limit times
     i2c_is_idle = false;
     status_read_count = 0;
-    ASSERT_TRUE(component.bus_is_busy());
-    ASSERT_EQ(status_read_count, 1);
+    ASSERT_EQ(this->invoke_to_write(0, devAddr, writeBuf), Drv::I2cStatus::I2C_WRITE_ERR);
+    ASSERT_EQ(status_read_count, poll_limit + 1);
     status_read_count = 0;
-    ASSERT_TRUE(component.bus_is_busy(5));
-    ASSERT_EQ(status_read_count, 6);
+    ASSERT_EQ(this->invoke_to_read(0, devAddr, readBuf), Drv::I2cStatus::I2C_READ_ERR);
+    ASSERT_EQ(status_read_count, poll_limit + 1);
+    status_read_count = 0;
+    ASSERT_EQ(this->invoke_to_writeRead(0, devAddr, writeBuf, readBuf), Drv::I2cStatus::I2C_WRITE_ERR);
+    ASSERT_EQ(status_read_count, poll_limit + 1);
+
+    // Idle bus: reading and writing proceeds
+    i2c_is_idle = true;
+    ASSERT_EQ(this->invoke_to_write(0, devAddr, writeBuf), Drv::I2cStatus::I2C_OK);
+    ASSERT_EQ(this->invoke_to_read(0, devAddr, readBuf), Drv::I2cStatus::I2C_OK);
+    ASSERT_EQ(readBuf.getData()[0], expectedRead);
 }
 
 }  // namespace Va416x0Drv

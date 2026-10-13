@@ -58,23 +58,26 @@ class I2cController : public I2cControllerComponentBase {
                    I2cCtrlEnums ctrl_txfemd,
                    I2cCtrlEnums ctrl_rxffmd,
                    bool ctrl_loopback_enable,
-                   bool ctrl_tmconfig_enable);
-
-    //! Check whether the I2C bus is busy (STATUS_I2CIDLE is clear). If it is busy, poll 'poll_limit' times. Default 'poll_limit' is 0.
-    bool bus_is_busy(U32 poll_limit = 0);
+                   bool ctrl_tmconfig_enable,
+                   U32 bus_idle_poll_limit = 0);
 
   private:
     Va416x0Types::Optional<Va416x0Mmio::I2c> m_i2c_peripheral;
+    U32 m_bus_idle_poll_limit;
+
+    //! Check whether the I2C bus is busy (STATUS_I2CIDLE is clear). If it is busy, poll up to m_bus_idle_poll_limit
+    //! more times.
+    bool bus_is_busy();
 
     // ----------------------------------------------------------------------
     // Helper functions for read-write handlers
     // ----------------------------------------------------------------------
 
-    Drv::I2cStatus read_helper(U32 addr,              //!< I2C subordinate device address
-                               Fw::Buffer& serBuffer  //!< Buffer with data to read/write to/from
-    );
-    Drv::I2cStatus write_helper(U32 addr,               //!< I2C subordinate device address
-                                Fw::Buffer& serBuffer,  //!< Buffer with data to read/write to/from
+    Drv::I2cStatus read_helper(U32 addr,                  //!< I2C subordinate device address
+                               Fw::Buffer& serBuffer,     //!< Buffer with data to read/write to/from
+                               const bool checkBusIdle);  //!< Check for idle bus up to m_bus_idle_poll_limit times
+    Drv::I2cStatus write_helper(U32 addr,                 //!< I2C subordinate device address
+                                Fw::Buffer& serBuffer,    //!< Buffer with data to read/write to/from
                                 const bool withStop);
 
     // ----------------------------------------------------------------------

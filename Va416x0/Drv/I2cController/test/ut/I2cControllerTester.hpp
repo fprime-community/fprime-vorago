@@ -72,7 +72,7 @@ class I2cControllerTester final : public I2cControllerGTestBase {
 
     void offNominalI2c();
 
-    void busBusyI2c();
+    void busBusyI2c(U32 poll_limit);
 
   private:
     // ----------------------------------------------------------------------
