@@ -41,7 +41,7 @@ ENTRY(_start)
 MEMORY
 {
   /* Bootloader image CODE_SRAM domain:                 [0, VA416X0_APP_BASE)
-   * Application for bootloader image CODE_SRAM domain: [VA416X0_APP_BASE, 256K - image check value size (4 for crc32))
+   * Application for bootloader image CODE_SRAM domain: [VA416X0_APP_BASE, 256K - reserved bytes)
    * Standalone application image CODE_SRAM domain:     [0, 256K)
    */
   CODE_SRAM (rx) : ORIGIN = __image_start, LENGTH = __image_end - __image_start
@@ -195,6 +195,18 @@ SECTIONS
 	PROVIDE( __tdata_source_end = LOADADDR(.tdata) + SIZEOF(.tdata) );
 	PROVIDE( __data_source_end = __tdata_source_end );
 	PROVIDE( __tdata_size = SIZEOF(.tdata) );
+
+	/* A stamped application that's to be used by a bootloader (__image_start != 0) is padded with 0xFF. 
+     * Both sections are empty for standalone images.
+	 */
+	.image_stamp_pad : {
+		FILL(0xFFFFFFFF);
+		. = __image_start != 0 ? ORIGIN(CODE_SRAM) + LENGTH(CODE_SRAM) - __img_stamp_size : .;
+	} >CODE_SRAM
+	.image_stamp : {
+		FILL(0xFFFFFFFF);
+		. += __image_start != 0 ? __img_stamp_size : 0;
+	} >CODE_SRAM
 
 	PROVIDE( __edata = __data_end );
 	PROVIDE( _edata = __data_end );

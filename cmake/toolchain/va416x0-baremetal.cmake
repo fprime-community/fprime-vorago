@@ -33,7 +33,7 @@ set(CMAKE_ASM_COMPILER_WORKS 1)
 
 set(LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/va416x0.ld)
 set(SCRIPT_VERIFY_NO_STRB "${CMAKE_CURRENT_LIST_DIR}/verify_nostrb.py")
-set(SCRIPT_COMBINE_IMAGE "${CMAKE_CURRENT_LIST_DIR}/../scripts/stamp_image.py")
+set(SCRIPT_COMBINE_IMAGE "${CMAKE_CURRENT_LIST_DIR}/../scripts/combine_image.py")
 
 # Must match the size of CODE_SRAM in the LINKER_SCRIPT
 set(VA416X0_CODE_SRAM_SIZE 0x40000) # 256KiB
@@ -41,7 +41,7 @@ set(VA416X0_CODE_SRAM_SIZE 0x40000) # 256KiB
 # VA416X0_APP_BASE splits CODE_SRAM between a stub bootloader [0, VA416X0_APP_BASE) and the deployment 
 # it boots [VA416X0_APP_BASE, VA416X0_CODE_SRAM_END), so that each can be linked and installed separately.
 if (NOT DEFINED VA416X0_APP_BASE)
-    set(VA416X0_APP_BASE 0x2000) # 8KiB (1/32 of 256KiB)
+    set(VA416X0_APP_BASE 0x4000) # 16KiB (1/16 of 256KiB)
 endif()
 
 # Bytes reserved at the end of CODE_SRAM (e.g. for a board ID) that no image will write to.
@@ -173,39 +173,41 @@ include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
 
 # Call this in the deployment CMakeLists after register_fprime_deployment to
 # ensure App.hex is generated in addition to App.elf file
-# register_with_bsp("${PROJECT_NAME}" [IS_BOOTLOADER] [BOOTLOADER <bootloader-target>...] [IMAGE_CHECK <crc32>])
+# register_with_bsp("${PROJECT_NAME}" [IS_BOOTLOADER | BOOTLOADER <bootloader-target>... IMAGE_STAMP <crc32>])
 #   @param IS_BOOTLOADER: link as a stub bootloader into [0, VA416X0_APP_BASE) of CODE_SRAM
-#   @param BOOTLOADER:    link as a deployment booted by a stub bootloader into [VA416X0_APP_BASE, 256K) of CODE_SRAM
-#                         generates a combined <target>_with_<bootloader>.bin for each bootloader target given
-#   @param IMAGE_CHECK:   generates a <target>_${IMAGE_CHECK}_stamped.img, stamped with the given image check.
-#                         CRC-32 is stored little-endian in the last 4 bytes of the image region.
+#   @param BOOTLOADER:    link as a deployment booted by a stub bootloader into [VA416X0_APP_BASE, VA416X0_CODE_SRAM_END)
+#                         of CODE_SRAM generates a combined <target>_with_<bootloader>.bin for each bootloader target given
+#   @param IMAGE_STAMP:   Only allowed for applications with a bootloader. The image check stamps into the end of the 
+#                         application region of the combined images and application ELF file.
+#                         crc32: CRC-32 stored little endian in the last 4 bytes.
 function(register_with_bsp TARGET_NAME)
-    cmake_parse_arguments(PARSE_ARGV 1 BSP "IS_BOOTLOADER" "IMAGE_CHECK" "BOOTLOADER")
-    if (BSP_IS_BOOTLOADER AND (BSP_BOOTLOADER OR DEFINED BSP_IMAGE_CHECK))
-        message(FATAL_ERROR "register_with_bsp(${TARGET_NAME}): IS_BOOTLOADER cannot be combined with BOOTLOADER or IMAGE_CHECK")
+    cmake_parse_arguments(PARSE_ARGV 1 BSP "IS_BOOTLOADER" "IMAGE_STAMP" "BOOTLOADER")
+    if (BSP_IS_BOOTLOADER AND BSP_BOOTLOADER)
+        message(FATAL_ERROR "register_with_bsp(${TARGET_NAME}): IS_BOOTLOADER cannot be combined with BOOTLOADER")
     endif()
-    # Bytes reserved at the end of the image for the image check
-    set(IMAGE_CHECK_SIZE 0)
-    if (DEFINED BSP_IMAGE_CHECK AND BSP_IMAGE_CHECK STREQUAL "crc32")
-        set(IMAGE_CHECK_SIZE 4)
-    elseif(DEFINED BSP_IMAGE_CHECK)
-        message(FATAL_ERROR "register_with_bsp(${TARGET_NAME}): unknown IMAGE_CHECK '${BSP_IMAGE_CHECK}'")
+    if (DEFINED BSP_IMAGE_STAMP AND NOT BSP_BOOTLOADER)
+        message(FATAL_ERROR "register_with_bsp(${TARGET_NAME}): IMAGE_STAMP is only allowed with applications being built with a bootloader")
     endif()
-    # Select the part of CODE_SRAM this image is linked into, less the space for the image check
+    set(IMAGE_STAMP_SIZE 0)
+    if (BSP_IMAGE_STAMP STREQUAL "crc32")
+        set(IMAGE_STAMP_SIZE 4)
+    endif()
+    # Select the part of CODE_SRAM this image is linked into
     set(IMAGE_START 0)
-    set(IMAGE_END "${VA416X0_CODE_SRAM_END}")
+    set(IMAGE_LINK_END "${VA416X0_CODE_SRAM_END}")
     if (BSP_IS_BOOTLOADER)
-        set(IMAGE_END "${VA416X0_APP_BASE}")
+        set(IMAGE_LINK_END "${VA416X0_APP_BASE}")
     elseif (BSP_BOOTLOADER)
         set(IMAGE_START "${VA416X0_APP_BASE}")
+        target_link_options("${TARGET_NAME}" PRIVATE "-Wl,--nmagic")
     endif()
-    math(EXPR IMAGE_LINK_END "${IMAGE_END} - ${IMAGE_CHECK_SIZE}" OUTPUT_FORMAT HEXADECIMAL)
 
     target_link_options("${TARGET_NAME}" PRIVATE
         "-Wl,--defsym=__image_start=${IMAGE_START}"
         "-Wl,--defsym=__image_end=${IMAGE_LINK_END}"
         "-Wl,--defsym=__app_image_start=${VA416X0_APP_BASE}"
         "-Wl,--defsym=__app_image_end=${VA416X0_CODE_SRAM_END}"
+        "-Wl,--defsym=__img_stamp_size=${IMAGE_STAMP_SIZE}"
     )
 
     set(OUT_BASE "$<TARGET_FILE_DIR:${TARGET_NAME}>/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>")
@@ -249,20 +251,6 @@ function(register_with_bsp TARGET_NAME)
     add_custom_command("TARGET" "${TARGET_NAME}" POST_BUILD
         # Copy the map file into the build-artifacts directory
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.map" "${OUT_BIN}"
-        # Create the hex format for flash loader
-        COMMAND arm-none-eabi-objcopy -O ihex
-            "$<TARGET_FILE:${TARGET_NAME}>"
-            "${OUT_BASE}.hex"
-            DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
-        # Copy the new hex file into the build-artifacts directory
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.hex" "${OUT_BIN}"
-        # Create the bin format for flash loader
-        COMMAND arm-none-eabi-objcopy -O binary
-            "$<TARGET_FILE:${TARGET_NAME}>"
-            "${OUT_BASE}.bin"
-            DEPENDS "$<TARGET_FILE:${TARGET_NAME}>"
-        # Copy the new bin file into the build-artifacts directory
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.bin" "${OUT_BIN}"
         # Objdump the ELF file
         COMMAND arm-none-eabi-objdump -xD --visualize-jumps "$<TARGET_FILE:${TARGET_NAME}>"
             >"${OUT_BASE}.objdump"
@@ -304,28 +292,41 @@ function(register_with_bsp TARGET_NAME)
         )
     endif()
 
-    set(STAMP_IMAGE_CMD "${PYTHON}" "${SCRIPT_COMBINE_IMAGE}" --image-start "${IMAGE_START}" --image-end "${IMAGE_END}")
-    if (DEFINED BSP_IMAGE_CHECK)
-        list(APPEND STAMP_IMAGE_CMD --image-check "${BSP_IMAGE_CHECK}")
+    # If the application is to be used without a bootloader, simply make the binary and hex and return
+    if (NOT BSP_BOOTLOADER)
         add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
-            # Stamp the image check into the image installed at the start of its CODE_SRAM region
-            COMMAND ${STAMP_IMAGE_CMD} "${OUT_BASE}.bin" "${OUT_BASE}_${BSP_IMAGE_CHECK}_stamped.img"
-            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                "${OUT_BASE}_${BSP_IMAGE_CHECK}_stamped.img" "${OUT_BIN}"
+            # Create the bin and hex formats for flash loader, and copy them into the build-artifacts directory
+            COMMAND arm-none-eabi-objcopy -O binary "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BASE}.bin"
+            COMMAND arm-none-eabi-objcopy -O ihex "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BASE}.hex"
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUT_BASE}.bin" "${OUT_BASE}.hex" "${OUT_BIN}"
         )
+        return()
     endif()
 
+    # The below application only binary is a temporary input to the bootloader-application combined image (deleted after)
+    set(APP_BIN "${OUT_BASE}.app_only.tmp")
+    add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
+        COMMAND arm-none-eabi-objcopy -O binary "$<TARGET_FILE:${TARGET_NAME}>" "${APP_BIN}"
+    )
     foreach(BOOTLOADER_TARGET IN LISTS BSP_BOOTLOADER)
-        # Relink when the bootloader changes, so the combined image is regenerated with it
+        # Rebuild the combined image when the bootloader changes
         add_dependencies("${TARGET_NAME}" "${BOOTLOADER_TARGET}")
         set_property(TARGET "${TARGET_NAME}" APPEND PROPERTY LINK_DEPENDS "$<TARGET_FILE:${BOOTLOADER_TARGET}>")
+        set(COMBINED_BASE "${OUT_BASE}_with_${BOOTLOADER_TARGET}")
         add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
-            # Combine the bootloader and the stamped image into one image for the whole of CODE_SRAM
-            COMMAND ${STAMP_IMAGE_CMD}
-                --bootloader "$<TARGET_FILE_DIR:${BOOTLOADER_TARGET}>/$<TARGET_FILE_BASE_NAME:${BOOTLOADER_TARGET}>.bin"
-                "${OUT_BASE}.bin" "${OUT_BASE}_with_${BOOTLOADER_TARGET}.bin"
+            # Combine the bootloader and the (optionally stamped) application into one image for the whole of CODE_SRAM
+            COMMAND "${PYTHON}" "${SCRIPT_COMBINE_IMAGE}"
+                --app-base "${VA416X0_APP_BASE}" --app-end "${VA416X0_CODE_SRAM_END}" --image-stamp "${BSP_IMAGE_STAMP}"
+                --elf "$<TARGET_FILE:${TARGET_NAME}>"
+                "$<TARGET_FILE_DIR:${BOOTLOADER_TARGET}>/$<TARGET_FILE_BASE_NAME:${BOOTLOADER_TARGET}>.bin"
+                "${APP_BIN}" "${COMBINED_BASE}.bin"
+            COMMAND arm-none-eabi-objcopy -I binary -O ihex "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex"
             COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                "${OUT_BASE}_with_${BOOTLOADER_TARGET}.bin" "${OUT_BIN}"
+                "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex" "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BIN}"
         )
     endforeach()
+    # Remove the temp stand alone application binary
+    add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E rm -f "${APP_BIN}"
+    )
 endfunction()

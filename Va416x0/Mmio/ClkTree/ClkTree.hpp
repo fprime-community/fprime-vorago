@@ -191,6 +191,8 @@ class ClkTree {
         switch (sysclk_src) {
             case SysclkSource::HEARTBEAT_OSC:
                 return 20 * 1000 * 1000 / sysclk_div;
+            case SysclkSource::HEARTBEAT_OSC_MAX:
+                return 24 * 1000 * 1000 / sysclk_div;  // 20% higher than HBO
             case SysclkSource::EXTERNAL_CLK:
                 return ext_clk_freq / sysclk_div;
             case SysclkSource::PLL:
