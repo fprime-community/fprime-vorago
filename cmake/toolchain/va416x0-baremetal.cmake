@@ -38,19 +38,6 @@ set(SCRIPT_COMBINE_IMAGE "${CMAKE_CURRENT_LIST_DIR}/../scripts/combine_image.py"
 # Must match the size of CODE_SRAM in the LINKER_SCRIPT
 set(VA416X0_CODE_SRAM_SIZE 0x40000) # 256KiB
 
-# VA416X0_APP_BASE splits CODE_SRAM between a stub bootloader [0, VA416X0_APP_BASE) and the deployment 
-# it boots [VA416X0_APP_BASE, VA416X0_CODE_SRAM_END), so that each can be linked and installed separately.
-if (NOT DEFINED VA416X0_APP_BASE)
-    set(VA416X0_APP_BASE 0x4000) # 16KiB (1/16 of 256KiB)
-endif()
-
-# Bytes reserved at the end of CODE_SRAM (e.g. for a board ID) that no image will write to.
-# Images end at VA416X0_CODE_SRAM_END instead, so an image check is stamped just below the reserved bytes.
-if (NOT DEFINED VA416X0_CODE_SRAM_RESERVED_SIZE)
-    set(VA416X0_CODE_SRAM_RESERVED_SIZE 0)
-endif()
-math(EXPR VA416X0_CODE_SRAM_END "${VA416X0_CODE_SRAM_SIZE} - ${VA416X0_CODE_SRAM_RESERVED_SIZE}" OUTPUT_FORMAT HEXADECIMAL)
-
 # Define `VA416X0_MCPU` to override the `-mcpu` compiler flag to enable
 # additional compiler features.
 if (NOT DEFINED VA416X0_MCPU)
@@ -182,6 +169,20 @@ include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
 #                         crc32: CRC-32 stored little endian in the last 4 bytes.
 function(register_with_bsp TARGET_NAME)
     cmake_parse_arguments(PARSE_ARGV 1 BSP "IS_BOOTLOADER" "IMAGE_STAMP" "BOOTLOADER")
+
+    # VA416X0_APP_BASE splits CODE_SRAM between a stub bootloader [0, VA416X0_APP_BASE) and the deployment 
+    # it boots [VA416X0_APP_BASE, VA416X0_CODE_SRAM_END), so that each can be linked and installed separately.
+    if (NOT DEFINED VA416X0_APP_BASE)
+        set(VA416X0_APP_BASE 0x4000) # 16KiB (1/16 of 256KiB)
+    endif()
+
+    # Bytes reserved at the end of CODE_SRAM (e.g. for a board ID) that no image will write to.
+    # Images end at VA416X0_CODE_SRAM_END instead, so an image check is stamped just below the reserved bytes.
+    if (NOT DEFINED VA416X0_CODE_SRAM_RESERVED_SIZE)
+        set(VA416X0_CODE_SRAM_RESERVED_SIZE 0)
+    endif()
+    math(EXPR VA416X0_CODE_SRAM_END "${VA416X0_CODE_SRAM_SIZE} - ${VA416X0_CODE_SRAM_RESERVED_SIZE}" OUTPUT_FORMAT HEXADECIMAL)
+
     if (BSP_IS_BOOTLOADER AND BSP_BOOTLOADER)
         message(FATAL_ERROR "register_with_bsp(${TARGET_NAME}): IS_BOOTLOADER cannot be combined with BOOTLOADER")
     endif()
