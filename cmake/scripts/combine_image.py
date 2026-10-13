@@ -18,108 +18,112 @@
 import argparse
 import pathlib
 import struct
+import subprocess
 import sys
+import tempfile
 import zlib
 from typing import Optional
 
-# Fill value for padding
 PAD_BYTE = b"\xff"
-
-# Number of bytes each image check reserves at the end of the image region.
-# Keep in sync with IMAGE_CHECK_SIZE in register_with_bsp (va416x0-baremetal.cmake).
-IMAGE_CHECK_SIZES = {
-    "crc32": 4,
+IMAGE_STAMPS = {
+    "crc32": lambda data: struct.pack("<I", zlib.crc32(data)),  # little endian
 }
 
 
-def parse_int(value: str) -> int:
-    # Accepts decimal or 0x-prefixed hexadecimal, as passed from CMake
-    return int(value, 0)
-
-
-def stamp_image(image: bytes, image_check: Optional[str], region_size: int) -> bytes:
-    image_check = str(image_check).lower()
-    check_size = IMAGE_CHECK_SIZES.get(image_check, 0)
-    content_size = region_size - check_size
-    if len(image) > content_size:
+def combine_image(
+    bootloader: bytes,
+    app: bytes,
+    app_base: int,
+    app_end: int,
+    image_stamp: Optional[str],
+) -> bytes:
+    compute_check = IMAGE_STAMPS[image_stamp] if image_stamp else lambda _: b""
+    check_size = len(compute_check(b""))
+    if len(bootloader) > app_base:
         sys.exit(
-            f"ERROR: image is {len(image)} bytes, but only {content_size} bytes are available."
+            f"ERROR: bootloader length of {len(bootloader)} bytes overlaps the application at 0x{app_base:X}"
+        )
+    app_size = app_end - app_base - check_size
+    if len(app) > app_size and (
+        len(app) > app_end - app_base or app[app_size:].strip(PAD_BYTE)
+    ):
+        sys.exit(
+            f"ERROR: application binary is {len(app)} bytes but only {app_size} bytes are available"
         )
 
-    # Left pad binary, and then add on the crc32
-    padded = image.ljust(content_size, PAD_BYTE) if check_size else image
-    value = b""
-    if image_check == "crc32":
-        # Stored little endian to match the Cortex-M4
-        value = struct.pack("<I", zlib.crc32(padded))
+    padded_app = app[:app_size].ljust(app_size, PAD_BYTE)
+    return bootloader.ljust(app_base, PAD_BYTE) + padded_app + compute_check(padded_app)
 
-    if len(value) != check_size:
-        sys.exit(
-            f"ERROR: {image_check} value size isn't {check_size} bytes. Got {len(value)} bytes."
+
+def stamp_elf(elf: pathlib.Path, content: bytes):
+    # Write the image check into the ELF's .image_stamp section (reserved by va416x0.ld)
+    with tempfile.NamedTemporaryFile(suffix=".bin") as f:
+        f.write(content)
+        f.flush()
+        subprocess.run(
+            [
+                "arm-none-eabi-objcopy",
+                f"--update-section=.image_stamp={f.name}",
+                str(elf),
+            ],
+            check=True,
         )
-    if len(value):
-        return padded + value
-    return image  # avoid reallocating
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Stamp an image check into a raw binary. Optionally prepend a bootloader."
+        description="Combine a bootloader and application binary. Optionally stamp the application."
     )
     parser.add_argument(
-        "--image-check", type=str, help="Kind of image check to stamp into the image"
-    )
-    parser.add_argument(
-        "--image-start",
+        "--app-base",
         required=True,
-        type=parse_int,
-        help="CODE_SRAM address the input binary is linked at",
+        type=lambda v: int(v, 0),
+        help="Start application instruction address",
     )
     parser.add_argument(
-        "--image-end",
+        "--app-end",
         required=True,
-        type=parse_int,
-        help="End (exclusive) of the image's CODE_SRAM region",
+        type=lambda v: int(v, 0),
+        help="End (exclusive) application instruction address",
     )
     parser.add_argument(
-        "--bootloader",
+        "--image-stamp",
+        required=False,
+        choices=list(IMAGE_STAMPS.keys()) + [None],
+        default=None,
+        help="Image stamp type to stamp at the end of the application region",
+    )
+    parser.add_argument(
+        "--elf",
         type=pathlib.Path,
-        help="Raw bootloader binary (linked at address 0) to prepend, padded up to --image-start",
+        help="Application ELF to stamp the image check into",
     )
-    parser.add_argument("input", type=pathlib.Path, help="Raw image binary")
-    parser.add_argument("output", type=pathlib.Path, help="Output binary")
-
+    parser.add_argument(
+        "bootloader",
+        type=pathlib.Path,
+        help="Bootloader binary (linked at address 0x0)",
+    )
+    parser.add_argument(
+        "app", type=pathlib.Path, help="Application binary (linked at --app-base)"
+    )
+    parser.add_argument("output", type=pathlib.Path, help="Combined output binary")
     args = parser.parse_args()
 
-    end = args.image_end
-    start = args.image_start
-    region_size = end - start
-    if region_size <= 0:
+    if not 0 < args.app_base < args.app_end:
         sys.exit(
-            f"ERROR: image end (0x{end:X}) must be greater than image start (0x{start:X})"
+            f"ERROR: expected 0 < app base (0x{args.app_base:X}) < app end (0x{args.app_end:X})"
         )
-
     try:
-        image = args.input.read_bytes()
-    except OSError as e:
-        sys.exit(f"ERROR: failed to read image '{args.input}': {e}")
-
-    output = stamp_image(image, args.image_check, region_size)
-
-    if args.bootloader is not None:
-        try:
-            bootloader = args.bootloader.read_bytes()
-        except OSError as e:
-            sys.exit(f"ERROR: failed to read bootloader '{args.bootloader}': {e}")
-        if len(bootloader) > start:
-            sys.exit(
-                f"ERROR: bootloader is {len(bootloader)} bytes, which overlaps the image at 0x{start:X}"
-            )
-        output = bootloader.ljust(start, PAD_BYTE) + output
-
-    # Question: should I then left pad by bytes if there is no bootloader?
-
-    try:
-        args.output.write_bytes(output)
-    except OSError as e:
-        sys.exit(f"ERROR: failed to write '{args.output}': {e}")
+        combined = combine_image(
+            args.bootloader.read_bytes(),
+            args.app.read_bytes(),
+            args.app_base,
+            args.app_end,
+            args.image_stamp,
+        )
+        args.output.write_bytes(combined)
+        stamp_size = len(IMAGE_STAMPS[args.image_stamp](b"")) if args.image_stamp else 0
+        if args.elf and stamp_size:
+            stamp_elf(args.elf, combined[len(combined) - stamp_size :])
+    except (OSError, subprocess.CalledProcessError) as e:
+        sys.exit(f"ERROR: {e}")

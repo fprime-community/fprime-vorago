@@ -20,6 +20,8 @@ module Va416x0Mmio {
         EXTERNAL_CLK = 1,
         PLL = 2,
         CRYSTAL_OSC = 3,
+        @ Heartbeat oscillator at its maximum frequency (20 MHz + 20%)
+        HEARTBEAT_OSC_MAX = 4,
     }
 
     enum PllSource {
