@@ -89,7 +89,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--image-stamp",
         required=False,
-        choices=list(IMAGE_STAMPS.keys()) + [None],
+        choices=list(IMAGE_STAMPS.keys()) + [""],
         default=None,
         help="Image stamp type to stamp at the end of the application region",
     )

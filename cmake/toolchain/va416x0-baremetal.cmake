@@ -177,8 +177,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/check_library_unaligned.cmake")
 #   @param IS_BOOTLOADER: link as a stub bootloader into [0, VA416X0_APP_BASE) of CODE_SRAM
 #   @param BOOTLOADER:    link as a deployment booted by a stub bootloader into [VA416X0_APP_BASE, 256K) of CODE_SRAM
 #                         generates a combined <target>_with_<bootloader>.bin for each bootloader target given
-#   @param IMAGE_STAMP:   required with BOOTLOADER, and only allowed with it. The image check stamps
-#                         into the end of the application region of the combined images and application ELF file.
+#   @param IMAGE_STAMP:   Only allowed with a bootloader. The image check stamps into the end of the application region 
+#                         of the combined images and application ELF file.
 #                         crc32: CRC-32 stored little endian in the last 4 bytes.
 function(register_with_bsp TARGET_NAME)
     cmake_parse_arguments(PARSE_ARGV 1 BSP "IS_BOOTLOADER" "IMAGE_STAMP" "BOOTLOADER")
