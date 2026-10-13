@@ -144,7 +144,6 @@ extern "C" char __data_size[];
 extern "C" char __bss_start[];
 extern "C" char __bss_size[];
 extern "C" void __libc_init_array(void);
-extern "C" void* const arm_vector_table[];
 
 extern void initialize_deployment();
 
