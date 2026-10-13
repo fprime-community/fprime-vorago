@@ -58,15 +58,15 @@ enum {
 };
 
 U32 Port::read(U32 offset) const {
-    // FIXME: Is this assert necessary, since it already gets checked when the Gpio::Port is instantiated?
-    FW_ASSERT(gpio_port < NUM_PORTS, gpio_port, offset);
+    // Note: No assertion necessary. The validity of 'gpio_port' already gets checked when the Gpio::Port gets
+    // instantiated.
     // FIXME: Should we pre-calculate the base address?
     return Amba::read_u32(GPIO_ADDRESS | (gpio_port * GPIO_PORT_STRIDE) | offset);
 }
 
 void Port::write(U32 offset, U32 value) const {
-    // FIXME: Is this assert necessary, since it already gets checked when the Gpio::Port is instantiated?
-    FW_ASSERT(gpio_port < NUM_PORTS, gpio_port, offset, value);
+    // Note: No assertion necessary. The validity of 'gpio_port' already gets checked when the Gpio::Port gets
+    // instantiated.
     // FIXME: Should we pre-calculate the base address?
     Amba::write_u32(GPIO_ADDRESS | (gpio_port * GPIO_PORT_STRIDE) | offset, value);
 }
