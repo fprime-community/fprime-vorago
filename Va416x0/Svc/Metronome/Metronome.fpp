@@ -22,6 +22,7 @@ module Va416x0Svc {
 
         sync input port start_metronome: Fw.Ready
         output port start_rti: Svc.Sched
+        output port getIsRtiCompleteIsr: GetIsRtiComplete
 
         sync input port main_timer_isr: Va416x0Types.ExceptionHandler
         sync input port proxy_timer_isr: Va416x0Types.ExceptionHandler
@@ -37,6 +38,29 @@ module Va416x0Svc {
         @ Report the duration of the previous RTI, in microseconds. If this is requested on RTI-0,
         @ this port will return the default duration
         sync input port getPreviousRtiDuration: Va416x0.GetRtiDurationUs
+
+        @ Enable or disable debug mode, which makes the main timer ISR skip
+        @ processing an RTI if the previous RTI's MainLoop processing hasn't
+        @ finished yet (e.g. due to a debugger pause holding up MainLoop)
+        sync command SET_DEBUG_MODE(
+            enable_disable: bool
+        )
+
+        @ Reflects the current state of debug mode
+        telemetry DebugModeEnabled: bool
+
+        @ Debug mode was enabled or disabled
+        event DebugModeChanged(
+            enabled: bool
+        ) severity activity high format "Metronome debug mode set to {}"
+
+        command recv port cmdIn
+        command reg port cmdRegOut
+        command resp port cmdResponseOut
+        telemetry port tlmOut
+        time get port timeGetOut
+        text event port textEventOut
+        event port eventOut
 
     }
 }

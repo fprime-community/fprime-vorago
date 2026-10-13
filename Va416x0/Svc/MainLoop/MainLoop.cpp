@@ -153,13 +153,20 @@ void MainLoop ::start_rti_handler(FwIndexType portNum, U32 context) {
     this->m_performanceResults.rti_count++;
 }
 
+bool MainLoop ::getIsRtiCompleteIsr_handler(FwIndexType portNum) {
+    // Check if RTI has completed
+    return this->m_readyToRun.load() == 0;
+}
+
 void MainLoop ::ensure_rti_not_elapsed() {
     // Make sure that the next RTI hasn't started yet.
     U32 ready_to_run_value = this->m_readyToRun.load();
-    // FIXME: Do we really want to trigger an assertion here?
-    // Maybe it should just be a FATAL.
-    // If this is a FW_ASSERT, then this should be conditionally enabled based on the debug mode status
-    // FW_ASSERT(ready_to_run_value == 0, ready_to_run_value);
+
+    // FATAL, not WARNING: strict real-time system, reset required.
+    // Could become configurable in the future.
+    if (ready_to_run_value != 0) {
+        this->log_FATAL_RtiOverrun(ready_to_run_value);
+    }
 }
 
 // NOTE: marked with noinline so that it appears in profile traces
@@ -170,11 +177,13 @@ __attribute__((noinline)) void MainLoop ::wait_for_next_rti() {
     } while (this->m_readyToRun.load() == 0);
 
     // Make sure we didn't slip any RTIs.
-    // FIXME: Do we really want to trigger an assertion here?
-    // Maybe it should just be a FATAL.
     U32 ready_to_run_value = this->m_readyToRun.exchange(0);
-    // If this is a FW_ASSERT, then this should be conditionally enabled based on the debug mode status
-    // FW_ASSERT(ready_to_run_value == 1, ready_to_run_value);
+
+    // FATAL, not WARNING: strict real-time system, reset required.
+    // Could become configurable in the future.
+    if (ready_to_run_value != 1) {
+        this->log_FATAL_RtiSlip(ready_to_run_value);
+    }
 }
 
 // NOTE: marked with noinline so that it appears in profile traces

@@ -25,11 +25,13 @@ module Va416x0Svc {
     }
 
     port GetPerformanceCounts() -> MlPerformanceCounts
+    port GetIsRtiComplete() -> bool
 
     @ Executes the main cyclic thread for the flight software
     passive component MainLoop {
 
         sync input port reset_vector: Va416x0Types.ExceptionHandler
+        sync input port getIsRtiCompleteIsr: GetIsRtiComplete
 
         output port start: [10] Fw.Ready
 
@@ -46,5 +48,20 @@ module Va416x0Svc {
         @ struct with this info) so its easier to switch this later
         sync input port getRti : Va416x0Types.GetTickIndex
 
+        @ RTI overrun: next RTI started before this cycle finished. FATAL because
+        @ MainLoop is a strict real-time scheduler.
+        event RtiOverrun(
+            readyToRunValue: U32 @< Unexpected ready-to-run counter value
+        ) severity fatal format "RTI overrun detected: ready_to_run value was {} instead of 0"
+
+        @ RTI slip: more than one RTI elapsed before this cycle was processed.
+        @ FATAL for the same reason as RtiOverrun.
+        event RtiSlip(
+            readyToRunValue: U32 @< Unexpected ready-to-run counter value
+        ) severity fatal format "RTI slip detected: ready_to_run value was {} instead of 1"
+
+        time get port timeGetOut
+        text event port textEventOut
+        event port eventOut
     }
 }

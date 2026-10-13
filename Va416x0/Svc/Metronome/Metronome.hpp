@@ -85,6 +85,9 @@ class Metronome : public MetronomeComponentBase {
     //! Handler implementation for getPreviousRtiDuration
     U32 getPreviousRtiDuration_handler(FwIndexType portNum) override;
 
+    //! Handler implementation for command SET_DEBUG_MODE_cmdHandler
+    void SET_DEBUG_MODE_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, bool enable_disable) override;
+
     // ----------------------------------------------------------------------
     // Member variables
     // ----------------------------------------------------------------------
@@ -114,8 +117,14 @@ class Metronome : public MetronomeComponentBase {
     //! Duration of the previous RTI, in microseconds
     U32 m_previousRtiDurationUs;
 
+    // FIXME: remove after debug
+    U32 m_debugCntValueAtIsrEntry;
+
     //! Flag indicating the metronome has started
     bool m_isRunning = false;
+
+    //! Flag used to enable/disable debug mode
+    bool m_debug = false;
 };
 
 }  // namespace Va416x0Svc

@@ -42,6 +42,7 @@ set(SOURCE_FILES
 set(MOD_DEPS
     Va416x0/Svc/VectorTable
     Va416x0/Mmio/ClkTree
+    Va416x0/Svc/MainLoop
 )
 
 register_fprime_module()

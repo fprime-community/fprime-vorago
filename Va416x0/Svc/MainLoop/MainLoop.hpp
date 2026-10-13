@@ -98,6 +98,9 @@ class MainLoop : public MainLoopComponentBase {
     U32 getRti_handler(FwIndexType portNum  //!< The port number
                        ) override;
 
+    //! Handler implemewntation for getIsRtiCompleteIsr
+    bool getIsRtiCompleteIsr_handler(FwIndexType portNum) override;
+
     void enable_irq_router();
     void invoke_start_ports();
     void wait_for_next_rti();

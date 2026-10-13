@@ -28,6 +28,7 @@
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
 
 #include <arm_acle.h>
+#include <stdio.h>
 #include <algorithm>
 #include <cmath>
 
@@ -167,9 +168,28 @@ void Metronome::main_timer_isr_handler(FwIndexType portNum) {
     this->m_proxy_ic.set_interrupt_enabled(false);
     Va416x0Mmio::Amba::memory_barrier();
 
+    printf("m_debug : %d\n", this->m_debug);
+    printf("Is RTI Completed : %d\n", this->getIsRtiCompleteIsr_out(0));
+
+    // Ignore main timer interrupts when in debug mode when the
+    // MainLoop isn't done with the previous RTI
+    if (this->m_debug && this->getIsRtiCompleteIsr_out(0) == false) {
+        // Still notify MainLoop that an RTI occurred, so it never stalls
+        // waiting for a wakeup that would otherwise never come.
+        this->start_rti_out(0, 0 /* ignored */);
+        this->m_execution_index = MAX_CLIENTS;
+        if (this->isConnected_end_rti_OutputPort(0)) {
+            this->end_rti_out(0, 0 /* ignored */);
+        }
+        return;
+    }
+
     // Grab the reset value that was used to schedule this RTI.
     // FIXME: Is there any chance of this already being out of date here?
     U32 rst_value = this->m_config.main_timer.read_rst_value();
+
+    // TEMPORARY DEBUG: capture live counter value to verify debugger-pause behavior
+    this->m_debugCntValueAtIsrEntry = this->m_config.main_timer.read_cnt_value();
 
     // Calculate the duration of the previous RTI using the previous offset base
     // Note: the timer reset value calculation subtracts 1 from the cycle count
@@ -276,6 +296,13 @@ U32 Metronome::getPreviousRtiDuration_handler(FwIndexType portNum) {
     } else {
         return this->m_previousRtiDurationUs;
     }
+}
+
+void Metronome::SET_DEBUG_MODE_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, bool enable_disable) {
+    this->m_debug = enable_disable;
+    this->tlmWrite_DebugModeEnabled(enable_disable);
+    this->log_ACTIVITY_HI_DebugModeChanged(enable_disable);
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
 }  // namespace Va416x0Svc
