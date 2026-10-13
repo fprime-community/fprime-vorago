@@ -27,7 +27,7 @@
 namespace Va416x0Mmio {
 namespace Cpu {
 
-static void notSupported() {
+[[noreturn]] static void notSupported() {
     fputs("CPU functionality not supported in unit tests.\n", stderr);
     abort();
 }
