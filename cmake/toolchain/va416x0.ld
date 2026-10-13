@@ -67,6 +67,8 @@ SECTIONS
 		KEEP (*(.data.init.enter))
 		__vector_table_end = .;
 		KEEP (*(SORT_BY_NAME(.init) SORT_BY_NAME(.init.*)))
+		FILL(0xFFFFFFFF); /* pad fill */
+		. = ALIGN(ALIGNOF(.text));
 	} >CODE_SRAM AT>CODE_SRAM :text_boot_flash
 
 	.text : {
