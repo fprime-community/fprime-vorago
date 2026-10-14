@@ -119,7 +119,9 @@ if __name__ == "__main__":
             f"ERROR: expected 0 < app base (0x{args.app_base:X}) < app end (0x{args.app_end:X})"
         )
     if args.elf and not args.elf_out:
-        sys.exit("ERROR: must specify an ELF output file with `--elf-out` if using `--elf`")
+        sys.exit(
+            "ERROR: must specify an ELF output file with `--elf-out` if using `--elf`"
+        )
     try:
         combined = combine_image(
             args.bootloader.read_bytes(),
