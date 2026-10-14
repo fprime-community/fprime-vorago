@@ -139,13 +139,13 @@ void I2cControllerTester ::offNominalI2c() {
     ASSERT_EQ(returnStat, Drv::I2cStatus::I2C_WRITE_ERR);
 }
 
-void I2cControllerTester ::busBusyI2c(U32 poll_limit) {
+void I2cControllerTester ::busBusyI2c() {
     succeed_status_idle = true;
     fail_status_write_error_mask = false;
     U32 devAddr = 48;
     i2cAddr = I2C0_ADDRESS;
     component.configure(Va416x0Mmio::I2C0, Va416x0Mmio::I2c::STD_100K, Va416x0Mmio::I2c::RECOMMENDED, true,
-                        Va416x0Drv::TXFEMD_STALL, Va416x0Drv::RXFFMD_STALL, false, false, poll_limit);
+                        Va416x0Drv::TXFEMD_STALL, Va416x0Drv::RXFFMD_STALL, false, false);
 
     expectedRead = 10;
     readSize = 1;
@@ -155,22 +155,26 @@ void I2cControllerTester ::busBusyI2c(U32 poll_limit) {
     U8 write_byte[] = {expectedWrite};
     Fw::Buffer writeBuf(write_byte, 1);
 
-    // Busy bus: each transaction reads STATUS and should fail after reading for poll_limit times
+    // Busy bus: each transaction should read STATUS and fail
     i2c_is_idle = false;
     status_read_count = 0;
     ASSERT_EQ(this->invoke_to_write(0, devAddr, writeBuf), Drv::I2cStatus::I2C_WRITE_ERR);
-    ASSERT_EQ(status_read_count, poll_limit + 1);
+    ASSERT_EQ(status_read_count, 1);
     status_read_count = 0;
     ASSERT_EQ(this->invoke_to_read(0, devAddr, readBuf), Drv::I2cStatus::I2C_READ_ERR);
-    ASSERT_EQ(status_read_count, poll_limit + 1);
+    ASSERT_EQ(status_read_count, 1);
     status_read_count = 0;
     ASSERT_EQ(this->invoke_to_writeRead(0, devAddr, writeBuf, readBuf), Drv::I2cStatus::I2C_WRITE_ERR);
-    ASSERT_EQ(status_read_count, poll_limit + 1);
+    ASSERT_EQ(status_read_count, 1);
 
-    // Idle bus: reading and writing proceeds
+    // Idle bus: reading and writing should proceed with idle bus
     i2c_is_idle = true;
+    status_read_count = 0;
     ASSERT_EQ(this->invoke_to_write(0, devAddr, writeBuf), Drv::I2cStatus::I2C_OK);
+    ASSERT_GE(status_read_count, 1);
+    status_read_count = 0;
     ASSERT_EQ(this->invoke_to_read(0, devAddr, readBuf), Drv::I2cStatus::I2C_OK);
+    ASSERT_GE(status_read_count, 1);
     ASSERT_EQ(readBuf.getData()[0], expectedRead);
 }
 
