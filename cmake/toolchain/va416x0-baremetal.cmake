@@ -310,6 +310,11 @@ function(register_with_bsp TARGET_NAME)
     add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
         COMMAND arm-none-eabi-objcopy -O binary "$<TARGET_FILE:${TARGET_NAME}>" "${APP_BIN}"
     )
+    # A stamped application ELF is written to a new file that has the suffix "_stamped.elf"
+    set(APP_ELF "$<TARGET_FILE:${TARGET_NAME}>")
+    if (BSP_IMAGE_STAMP)
+        set(APP_ELF "${OUT_BASE}_stamped.elf")
+    endif()
     foreach(BOOTLOADER_TARGET IN LISTS BSP_BOOTLOADER)
         # Rebuild the combined image when the bootloader changes
         add_dependencies("${TARGET_NAME}" "${BOOTLOADER_TARGET}")
@@ -319,12 +324,12 @@ function(register_with_bsp TARGET_NAME)
             # Combine the bootloader and the (optionally stamped) application into one image for the whole of CODE_SRAM
             COMMAND "${PYTHON}" "${SCRIPT_COMBINE_IMAGE}"
                 --app-base "${VA416X0_APP_BASE}" --app-end "${VA416X0_CODE_SRAM_END}" --image-stamp "${BSP_IMAGE_STAMP}"
-                --elf "$<TARGET_FILE:${TARGET_NAME}>"
+                --elf "$<TARGET_FILE:${TARGET_NAME}>" --elf-out "${APP_ELF}"
                 "$<TARGET_FILE_DIR:${BOOTLOADER_TARGET}>/$<TARGET_FILE_BASE_NAME:${BOOTLOADER_TARGET}>.bin"
                 "${APP_BIN}" "${COMBINED_BASE}.bin"
             COMMAND arm-none-eabi-objcopy -I binary -O ihex "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex"
             COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex" "$<TARGET_FILE:${TARGET_NAME}>" "${OUT_BIN}"
+                "${COMBINED_BASE}.bin" "${COMBINED_BASE}.hex" "${APP_ELF}" "${OUT_BIN}"
         )
     endforeach()
     # Remove the temp stand alone application binary

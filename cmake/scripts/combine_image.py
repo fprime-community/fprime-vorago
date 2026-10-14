@@ -55,8 +55,7 @@ def combine_image(
     return bootloader.ljust(app_base, PAD_BYTE) + padded_app + compute_check(padded_app)
 
 
-def stamp_elf(elf: pathlib.Path, content: bytes):
-    # Write the image check into the ELF's .image_stamp section (reserved by va416x0.ld)
+def stamp_elf(elf: pathlib.Path, elf_out: pathlib.Path, content: bytes):
     with tempfile.NamedTemporaryFile(suffix=".bin") as f:
         f.write(content)
         f.flush()
@@ -65,6 +64,7 @@ def stamp_elf(elf: pathlib.Path, content: bytes):
                 "arm-none-eabi-objcopy",
                 f"--update-section=.image_stamp={f.name}",
                 str(elf),
+                str(elf_out),
             ],
             check=True,
         )
@@ -99,6 +99,11 @@ if __name__ == "__main__":
         help="Application ELF to stamp the image check into",
     )
     parser.add_argument(
+        "--elf-out",
+        type=pathlib.Path,
+        help="Output path of the stamped application ELF",
+    )
+    parser.add_argument(
         "bootloader",
         type=pathlib.Path,
         help="Bootloader binary (linked at address 0x0)",
@@ -113,6 +118,8 @@ if __name__ == "__main__":
         sys.exit(
             f"ERROR: expected 0 < app base (0x{args.app_base:X}) < app end (0x{args.app_end:X})"
         )
+    if args.elf and not args.elf_out:
+        sys.exit("ERROR: must specify an ELF output file with `--elf-out` if using `--elf`")
     try:
         combined = combine_image(
             args.bootloader.read_bytes(),
@@ -124,6 +131,6 @@ if __name__ == "__main__":
         args.output.write_bytes(combined)
         stamp_size = len(IMAGE_STAMPS[args.image_stamp](b"")) if args.image_stamp else 0
         if args.elf and stamp_size:
-            stamp_elf(args.elf, combined[len(combined) - stamp_size :])
+            stamp_elf(args.elf, args.elf_out, combined[len(combined) - stamp_size :])
     except (OSError, subprocess.CalledProcessError) as e:
         sys.exit(f"ERROR: {e}")
