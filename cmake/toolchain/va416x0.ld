@@ -219,6 +219,8 @@ SECTIONS
 		FILL(0xFFFFFFFF);
 		. += __image_start != 0 ? __img_stamp_size : 0;
 	} >CODE_SRAM
+	/* For LLD, .tbss is placed at the location counter (not its memory region), so return it to the end of .tdata */
+	. = ADDR(.tdata) + SIZEOF(.tdata);
 
 	PROVIDE( __edata = __data_end );
 	PROVIDE( _edata = __data_end );
@@ -372,6 +374,8 @@ ASSERT(!DEFINED(_SEGGER_RTT) || _SEGGER_RTT == ORIGIN(DATA_SRAM0),
        "SEGGER RTT block, if present, must be at the start of DATA_SRAM0");
 
 ASSERT(__heap_start <= __heap_end, "Heap must not have negative size");
+
+ASSERT(__bss_start >= ORIGIN(DATA_SRAM0) && __bss_end <= ORIGIN(DATA_SRAM1) + LENGTH(DATA_SRAM1), ".bss domain (__bss_start to __bss_end) must be within DATA_SRAM");
 
 ASSERT(__image_end <= 256K, "Image must fit within the 256K CODE_SRAM");
 
