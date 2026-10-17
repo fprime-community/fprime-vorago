@@ -146,6 +146,10 @@ class GdsStream final : public GdsStreamComponentBase {
     void fillWraparoundRegion(U16 writeCursor  //!< Value of the write cursor
     );
 
+    //! Evict the oldest surviving record in the event buffer by advancing m_oldestRecordCursor
+    //! past it. Only valid while m_overwriteMode is set.
+    void evictOldestRecord();
+
     //! Check to see if a command has been uplinked to the command buffer by the GDS. If so, parse
     //! and dispatch the command packet
     void checkCommandBuffer();
@@ -188,6 +192,13 @@ class GdsStream final : public GdsStreamComponentBase {
 
     //! Component setup is complete
     bool m_setup;
+
+    //! True until the GDS has attached and FSW has moved the shared read cursor out of overwrite
+    //! mode; permanently false afterward
+    bool m_overwriteMode;
+    //! Start offset (double-modulo cursor space) of the oldest surviving complete record, tracked
+    //! while m_overwriteMode is set
+    U16 m_oldestRecordCursor;
 
     //! Ensures atomicity protections for the event buffer and related structures (line buffer,
     //! etc.) when handling events and console output
