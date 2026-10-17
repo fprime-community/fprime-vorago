@@ -15,6 +15,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "SysConfig.hpp"
+#include "SysConfigTestSupport.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 
 namespace Va416x0Mmio {
@@ -111,20 +112,15 @@ U32 read_irq_raw() {
     return read(IRQ_RAW);
 }
 
-void write_irq_raw(U32 value) {
+void TestSupport::seed_irq_raw(U32 value) {
     write(IRQ_RAW, value);
 }
 
 U32 read_irq_end() {
     return read(IRQ_END);
 }
-
-void write_irq_end(U32 value) {
+void TestSupport::seed_irq_end(U32 value) {
     write(IRQ_END, value);
-}
-
-U32 read_irq_clr() {
-    return read(IRQ_CLR);
 }
 
 void write_irq_clr(U32 value) {
@@ -183,7 +179,7 @@ U32 read_rom_retries() {
     return read(ROM_RETRIES);
 }
 
-void write_rom_retries(U32 value) {
+void TestSupport::seed_rom_retries(U32 value) {
     write(ROM_RETRIES, value);
 }
 
@@ -303,7 +299,7 @@ U32 read_ef_config() {
     return read(EF_CONFIG);
 }
 
-void write_ef_config(U32 value) {
+void TestSupport::seed_ef_config(U32 value) {
     write(EF_CONFIG, value);
 }
 
@@ -311,7 +307,7 @@ U32 read_ef_id0() {
     return read(EF_ID0);
 }
 
-void write_ef_id0(U32 value) {
+void TestSupport::seed_ef_id0(U32 value) {
     write(EF_ID0, value);
 }
 
@@ -319,7 +315,7 @@ U32 read_ef_id1() {
     return read(EF_ID1);
 }
 
-void write_ef_id1(U32 value) {
+void TestSupport::seed_ef_id1(U32 value) {
     write(EF_ID1, value);
 }
 
@@ -327,7 +323,7 @@ U32 read_procid() {
     return read(PROCID);
 }
 
-void write_procid(U32 value) {
+void TestSupport::seed_procid(U32 value) {
     write(PROCID, value);
 }
 
@@ -335,7 +331,7 @@ U32 read_perid() {
     return read(PERID);
 }
 
-void write_perid(U32 value) {
+void TestSupport::seed_perid(U32 value) {
     write(PERID, value);
 }
 
