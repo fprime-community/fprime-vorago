@@ -129,7 +129,7 @@ void SpiController ::SpiReadWrite_handler(FwIndexType portNum, Fw::Buffer& write
     // NOTE: We could make the default ctrl1 value a class variable & then we could
     // eliminate a register read here
     U32 ctrl1_val = spi.read_ctrl1();
-    FW_ASSERT(ss < Va416x0Mmio::Spi::CTRL1_SS_MAX, portNum);
+    FW_ASSERT(ss <= Va416x0Mmio::Spi::CTRL1_SS_MAX, portNum);
     ctrl1_val = ctrl1_val & ~(Va416x0Mmio::Spi::CTRL1_SS_MAX << Va416x0Mmio::Spi::CTRL1_SS_SHIFT);
     ctrl1_val = ctrl1_val | (ss << Va416x0Mmio::Spi::CTRL1_SS_SHIFT);
     spi.write_ctrl1(ctrl1_val | Va416x0Mmio::Spi::CTRL1_ENABLE);
