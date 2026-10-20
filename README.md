@@ -10,6 +10,12 @@ This repository is maintained by a development group within JPL. Contact [Cel Sk
 
 Documentation may be available from the vendor. Check with your organization to see if you already have a copy of the documentation.
 
+## Reference Deployment
+
+See [fprime-vorago-reference][5] for an example of a simple application using this support package.
+
+ [5]: https://github.com/fprime-community/fprime-vorago-reference/
+
 ## Development Container
 
 This project relies on [a Clang/LLVM ARM Toolchain specialized for the VA41630][4];

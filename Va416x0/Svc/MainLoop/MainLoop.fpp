@@ -46,5 +46,21 @@ module Va416x0Svc {
         @ struct with this info) so its easier to switch this later
         sync input port getRti : Va416x0Types.GetTickIndex
 
+        @ RTI overrun: next RTI started before this cycle finished. FATAL because
+        @ MainLoop is a strict real-time scheduler. Future work could make this
+        @ configurable to WARNING.
+        event RtiOverrun(
+            readyToRunValue: U32 @< Value of ready_to_run_value when the overrun was detected (expected 0)
+        ) severity fatal format "RTI overrun detected: ready_to_run_value was {} instead of 0"
+
+        @ RTI slip: more than one RTI elapsed before this cycle was processed.
+        @ FATAL for the same reason as RtiOverrun.
+        event RtiSlip(
+            readyToRunValue: U32 @< Value of ready_to_run_value when the slip was detected (expected 1)
+        ) severity fatal format "RTI slip detected: ready_to_run_value was {} instead of 1"
+
+        time get port timeGetOut
+        text event port textEventOut
+        event port eventOut
     }
 }
