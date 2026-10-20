@@ -18,7 +18,7 @@ Add a class diagram here
 
 <!-- Subsections listed here are incorporated into the dictionaries for any deployments that include this component. -->
 
-### Event Storage Before J-Link/GDS Attach (Overwrite Mode)
+### Event Storage Before GDS Attach (Overwrite Mode)
 
 Until the GDS attaches, `GdsStream` keeps the event/console buffer in external SRAM as a
 ring buffer: every incoming Event (and console write) is always accepted, even if the buffer
@@ -28,16 +28,20 @@ does. `DroppedEvents`/`DroppedConsoleBytes` stay at 0 in this mode. This ensures
 the buffer always holds the most recent Events, since nothing has attached yet to read older
 ones out.
 
-### Event Storage After J-Link/GDS Attach (Keep-Oldest Mode)
+### Event Storage After GDS Attach (Keep-Oldest Mode)
 
-The GDS/J-Link side signals attachment by writing a non-zero value to a dedicated flag in
-the buffer header. The next FSW rate group tick after that write hands the shared read cursor off 
-to the oldest surviving record and permanently switches out of overwrite mode. iOne RTI later, 
-`GdsStream` stops evicting old data; instead, the write cursor is only allowed to advance into space 
-that the GDS has already consumed (i.e. that the read cursor has passed). If a new Event or console write
+The GDS side signals attachment by writing a non-zero value to a dedicated memory address after the read/write 
+cursors. `GdsStream` checks this flag once per RTI (in `Run_handler`); once it sees the flag set, it immediately 
+hands the shared read cursor off to the oldest surviving record, permanently switches out of overwrite mode, and 
+stops evicting old data — all in that same RTI, with no additional delay. From then on, the write cursor is only 
+allowed to advance into space that the GDS has already consumed (i.e. that the read cursor has passed). If a new Event or console write
 doesn't fit in that space, it is dropped and counted in `DroppedEvents`/`DroppedConsoleBytes`
 instead. This preserves old, not-yet-read Events once a consumer is attached, trading "always
 accept new data" for "never lose data the GDS hasn't read yet."
+
+**Caveat:** If the event buffer stays busy for several RTIs (e.g. sustained ISR logging), the
+handoff is deferred and can race with a GDS read already in progress, causing a one-time
+duplicate or dropped record at the attach transition. This is debug-only and should not happen in flight.
 
 ## Port Descriptions
 | Name | Description |
