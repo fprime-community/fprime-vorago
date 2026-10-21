@@ -40,7 +40,7 @@ constexpr U32 COMMAND_BUFFER_OFFSET = Va416x0::GdsStream_CommandBufferOffset;
 constexpr U32 COMMAND_BUFFER_SIZE = Va416x0::GdsStream_CommandBufferSize;
 constexpr U16 COMMAND_MAGIC_WORD = Va416x0::GdsStream_CommandMagicWord;
 
-// Written by FSW at setup()/reset to indicate no attach-request is outstanding.
+// Written by FSW at setup to indicate no attach-request is outstanding.
 // GDS writes a non-zero value (1) once it attaches. FSW only
 // reads this field, never writes any value other than GDS_ATTACH_REQUEST_NONE.
 constexpr U16 GDS_ATTACH_REQUEST_NONE = 0;
@@ -91,8 +91,10 @@ constexpr GdsStream::HeaderType LENGTH_MASK = ~INDICATOR_MASK;
 //! Mask to truncate a 16-bit buffer read down to the single log header byte
 constexpr U16 HEADER_BYTE_MASK = std::numeric_limits<GdsStream::HeaderType>::max();
 
-// FIXME. Loop Upper bound. Consider making it into a configuration constant.
-constexpr U32 LoopMaxCnt = 50;
+constexpr U32 CONSOLE_ENTRY_BYTES = 2;
+constexpr U32 MAX_EVENT_ARG_SIZE = 127;
+// 12 byte event header goes into envent buffer.
+constexpr U32 EVICTION_LOOP_MAX_COUNT = (MAX_EVENT_ARG_SIZE + 12) / CONSOLE_ENTRY_BYTES;
 
 // The console line buffer is indexed using a U8, assert that this can be properly indexed
 static_assert(LINE_BUFFER_SIZE <= std::numeric_limits<U8>::max(), "Console line buffer is indexed using a U8");
@@ -393,8 +395,8 @@ void GdsStream::fillWraparoundRegion(U16 writeCursor) {
 void GdsStream::evictOldestRecord() {
     FW_ASSERT(this->m_overwriteMode);
 
-    // Read the header of the oldest surviving record to determine its on-disk size, the same way
-    // writeEvent/writeConsoleBuffer encoded it
+    // Read the header of the oldest surviving record to determine its size, the same way
+    // writeEvent/writeConsoleBuffer encoded it.
     U16 oldestRelative = this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK;
     U16 headerWord = Va416x0Mmio::Amba::read_u16(EVENT_BUFFER_DATA_ADDRESS() + oldestRelative);
     HeaderType header = static_cast<HeaderType>(headerWord & HEADER_BYTE_MASK);
@@ -504,26 +506,22 @@ bool GdsStream::flushConsoleBuffer(void) {
         fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
                                       wraparound);
         U32 count = 0;  // To prevent infinite loop due to h/w failure
-        while (!fits && (count++ < LoopMaxCnt)) {
+        while (!fits && (count++ < EVICTION_LOOP_MAX_COUNT)) {
             this->evictOldestRecord();
             fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
                                           wraparound);
         }
-        // Eviction must always be able to free enough space; if it didn't within LoopMaxCnt
+        // Eviction must always be able to free enough space; if it didn't within EVICTION_LOOP_MAX_COUNT
         // attempts, something is fundamentally wrong (e.g. h/w failure).
-        if (!fits) {
-            // Drop the console output, incrementing drop count telemetry
-            this->m_droppedConsoleBytes += bufferSize;
-        }
-        FW_ASSERT(fits, size, count);
     } else {
         // The GDS has attached at some point; keep old data and drop new output if there's no room
         U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());
         fits = this->itemFitsInBuffer(readCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
-        if (!fits) {
-            // No room to flush the console output, return and wait for the GDS to make space
-            return false;
-        }
+    }
+    if (!fits) {
+        this->m_overwriteMode = false;
+        // No room to flush the console output, return and wait for the GDS to make space
+        return false;
     }
     if (wraparound) {
         // Item will wraparound to the start of the buffer, fill the remaining space at the end of
@@ -654,28 +652,24 @@ void GdsStream::LogRecv_handler(FwIndexType portNum,
         fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
                                       wraparound);
         U32 count = 0;  // To prevent infinite loop due to h/w failure
-        while (!fits && (count++ < LoopMaxCnt)) {
+        while (!fits && (count++ < EVICTION_LOOP_MAX_COUNT)) {
             this->evictOldestRecord();
             fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
                                           wraparound);
         }
-        // Eviction must always be able to free enough space; if it didn't within LoopMaxCnt
+        // Eviction must always be able to free enough space; if it didn't within EVICTION_LOOP_MAX_COUNT
         // attempts, something is fundamentally wrong (e.g. h/w failure).
-        if (!fits) {
-            // Drop the event, incrementing drop count telemetry
-            this->m_droppedEvents++;
-        }
-        FW_ASSERT(fits, size, count);
     } else {
         // The GDS has attached at some point; keep old data and drop the new event if there's no room
         U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());
         fits = this->itemFitsInBuffer(readCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
-        if (!fits) {
-            // Drop the event, incrementing drop count telemetry
-            this->m_droppedEvents++;
-            this->m_eventBufferInUse = 0;
-            return;
-        }
+    }
+    if (!fits) {
+        // Drop the event, incrementing drop count telemetry
+        this->m_droppedEvents++;
+        this->m_eventBufferInUse = 0;
+        this->m_overwriteMode = false;
+        return;
     }
     if (wraparound) {
         // Item will wraparound to the start of the buffer, fill the remaining space at the end of

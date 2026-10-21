@@ -24,9 +24,9 @@ Until the GDS attaches, `GdsStream` keeps the event/console buffer in external S
 ring buffer: every incoming Event (and console write) is always accepted, even if the buffer
 is full. If a new record doesn't fit in the space remaining, the oldest surviving record(s)
 are evicted (their region reclaimed by advancing an internal oldest-record cursor) until it
-does. `DroppedEvents`/`DroppedConsoleBytes` stay at 0 in this mode. This ensures
-the buffer always holds the most recent Events, since nothing has attached yet to read older
-ones out.
+does. This ensures the buffer always holds the most recent Events, since nothing has attached
+yet to read older ones out. `DroppedEvents`/`DroppedConsoleBytes` are still incremented in this
+mode.
 
 ### Event Storage After GDS Attach (Keep-Oldest Mode)
 
