@@ -51,6 +51,9 @@ def combine_image(
             f"ERROR: application binary is {len(app)} bytes but only {app_size} bytes are available"
         )
 
+    if not image_stamp:
+        return bootloader.ljust(app_base, PAD_BYTE) + app
+
     padded_app = app[:app_size].ljust(app_size, PAD_BYTE)
     return bootloader.ljust(app_base, PAD_BYTE) + padded_app + compute_check(padded_app)
 

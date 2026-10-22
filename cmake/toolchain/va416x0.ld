@@ -213,7 +213,7 @@ SECTIONS
 	 */
 	.image_stamp_pad : {
 		FILL(0xFFFFFFFF);
-		. = __image_start != 0 ? ORIGIN(CODE_SRAM) + LENGTH(CODE_SRAM) - __img_stamp_size : .;
+		. = __image_start != 0 && __img_stamp_size != 0 ? ORIGIN(CODE_SRAM) + LENGTH(CODE_SRAM) - __img_stamp_size : .;
 	} >CODE_SRAM
 	.image_stamp : {
 		FILL(0xFFFFFFFF);

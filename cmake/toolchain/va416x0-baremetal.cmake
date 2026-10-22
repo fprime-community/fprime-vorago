@@ -174,6 +174,7 @@ function(register_with_bsp TARGET_NAME)
     # it boots [VA416X0_APP_BASE, VA416X0_CODE_SRAM_END), so that each can be linked and installed separately.
     if (NOT DEFINED VA416X0_APP_BASE)
         set(VA416X0_APP_BASE 0x4000) # 16KiB (1/16 of 256KiB)
+        # set(VA416X0_APP_BASE 0x400) # 1KiB
     endif()
 
     # Bytes reserved at the end of CODE_SRAM (e.g. for a board ID) that no image will write to.
@@ -312,7 +313,9 @@ function(register_with_bsp TARGET_NAME)
     )
     # A stamped application ELF is written to a new file that has the suffix "_stamped.elf"
     set(APP_ELF "$<TARGET_FILE:${TARGET_NAME}>")
+    set(IMAGE_STAMP_ARGS)
     if (BSP_IMAGE_STAMP)
+        set(IMAGE_STAMP_ARGS --image-stamp "${BSP_IMAGE_STAMP}")
         set(APP_ELF "${OUT_BASE}_stamped.elf")
     endif()
     foreach(BOOTLOADER_TARGET IN LISTS BSP_BOOTLOADER)
@@ -323,7 +326,7 @@ function(register_with_bsp TARGET_NAME)
         add_custom_command(TARGET "${TARGET_NAME}" POST_BUILD
             # Combine the bootloader and the (optionally stamped) application into one image for the whole of CODE_SRAM
             COMMAND "${PYTHON}" "${SCRIPT_COMBINE_IMAGE}"
-                --app-base "${VA416X0_APP_BASE}" --app-end "${VA416X0_CODE_SRAM_END}" --image-stamp "${BSP_IMAGE_STAMP}"
+                --app-base "${VA416X0_APP_BASE}" --app-end "${VA416X0_CODE_SRAM_END}" ${IMAGE_STAMP_ARGS}
                 --elf "$<TARGET_FILE:${TARGET_NAME}>" --elf-out "${APP_ELF}"
                 "$<TARGET_FILE_DIR:${BOOTLOADER_TARGET}>/$<TARGET_FILE_BASE_NAME:${BOOTLOADER_TARGET}>.bin"
                 "${APP_BIN}" "${COMBINED_BASE}.bin"
