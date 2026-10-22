@@ -98,24 +98,15 @@ U32 Port::read_datain() const {
     return read_datainraw();
 }
 
-void Port::write_datain(U32 value) const {
-    // FIXME: add masking support
-    write_datainraw(value);
-}
-
 U32 Port::read_datainraw() const {
     U32 value = 0;
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         auto pin = std::make_tuple(gpio_port, i);
         if (pinStates.count(pin)) {
             value |= (pinStates[pin] << i);
         }
     }
     return value;
-}
-
-void Port::write_datainraw(U32 value) const {
-    // Write-only register
 }
 
 U32 Port::read_dataout() const {
@@ -134,19 +125,15 @@ U32 Port::read_dataoutraw() const {
 }
 
 void Port::write_dataoutraw(U32 value) const {
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         auto pin = std::make_tuple(gpio_port, i);
         auto state = (value & (1 << i)) ? Fw::Logic::HIGH : Fw::Logic::LOW;
         pinStates[pin] = state;
     }
 }
 
-U32 Port::read_setout() const {
-    return read(SETOUT);
-}
-
 void Port::write_setout(U32 value) const {
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         if (value & (1 << i)) {
             auto pin = std::make_tuple(gpio_port, i);
             pinStates[pin] = Fw::Logic::HIGH;
@@ -154,21 +141,13 @@ void Port::write_setout(U32 value) const {
     }
 }
 
-U32 Port::read_clrout() const {
-    return read(CLROUT);
-}
-
 void Port::write_clrout(U32 value) const {
-    for (U32 i = 0; i < MAX_PINS_PER_PORT; i++) {
+    for (U32 i = 0; i < this->get_num_pins(); i++) {
         if (value & (1 << i)) {
             auto pin = std::make_tuple(gpio_port, i);
             pinStates[pin] = Fw::Logic::LOW;
         }
     }
-}
-
-U32 Port::read_togout() const {
-    return read(TOGOUT);
 }
 
 void Port::write_togout(U32 value) const {
@@ -259,24 +238,12 @@ U32 Port::read_irq_raw() const {
     return read(IRQ_RAW);
 }
 
-void Port::write_irq_raw(U32 value) const {
-    write(IRQ_RAW, value);
-}
-
 U32 Port::read_irq_end() const {
     return read(IRQ_END);
 }
 
-void Port::write_irq_end(U32 value) const {
-    write(IRQ_END, value);
-}
-
 U32 Port::read_edge_status() const {
     return read(EDGE_STATUS);
-}
-
-void Port::write_edge_status(U32 value) const {
-    write(EDGE_STATUS, value);
 }
 
 Va416x0Types::ExceptionNumber::T Port::get_base_exception() const {
@@ -303,10 +270,6 @@ bool Port::operator==(const Port& other) const {
 
 bool Port::operator!=(const Port& other) const {
     return !(*this == other);
-}
-
-U32 Port::get_gpio_port() const {
-    return gpio_port;
 }
 
 namespace TestSupport {

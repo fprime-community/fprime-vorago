@@ -45,12 +45,12 @@ static void write(U32 offset, U32 value) {
 }
 
 U32 read_port_config(U32 port, U32 pin) {
-    FW_ASSERT(port < NUM_PORTS && pin < Gpio::MAX_PINS_PER_PORT, port, pin);
+    FW_ASSERT(port < NUM_PORTS && pin < Gpio::Port(port).get_num_pins(), port, pin);
     return read(PORTS + port * PORT_STRIDE + pin * PIN_STRIDE);
 }
 
 void write_port_config(U32 port, U32 pin, U32 value) {
-    FW_ASSERT(port < NUM_PORTS && pin < Gpio::MAX_PINS_PER_PORT, port, pin);
+    FW_ASSERT(port < NUM_PORTS && pin < Gpio::Port(port).get_num_pins(), port, pin);
     write(PORTS + port * PORT_STRIDE + pin * PIN_STRIDE, value);
 }
 
@@ -60,7 +60,8 @@ U32 read_clkdiv(U32 index) {
 }
 
 void write_clkdiv(U32 index, U32 value) {
-    FW_ASSERT(index < NUM_CLKDIV);
+    // CLKDIV0 is read-only (VA416x0 Programmer's Guide); CLKDIV1-7 are RW.
+    FW_ASSERT(index > 0 && index < NUM_CLKDIV, index);
     write(CLKDIV + index * 0x04, value);
 }
 
