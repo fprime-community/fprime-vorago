@@ -49,6 +49,9 @@ static_assert((PING_PONG_SELECT_OFFSET % sizeof(U16)) == 0, "Ping-pong selector 
 static_assert((PING_BUFFER_OFFSET % sizeof(U16)) == 0, "Ping buffer offset must be 16-bit aligned");
 static_assert((PONG_BUFFER_OFFSET % sizeof(U16)) == 0, "Pong buffer offset must be 16-bit aligned");
 
+// Assert that the ping-pong buffer size is a multiple of sizeof(U32)
+static_assert((PING_PONG_BUFFER_SIZE % sizeof(U32)) == 0, "Ping-pong buffer size must be a multiple of sizeof(U32)");
+
 // Assert that the bounds of the ping and pong buffers fit within the external SRAM allocation and
 // that the buffers do not overlap with one another
 static_assert((PING_BUFFER_OFFSET < EXTSRAM_ALLOCATION_SIZE) &&
@@ -104,6 +107,9 @@ constexpr TlmGdsChan::PingPong pingPongOpposite(TlmGdsChan::PingPong current) {
 //! Returns an address of the telemetry item within the selected ping-pong buffer, given its offset
 //! within the buffer.
 constexpr U32 telemetryItemAddress(TlmGdsChan::PingPong selected, U16 offset) {
+    // Don't allow an offset past the end of the buffer
+    FW_ASSERT(offset < PING_PONG_BUFFER_SIZE, offset, PING_PONG_BUFFER_SIZE);
+
     U32 address = 0;
 
     switch (selected) {
@@ -113,6 +119,8 @@ constexpr U32 telemetryItemAddress(TlmGdsChan::PingPong selected, U16 offset) {
         case TlmGdsChan::PingPong::Pong:
             address = PONG_BUFFER_ADDRESS() + offset;
             break;
+        default:
+            FW_ASSERT(0, selected);
     }
 
     FW_ASSERT((address % sizeof(U32)) == 0, address);
