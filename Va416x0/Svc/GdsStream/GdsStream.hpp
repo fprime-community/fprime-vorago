@@ -147,8 +147,20 @@ class GdsStream final : public GdsStreamComponentBase {
     );
 
     //! Evict the oldest surviving record in the event buffer by advancing m_oldestRecordCursor
-    //! past it. Only valid while m_overwriteMode is set.
-    void evictOldestRecord();
+    //! past it, along with any wraparound filler records that directly follow it (see
+    //! fillWraparoundRegion). Only valid while m_overwriteMode is set. Returns the number of bytes freed.
+    FwSizeType evictOldestRecord(U16 writeCursor  //!< Value of the write cursor, eviction never passes it
+    );
+
+    //! Evict oldest records until the given item fits in the buffer (or the eviction limit is
+    //! reached). Only valid while m_overwriteMode is set. Returns whether the item fits; the
+    //! output parameters are as for itemFitsInBuffer.
+    bool evictUntilFits(U16 writeCursor,       //!< Value of the write cursor
+                        FwSizeType size,       //!< Size of the event/console item
+                        U32& extSramAddr,      //!< Output parameter, see itemFitsInBuffer
+                        U16& nextWriteCursor,  //!< Output parameter, see itemFitsInBuffer
+                        bool& wraparound       //!< Output parameter, see itemFitsInBuffer
+    );
 
     //! Check to see if a command has been uplinked to the command buffer by the GDS. If so, parse
     //! and dispatch the command packet

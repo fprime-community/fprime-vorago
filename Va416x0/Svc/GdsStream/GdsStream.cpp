@@ -87,7 +87,7 @@ constexpr U32 INDICATOR_OFFSET = (sizeof(GdsStream::HeaderType) * CHAR_BIT) - 1;
 //! Mask to isolate the single-bit event/console indicator
 constexpr GdsStream::HeaderType INDICATOR_MASK = 1 << INDICATOR_OFFSET;
 //! The remaining bits of the log header store the length
-constexpr GdsStream::HeaderType LENGTH_MASK = ~INDICATOR_MASK;
+constexpr GdsStream::HeaderType LENGTH_MASK = static_cast<GdsStream::HeaderType>(~INDICATOR_MASK);
 //! Mask to truncate a 16-bit buffer read down to the single log header byte
 constexpr U16 HEADER_BYTE_MASK = std::numeric_limits<GdsStream::HeaderType>::max();
 
@@ -159,6 +159,15 @@ constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
     // Serialized console output must be U16-aligned, add 1 byte of padding if the size is odd
     return size + (size & 0x1);
 }
+
+//! Largest record that can be stored in the event buffer
+constexpr FwSizeType MAX_RECORD_SIZE = (eventSize(MAX_EVENT_ARG_SIZE) > consoleSize(LINE_BUFFER_SIZE))
+                                           ? eventSize(MAX_EVENT_ARG_SIZE)
+                                           : consoleSize(LINE_BUFFER_SIZE);
+//! Wraparound filler (see fillWraparoundRegion) is only written when a record does not fit before
+//! the edge of the buffer, so it always starts within MAX_RECORD_SIZE bytes of that edge
+constexpr U16 FILLER_REGION_START = EVENT_BUFFER_DATA_SIZE - MAX_RECORD_SIZE;
+static_assert(MAX_RECORD_SIZE < EVENT_BUFFER_DATA_SIZE, "Largest record must fit in the event buffer");
 
 // ----------------------------------------------------------------------
 // GdsStream functions
@@ -243,7 +252,7 @@ bool GdsStream::itemFitsInBuffer(U16 readCursor,
     } else if (readCursorRelative > writeCursorRelative) {
         // Read cursor is in front of the write cursor and has not wrapped around; the space
         // remaining is the distance from the write cursor to the read cursor
-        fits = size <= (readCursorRelative - writeCursorRelative);
+        fits = size <= static_cast<FwSizeType>(readCursorRelative - writeCursorRelative);
         extSramAddr = EVENT_BUFFER_DATA_ADDRESS() + writeCursorRelative;
         nextWriteCursor = (writeCursor + size) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
     } else if (writeCursorRelative > readCursorRelative) {
@@ -392,8 +401,8 @@ void GdsStream::fillWraparoundRegion(U16 writeCursor) {
     }
 }
 
-void GdsStream::evictOldestRecord() {
-    FW_ASSERT(this->m_overwriteMode);
+FwSizeType GdsStream::evictOldestRecord(U16 writeCursor) {
+    // NOTE: the caller (evictUntilFits) asserts m_overwriteMode once rather than on every eviction
 
     // Read the header of the oldest surviving record to determine its size, the same way
     // writeEvent/writeConsoleBuffer encoded it.
@@ -406,6 +415,72 @@ void GdsStream::evictOldestRecord() {
 
     // Advance past the evicted record, using the same double-modulo convention as nextWriteCursor
     this->m_oldestRecordCursor = (this->m_oldestRecordCursor + recordSize) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+
+    // Records are never split across the edge of the circular buffer; if the evicted record was
+    // followed by zero-length console records padding out the end of the buffer (see
+    // fillWraparoundRegion), skip the whole run now. It is cheaper than evicting each filler
+    // individually, and the fillers must go anyway since the next record starts at the buffer start.
+    constexpr U16 FILLER_HEADER = static_cast<U16>(LogType::Console) << INDICATOR_OFFSET;
+    FwSizeType freed = recordSize;
+    // Filler can only start near the edge of the buffer, so the common case is a single compare.
+    while (((this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK) > FILLER_REGION_START) &&
+           (this->m_oldestRecordCursor != writeCursor)) {
+        U16 word = Va416x0Mmio::Amba::read_u16(EVENT_BUFFER_DATA_ADDRESS() +
+                                               (this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK));
+        if ((word & HEADER_BYTE_MASK) != FILLER_HEADER) {
+            break;
+        }
+        this->m_oldestRecordCursor = (this->m_oldestRecordCursor + sizeof(U16)) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+        freed += sizeof(U16);
+    }
+    return freed;
+}
+
+bool GdsStream::evictUntilFits(U16 writeCursor,
+                               FwSizeType size,
+                               U32& extSramAddr,
+                               U16& nextWriteCursor,
+                               bool& wraparound) {
+    FW_ASSERT(this->m_overwriteMode);
+    bool fits =
+        this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    if (fits) {
+        return true;
+    }
+
+    // Most writes need only a single eviction, so try that first before paying for the deficit
+    // calculation below
+    U32 count = 0;  // To prevent infinite loop due to h/w failure
+    this->evictOldestRecord(writeCursor);
+    count++;
+    fits =
+        this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    if (fits) {
+        return true;
+    }
+
+    // An item can never fit unless the free space (ignoring any unusable space at the edge of the
+    // circular buffer) is at least its size. Evict until that necessary condition holds without
+    // paying for a full itemFitsInBuffer check after every record.
+    FwSizeType used = (writeCursor - this->m_oldestRecordCursor) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+    FwSizeType free = (used < EVENT_BUFFER_DATA_SIZE) ? (EVENT_BUFFER_DATA_SIZE - used) : 0;
+    FwSizeType deficit = (size > free) ? (size - free) : 0;
+    FwSizeType freed = 0;
+    while ((freed < deficit) && (count++ < EVICTION_LOOP_MAX_COUNT)) {
+        freed += this->evictOldestRecord(writeCursor);
+    }
+
+    // Space lost at the edge of the buffer may require evicting further records; check exactly
+    fits =
+        this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    while (!fits && (count++ < EVICTION_LOOP_MAX_COUNT)) {
+        this->evictOldestRecord(writeCursor);
+        fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
+                                      wraparound);
+    }
+    // Eviction must always be able to free enough space; if it didn't within EVICTION_LOOP_MAX_COUNT
+    // attempts, something is fundamentally wrong (e.g. h/w failure).
+    return fits;
 }
 
 bool GdsStream::prepareConsoleWrite() {
@@ -503,16 +578,7 @@ bool GdsStream::flushConsoleBuffer(void) {
     if (this->m_overwriteMode) {
         // Nothing has read the buffer yet; evict the oldest record(s) to make room rather than
         // dropping the new output
-        fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
-                                      wraparound);
-        U32 count = 0;  // To prevent infinite loop due to h/w failure
-        while (!fits && (count++ < EVICTION_LOOP_MAX_COUNT)) {
-            this->evictOldestRecord();
-            fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
-                                          wraparound);
-        }
-        // Eviction must always be able to free enough space; if it didn't within EVICTION_LOOP_MAX_COUNT
-        // attempts, something is fundamentally wrong (e.g. h/w failure).
+        fits = this->evictUntilFits(writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
     } else {
         // The GDS has attached at some point; keep old data and drop new output if there's no room
         U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());
@@ -649,16 +715,7 @@ void GdsStream::LogRecv_handler(FwIndexType portNum,
     if (this->m_overwriteMode) {
         // Nothing has read the buffer yet; evict the oldest record(s) to make room rather than
         // dropping the new event
-        fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
-                                      wraparound);
-        U32 count = 0;  // To prevent infinite loop due to h/w failure
-        while (!fits && (count++ < EVICTION_LOOP_MAX_COUNT)) {
-            this->evictOldestRecord();
-            fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
-                                          wraparound);
-        }
-        // Eviction must always be able to free enough space; if it didn't within EVICTION_LOOP_MAX_COUNT
-        // attempts, something is fundamentally wrong (e.g. h/w failure).
+        fits = this->evictUntilFits(writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
     } else {
         // The GDS has attached at some point; keep old data and drop the new event if there's no room
         U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());

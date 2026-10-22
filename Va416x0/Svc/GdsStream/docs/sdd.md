@@ -28,6 +28,21 @@ does. This ensures the buffer always holds the most recent Events, since nothing
 yet to read older ones out. `DroppedEvents`/`DroppedConsoleBytes` are still incremented in this
 mode.
 
+Eviction is optimized for the cost of the multi-record case, since a single large record can
+displace many small ones. `evictUntilFits()` performs the eviction as follows:
+
+1. Check once whether the record already fits; if so, return.
+2. Evict one record (`evictOldestRecord()`, which returns the number of bytes freed) and check
+   the fit again. This covers the common case.
+3. Otherwise compute the byte deficit from the cursors and evict records until at least that many
+   bytes are freed, with no per-record fit check.
+4. Do one exact fit check, falling back to a bounded evict-and-check loop if it still doesn't fit.
+
+Filler (written when a record doesn't fit before the end of the buffer) is only skipped over
+when the oldest cursor lies in the final `MAX_RECORD_SIZE` bytes of the buffer, so the common
+case costs a single compare. `FW_ASSERT(m_overwriteMode)` is checked once at the top of
+`evictUntilFits()`.
+
 ### Event Storage After GDS Attach (Keep-Oldest Mode)
 
 The GDS side signals attachment by writing a non-zero value to a dedicated memory address after the read/write 
