@@ -25,6 +25,7 @@
 #include "Va416x0/Mmio/Lock/Lock.hpp"
 #include "Va416x0/Svc/GdsStream/FppConstantsAc.hpp"
 
+#include <algorithm>
 #include <climits>
 #include <cstdio>
 #include <limits>
@@ -91,10 +92,7 @@ constexpr GdsStream::HeaderType LENGTH_MASK = static_cast<GdsStream::HeaderType>
 //! Mask to truncate a 16-bit buffer read down to the single log header byte
 constexpr U16 HEADER_BYTE_MASK = std::numeric_limits<GdsStream::HeaderType>::max();
 
-constexpr U32 CONSOLE_ENTRY_BYTES = 2;
-constexpr U32 MAX_EVENT_ARG_SIZE = 127;
-// 12 byte event header goes into envent buffer.
-constexpr U32 EVICTION_LOOP_MAX_COUNT = (MAX_EVENT_ARG_SIZE + 12) / CONSOLE_ENTRY_BYTES;
+constexpr U32 MAX_EVENT_ARG_SIZE = LENGTH_MASK;
 
 // The console line buffer is indexed using a U8, assert that this can be properly indexed
 static_assert(LINE_BUFFER_SIZE <= std::numeric_limits<U8>::max(), "Console line buffer is indexed using a U8");
@@ -160,14 +158,17 @@ constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
     return size + (size & 0x1);
 }
 
-//! Largest record that can be stored in the event buffer
-constexpr FwSizeType MAX_RECORD_SIZE = (eventSize(MAX_EVENT_ARG_SIZE) > consoleSize(LINE_BUFFER_SIZE))
-                                           ? eventSize(MAX_EVENT_ARG_SIZE)
-                                           : consoleSize(LINE_BUFFER_SIZE);
+//! Size of an empty console entry, which is what wraparound filler is made of
+constexpr U32 CONSOLE_ENTRY_BYTES = consoleSize(1);
+// 12 byte event header goes into envent buffer.
+constexpr U32 EVICTION_LOOP_MAX_COUNT = (MAX_EVENT_ARG_SIZE + sizeof(GdsStream::EventHeader)) / CONSOLE_ENTRY_BYTES;
+
+static_assert(consoleSize(LINE_BUFFER_SIZE) <= eventSize(MAX_EVENT_ARG_SIZE),
+              "Filler region sizing assumes the largest record is an event");
+static_assert(eventSize(MAX_EVENT_ARG_SIZE) < EVENT_BUFFER_DATA_SIZE, "Largest record must fit in the event buffer");
 //! Wraparound filler (see fillWraparoundRegion) is only written when a record does not fit before
-//! the edge of the buffer, so it always starts within MAX_RECORD_SIZE bytes of that edge
-constexpr U16 FILLER_REGION_START = EVENT_BUFFER_DATA_SIZE - MAX_RECORD_SIZE;
-static_assert(MAX_RECORD_SIZE < EVENT_BUFFER_DATA_SIZE, "Largest record must fit in the event buffer");
+//! the edge of the buffer, so it always starts within the size of the largest event of that edge
+constexpr U16 FILLER_REGION_START = EVENT_BUFFER_DATA_SIZE - eventSize(MAX_EVENT_ARG_SIZE);
 
 // ----------------------------------------------------------------------
 // GdsStream functions
@@ -442,45 +443,32 @@ bool GdsStream::evictUntilFits(U16 writeCursor,
                                U16& nextWriteCursor,
                                bool& wraparound) {
     FW_ASSERT(this->m_overwriteMode);
-    bool fits =
-        this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
-    if (fits) {
+    // Common case: the item already fits
+    if (this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
+                               wraparound)) {
         return true;
     }
 
-    // Most writes need only a single eviction, so try that first before paying for the deficit
-    // calculation below
-    U32 count = 0;  // To prevent infinite loop due to h/w failure
-    this->evictOldestRecord(writeCursor);
-    count++;
-    fits =
-        this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
-    if (fits) {
-        return true;
-    }
-
-    // An item can never fit unless the free space (ignoring any unusable space at the edge of the
-    // circular buffer) is at least its size. Evict until that necessary condition holds without
-    // paying for a full itemFitsInBuffer check after every record.
+    // Items are never split across the edge of the circular buffer. If the item does not fit
+    // before the edge, the rest of the buffer (the tail) is filled with filler and the item is
+    // written at the start of the buffer, so the filler counts toward the space that is needed.
+    FwSizeType tail = EVENT_BUFFER_DATA_SIZE - (writeCursor & EVENT_BUFFER_SIZE_MASK);
+    FwSizeType needed = (size <= tail) ? size : (tail + size);
     FwSizeType used = (writeCursor - this->m_oldestRecordCursor) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
-    FwSizeType free = (used < EVENT_BUFFER_DATA_SIZE) ? (EVENT_BUFFER_DATA_SIZE - used) : 0;
-    FwSizeType deficit = (size > free) ? (size - free) : 0;
+    FW_ASSERT(used <= EVENT_BUFFER_DATA_SIZE, used);
+    FwSizeType free = EVENT_BUFFER_DATA_SIZE - used;
+    FwSizeType deficit = (needed > free) ? (needed - free) : 0;
+
+    // Evict whole records until the deficit is covered, without a fit check after every record
     FwSizeType freed = 0;
+    U32 count = 0;  // To prevent infinite loop due to h/w failure
     while ((freed < deficit) && (count++ < EVICTION_LOOP_MAX_COUNT)) {
         freed += this->evictOldestRecord(writeCursor);
     }
 
-    // Space lost at the edge of the buffer may require evicting further records; check exactly
-    fits =
-        this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
-    while (!fits && (count++ < EVICTION_LOOP_MAX_COUNT)) {
-        this->evictOldestRecord(writeCursor);
-        fits = this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
-                                      wraparound);
-    }
-    // Eviction must always be able to free enough space; if it didn't within EVICTION_LOOP_MAX_COUNT
-    // attempts, something is fundamentally wrong (e.g. h/w failure).
-    return fits;
+    // The deficit is exact, so the item fits unless the loop gave up (e.g. h/w failure)
+    return this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
+                                  wraparound);
 }
 
 bool GdsStream::prepareConsoleWrite() {
