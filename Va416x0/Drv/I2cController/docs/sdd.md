@@ -12,6 +12,8 @@ The I2cController component supports the following interactions:
 
 Configuration of the I2C interface is handled through a struct passed into the I2cController constructor.  The constructor writes the `CLKSCALE` and `CTRL` registers for the specified I2C Peripheral and clears the Rx and Tx FIFOs.
 
+Before starting a transaction, `read_handler`, `write_handler`, and `writeRead_handler` check once that the I2C bus is idle (`I2CIDLE` set in `STATUS`). If the bus is busy, the transaction is not started and `I2C_WRITE_ERR` (write, write-read) or `I2C_READ_ERR` (read) is returned. The read half of a write-read skips this check, since the controller still holds the bus from the write.
+
 A write to the I2C interface is exposed through the `Drv.I2c` port.  The instantiation of that port in I2cController, `write_handler`, performs the following series of actions:
 1. Clears any existing data in the Tx FIFO by setting the `TXFIFO` bit in `FIFO_CLR`
 2. Writes input arg `serBuffer` size to `WORDS` (asserts size is <= 16)
@@ -28,18 +30,18 @@ A read to the I2C interface is exposed through the `Drv.I2c` port.  The instanti
 3. Writes input arg `addr` and direction bit to `ADDRESS`
 4. Loads `CMD` with 0x3 to indicate a Start-Stop transaction
 5. Polls `STATUS` until there is an indication of IDLE or an Error
-7. If there was an error during the read, sets `RXFIFO` bit in `FIFO_CLR` and returns invalid status
-8. Loops through expected words and reads `DATA` to drain the RX FIFO and stores in `serBuffer`
-9. Returns successful read status
+6. If there was an error during the read, sets `RXFIFO` bit in `FIFO_CLR` and returns invalid status
+7. Loops through expected words and reads `DATA` to drain the RX FIFO and stores in `serBuffer`
+8. Returns successful read status
 
 A write-read to the I2C interface is exposed through the `Drv.I2cWriteRead` port.  The instantiation of that port in I2cController, `writeRead_handler`, performs the following series of actions:
 1. Clears any existing data in the Tx FIFO by setting the `TXFIFO` bit in `FIFO_CLR`
 2. Writes input arg `writeBuffer` size to `WORDS` (asserts size is <= 16)
 3. Writes input arg `addr` and direction bit to `ADDRESS`
 4. Loops through `writeBuffer` to load FIFO write buffer at `DATA`
-5. Loads `CMD` with 0x3 to indicate a Start-Stop transaction
-6. Polls `STATUS` until there is an indication of IDLE or an Error
-7. If there was an error during the write, sets TXFIFO bit in `FIFO_CLR`, loads `CMD` with 0x2 to stop control of the bus, and returns the failed status
+5. Loads `CMD` with 0x1 to indicate a Start transaction without a Stop to keep control of the bus
+6. Polls `STATUS` until there is an indication of IDLE, WAITING, or an Error
+7. If there was an error during the write, sets TXFIFO bit in `FIFO_CLR` and returns the failed status
 8. Clears any existing data in the Rx FIFO by setting the `RXFIFO` bit in `FIFO_CLR`
 9. Writes input arg `readBuffer` size to `WORDS` (asserts size is <= 16)
 10. Writes input arg `addr` and direction bit to `ADDRESS`

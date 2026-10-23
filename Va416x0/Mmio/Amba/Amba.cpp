@@ -64,5 +64,10 @@ void memory_barrier() {
     __dsb(0xF);
 }
 
+void memory_and_instruction_barrier() {
+    memory_barrier();
+    __isb(0xF);
+}
+
 }  // namespace Amba
 }  // namespace Va416x0Mmio
