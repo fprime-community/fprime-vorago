@@ -51,15 +51,20 @@ Setup & configuration will be handled by a public setup method (`AdcSampler::con
 
 A client will begin sampling by calling  startRead (`bool readStart_handler(FwIndexType portNum, U8 num_reads, Scythe::AdcRequests& requests, Scythe::AdcData& data)`) which should do the following
 ```
-# 1. Return FALSE if (this->requestIndex  && this->requestIndex != this->num_reads)
-# 2. Store (by reference) list of read requests in this->requests
+# 1. Unless a read is in progress (this->requestIndex < this->num_reads) and is writing to the same data buffer,
+#    pre-populate the data buffer with ADC_READ_ERROR_VALUE for each value that the requests would produce
+#    (N+1 for a sweep request with cnt=N, 1 otherwise), stopping at the first 0 request
+# 2. If num_reads == 0 or a read is in progress:
+#       a. Increment the rejected startRead count (NumRejectedStartReads)
+#       b. Return FALSE
+# 3. Store (by reference) list of read requests in this->requests
 #       see AdcEntry struct def above
-# 3. Store (by reference) the data as this->data
-# 4. Set this->requestIndex to 0
-# 5. Set this->dataIndex to 0
-# 6. Set this->num_reads to num_reads
-# 7. Call this->startRead()
-# 8. Return TRUE
+# 4. Store (by reference) the data as this->data
+# 5. Set this->requestIndex to 0
+# 6. Set this->dataIndex to 0
+# 7. Set this->num_reads to num_reads
+# 8. Call this->startRead()
+# 9. Return TRUE
 ```
 
 The private function `AdcSampler::startRead()` will be invoked by `readStart_handler` and by the interrupt handler and do the following:
@@ -80,15 +85,18 @@ The private function `AdcSampler::startRead()` will be invoked by `readStart_han
 
 There will be an interrupt handler (`AdcSampler::adcIrq_handler`) registered (by FPP at compile time) for the ADC interrupt based on the ADC_DONE bit in the IRQ_ENB register. That interrupt handler will do the following:
 ```
+# 0. Read the ADC STATUS register. The read failed if the FIFO entry count is not cur_request->cnt+1
+#    or the ADC is still busy; increment the read error count (NumReadErrors) if so
 # 1. If this->cur_request->is_sweep == FALSE && cur_request->cnt > 0
 #       a. set sum = 0
 #       b. (for n=0; n < (cur_request->cnt+1); n++),
 #           i. read  ADC FIFO register value & add it to sum
-#       c. Store sum into this->data[this->dataIndex]
+#       c. Store sum (or ADC_READ_ERROR_VALUE if the read failed, without reading the FIFO) into this->data[this->dataIndex]
 #       d. this->dataIndex += 1
 # 2. Else
 #       a. (for n=0; n < (cur_request->cnt+1); n++)
 #           i. Read the ADC FIFO register value & store it into this->data[this->dataIndex + n]
+#              (or store ADC_READ_ERROR_VALUE if the read failed, without reading the FIFO)
 #       b. this->dataIndex += cur_request->cnt + 1
 #
 # 3. this->requestIndex += 1
@@ -107,57 +115,14 @@ Advantages:
 -  clients can size the list of requests given to AdcSampler to provide flexibility in how frequently the client needs to provide new work
 -  All work done in the interrupt context is handled by a single component (limited scope & scope is readily apparent)
 
-## Usage Examples
-Add usage examples here
+## Ports, Commands, Events, Telemetry, and Parameters
 
-### Diagrams
-Add diagrams here
+Refer to [AdcSampler.fpp](../AdcSampler.fpp). The component has no commands, events or parameters.
 
-### Typical Usage
-And the typical usage of the component here
-
-## Class Diagram
-Add a class diagram here
-
-## Port Descriptions
-| Name | Description |
-|---|---|
-|---|---|
-
-## Component States
-Add component states in the chart below
-| Name | Description |
-|---|---|
-|---|---|
-
-## Sequence Diagrams
-Add sequence diagrams here
-
-## Parameters
-| Name | Description |
-|---|---|
-|---|---|
-
-## Commands
-| Name | Description |
-|---|---|
-|---|---|
-
-## Events
-| Name | Description |
-|---|---|
-|---|---|
-
-## Telemetry
-| Name | Description |
-|---|---|
-|---|---|
+The `NumReadErrors` and `NumRejectedStartReads` telemetry channels are written when `checkRead` is called (not from the interrupt handler).
 
 ## Unit Tests
-Add unit test descriptions in the chart below
-| Name | Description | Output | Coverage |
-|---|---|---|---|
-|---|---|---|---|
+Tests in [test/ut](../test/ut) cover MUX enable/address setup, and with the simulated ADC registers: successful single-channel (summed) and sweep reads; failed reads (sample count mismatch, ADC busy) reporting `ADC_READ_ERROR_VALUE`; a failed request followed by a good one; `startRead` rejected while busy (same and different buffer) and with zero reads; and the `NumReadErrors`/`NumRejectedStartReads` counts.
 
 ## Requirements
 Add requirements in the chart below
@@ -169,3 +134,4 @@ Add requirements in the chart below
 | Date | Description |
 |---|---|
 |---| Initial Draft |
+| 2026-10-22 | Improved error handling for rejected startRead and partial reads |

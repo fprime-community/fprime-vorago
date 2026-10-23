@@ -123,6 +123,10 @@ class AdcSampler final : public AdcSamplerComponentBase {
     U32 m_dataIndex;
     //! Timer delay (in timer ticks) before triggering the ADC conversion
     U32 m_adcDelayTicks;
+    //! Number of reads that did not complete as expected (incremented in the ADC ISR)
+    std::atomic<U32> m_readErrors;
+    //! Number of rejected startRead calls
+    U32 m_rejectedStartReads;
     //! Delay (in CPU cycles) after the MUX is enabled or disabled
     U32 m_muxEnaDisDelay;
     //! Last request which used a MUX

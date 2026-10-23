@@ -37,5 +37,14 @@ module Va416x0 {
         @ Port for requesting the current time
         time get port timeCaller
 
+        @ Port for sending telemetry channels to downlink
+        telemetry port tlmOut
+
+        @ Number of in-progress reads that did not complete as expected (status or sample count mismatch)
+        telemetry NumReadErrors: U32
+
+        @ Number of startRead calls that were rejected (zero reads requested or a read already in progress)
+        telemetry NumRejectedStartReads: U32
+
     }
 }

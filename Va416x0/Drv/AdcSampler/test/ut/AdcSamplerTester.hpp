@@ -64,6 +64,30 @@ class AdcSamplerTester final : public AdcSamplerGTestBase {
     //! Test setup conditions
     void testSetup();
 
+    //! Test a successful single-channel read with multiple conversions (summed into one value)
+    void testReadSuccessSingleChannelSum();
+
+    //! Test a successful sweep read (one value per channel)
+    void testReadSuccessSweep();
+
+    //! Test a failed single-channel read (sample count mismatch) reports ADC_READ_ERROR_VALUE
+    void testReadFailureSampleCount();
+
+    //! Test a failed sweep read (ADC still busy) reports ADC_READ_ERROR_VALUE for every channel
+    void testReadFailureBusy();
+
+    //! Test that a failed request does not prevent the following request from being read
+    void testReadFailureThenSuccess();
+
+    //! Test that a startRead call rejected because a read is in progress fills the data with errors
+    void testStartReadRejectedBusy();
+
+    //! Test that a startRead call rejected with a buffer in use does not modify that buffer
+    void testStartReadRejectedBusySameBuffer();
+
+    //! Test that a startRead call with zero reads is rejected and counted
+    void testStartReadRejectedZeroReads();
+
   private:
     // ----------------------------------------------------------------------
     // Helper functions
@@ -75,6 +99,18 @@ class AdcSamplerTester final : public AdcSamplerGTestBase {
     //! Initialize components
     void initComponents();
 
+    //! Reset the simulated bus, initialize the peripherals used by the sampler & configure the component
+    void configureComponent();
+
+    //! Set the simulated ADC STATUS (FIFO entry count + busy) and FIFO_DATA register values
+    void setAdcRegisters(U32 fifoEntries, bool busy, U32 fifoValue);
+
+    //! Fill the data array with a known pattern
+    void fillData(Va416x0::AdcData& data, U16 value);
+
+    //! Call checkRead so that the telemetry channels are written
+    void checkReadAndUpdateTlm();
+
   private:
     // ----------------------------------------------------------------------
     // Member variables
@@ -85,6 +121,12 @@ class AdcSamplerTester final : public AdcSamplerGTestBase {
 
     //! Adc data storage
     Va416x0::AdcData m_data;
+
+    //! Second data storage used to check rejected startRead calls
+    Va416x0::AdcData m_otherData;
+
+    //! Requests used by the read tests
+    Va416x0::AdcRequests m_requests;
 };
 
 }  // namespace Va416x0

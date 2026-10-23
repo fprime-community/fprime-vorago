@@ -27,4 +27,6 @@ module Va416x0 {
     @ Get the number of measurements read in the previous ADC read
     port GetAdcDataNum() -> U32
 
+    @ Value reported by ADC reads that failed / could not be done (due to busy)
+    constant ADC_READ_ERROR_VALUE = 0xffff
 }

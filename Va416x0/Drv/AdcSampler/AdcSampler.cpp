@@ -30,6 +30,7 @@
 #include "Va416x0/Mmio/Lock/Lock.hpp"
 #include "Va416x0/Mmio/Nvic/Nvic.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
+#include "Va416x0/Ports/FppConstantsAc.hpp"
 
 namespace Va416x0 {
 
@@ -66,6 +67,12 @@ static inline U32 REQ_GET_IS_SWEEP(U32 request) {
     return ((request) & 0x1);
 }
 
+//! Number of AdcData words produced by a request: a sweep produces one word per channel read,
+//! multiple reads of a single channel are summed into one word
+static inline U32 REQ_GET_NUM_WORDS(U32 request) {
+    return (REQ_GET_IS_SWEEP(request) == 1) ? (REQ_GET_CNT(request) + 1) : 1;
+}
+
 constexpr U32 MICROSECONDS_PER_SECOND = 1000 * 1000;
 constexpr U32 NANOSECONDS_PER_SECOND = MICROSECONDS_PER_SECOND * 1000;
 //! 100ns delay following the MUX being enabled or disabled
@@ -82,7 +89,9 @@ AdcSampler::AdcSampler(const char* const compName)
       m_pData(nullptr),
       m_curRequest(0),
       m_numReads(0),
-      m_adcDelayTicks(0) {
+      m_adcDelayTicks(0),
+      m_readErrors(0),
+      m_rejectedStartReads(0) {
     for (U32 i = 0; i < Va416x0Mmio::Gpio::NUM_PORTS; i++) {
         this->m_muxPinsMask[i] = 0;
         this->m_lastPinsValue[i] = 0;
@@ -164,7 +173,7 @@ void AdcSampler::configure(const AdcConfig& config) {
 }
 
 U32 AdcSampler::getNumDataValues_handler(FwIndexType portNum) {
-    return this->m_numReads == 0 ? 0 : this->m_dataIndex + 1;
+    return this->m_numReads == 0 ? 0 : this->m_dataIndex;
 }
 // ----------------------------------------------------------------------
 // Handler implementations for typed input ports
@@ -178,28 +187,37 @@ void AdcSampler::adcIrq_handler(FwIndexType portNum) {
     // NOTE: With extra overhead we could check the status register to ensure that the ADC is not
     // busy and the number of values matches the expected count and then reflect that back in the
     // status returned from checkRead
-    // U32 status = Va416x0Mmio::Adc::read_status();
-    // U32 num_samples = status & Va416x0Mmio::Adc::STATUS_FIFO_ENTRY_CNT_MASK;
-    // this->m_readOk = (this->m_readOk) && (num_samples == cur_request_cnt && (status &
-    // Va416x0Mmio::Adc::STATUS_IS_BUSY_MASK) == 0);
+    U32 status = Va416x0Mmio::Adc::read_status();
+    U32 num_samples = status & Va416x0Mmio::Adc::STATUS_FIFO_ENTRY_CNT_MASK;
+    bool readOk = (num_samples == (this->m_curCnt + 1) && (status & Va416x0Mmio::Adc::STATUS_IS_BUSY_MASK) == 0);
 
+    if (!readOk) {
+        this->m_readErrors.fetch_add(1);
+    }
+
+    // On failure, the expected number of output values is populated with ADC_READ_ERROR_VALUE
+    // (the FIFO is cleared when the next read starts)
     if (REQ_GET_IS_SWEEP(this->m_curRequest) == 0 && this->m_curCnt > 0) {
         // Reading a single channel multiple times
         FW_ASSERT((this->m_dataIndex) < this->m_pData->SIZE, this->m_requestIndex.load(), this->m_curRequest,
                   this->m_dataIndex, this->m_curCnt);
-        // Sum up all the values & then store that sum in data[i]
-        U32 sum = 0;
-        for (U32 n = 0; n < (this->m_curCnt + 1); n++) {
-            sum += Va416x0Mmio::Adc::read_fifo_data();
+        U32 value = Va416x0::ADC_READ_ERROR_VALUE;
+        if (readOk) {
+            // Sum up all the values & then store that sum in data[i]
+            value = 0;
+            for (U32 n = 0; n < (this->m_curCnt + 1); n++) {
+                value += Va416x0Mmio::Adc::read_fifo_data();
+            }
         }
-        (*this->m_pData)[this->m_dataIndex] = sum;
+        (*this->m_pData)[this->m_dataIndex] = value;
         this->m_dataIndex += 1;
     } else {
         // Otherwise, handle a sweep read OR a 1 time read of a single channel
         FW_ASSERT((this->m_dataIndex + this->m_curCnt) < this->m_pData->SIZE, this->m_requestIndex.load(),
                   this->m_curRequest, this->m_dataIndex, this->m_curCnt);
         for (U32 n = 0; n < (this->m_curCnt + 1); n++) {
-            (*this->m_pData)[this->m_dataIndex] = Va416x0Mmio::Adc::read_fifo_data();
+            (*this->m_pData)[this->m_dataIndex] =
+                readOk ? Va416x0Mmio::Adc::read_fifo_data() : static_cast<U32>(Va416x0::ADC_READ_ERROR_VALUE);
             this->m_dataIndex++;
         }
     }
@@ -213,6 +231,9 @@ void AdcSampler::adcIrq_handler(FwIndexType portNum) {
 }
 
 Va416x0::AdcSamplerStatus AdcSampler::checkRead_handler(FwIndexType portNum) {
+    // Telemetry is written here rather than in adcIrq_handler since this is not called from an ISR
+    this->tlmWrite_NumReadErrors(this->m_readErrors.load());
+    this->tlmWrite_NumRejectedStartReads(this->m_rejectedStartReads);
     return this->m_requestIndex.load() < this->m_numReads ? Va416x0::AdcSamplerStatus::BUSY
                                                           : Va416x0::AdcSamplerStatus::SUCCESS;
 }
@@ -221,7 +242,23 @@ bool AdcSampler::startRead_handler(FwIndexType portNum,
                                    U8 numReads,
                                    const Va416x0::AdcRequests& requests,
                                    Va416x0::AdcData& data) {
-    if (numReads == 0 || this->checkRead_handler(0) == Va416x0::AdcSamplerStatus::BUSY) {
+    const bool busy = this->m_requestIndex.load() < this->m_numReads;
+    // Pre-populate the output with the expected number of error values, so that any value which is not
+    // subsequently written is reported as an error. Skip this if it is the buffer that is being written by
+    // the in-progress read.
+    if (!(busy && &data == this->m_pData)) {
+        U32 index = 0;
+        const U32 numRequests =
+            (numReads < static_cast<U32>(requests.SIZE)) ? numReads : static_cast<U32>(requests.SIZE);
+        for (U32 i = 0; i < numRequests && requests[i] != 0; i++) {
+            const U32 numWords = REQ_GET_NUM_WORDS(requests[i]);
+            for (U32 n = 0; n < numWords && index < static_cast<U32>(data.SIZE); n++) {
+                data[index++] = static_cast<U16>(Va416x0::ADC_READ_ERROR_VALUE);
+            }
+        }
+    }
+    if (numReads == 0 || busy) {
+        this->m_rejectedStartReads++;
         return false;
     }
     this->m_pRequests = &requests;

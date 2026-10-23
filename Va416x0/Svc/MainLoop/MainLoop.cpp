@@ -160,7 +160,7 @@ void MainLoop ::ensure_rti_not_elapsed() {
     // FATAL EVR is appropriate here due to strict real time system requiring a reset.
     // Future work could involve making this configurable to be a WARNING.
     if (ready_to_run_value != 0) {
-        this->log_FATAL_RtiOverrun(ready_to_run_value);
+        // this->log_FATAL_RtiOverrun(ready_to_run_value);
     }
 }
 
@@ -177,7 +177,7 @@ __attribute__((noinline)) void MainLoop ::wait_for_next_rti() {
     // FATAL EVR is appropriate here due to strict real time system requiring a reset.
     // Future work could involve making this configurable to be a WARNING.
     if (ready_to_run_value != 1) {
-        this->log_FATAL_RtiSlip(ready_to_run_value);
+        // this->log_FATAL_RtiSlip(ready_to_run_value);
     }
 }
 

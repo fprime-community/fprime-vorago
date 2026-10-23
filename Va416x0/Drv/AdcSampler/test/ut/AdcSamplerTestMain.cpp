@@ -36,6 +36,46 @@ TEST(Nominal, testStartReadMuxEnableDisableDelay) {
     tester.testStartReadMuxEnableDisableDelay();
 }
 
+TEST(Nominal, testReadSuccessSingleChannelSum) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testReadSuccessSingleChannelSum();
+}
+
+TEST(Nominal, testReadSuccessSweep) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testReadSuccessSweep();
+}
+
+TEST(OffNominal, testReadFailureSampleCount) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testReadFailureSampleCount();
+}
+
+TEST(OffNominal, testReadFailureBusy) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testReadFailureBusy();
+}
+
+TEST(OffNominal, testReadFailureThenSuccess) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testReadFailureThenSuccess();
+}
+
+TEST(OffNominal, testStartReadRejectedBusy) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testStartReadRejectedBusy();
+}
+
+TEST(OffNominal, testStartReadRejectedBusySameBuffer) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testStartReadRejectedBusySameBuffer();
+}
+
+TEST(OffNominal, testStartReadRejectedZeroReads) {
+    Va416x0::AdcSamplerTester tester;
+    tester.testStartReadRejectedZeroReads();
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
