@@ -255,7 +255,7 @@ bool AdcSampler::startRead_handler(FwIndexType portNum,
         }
     }
     if (numReads == 0 || busy) {
-        this->m_rejectedStartReads++;
+        this->m_rejectedStartReads.fetch_add(1);
         return false;
     }
     this->m_pRequests = &requests;
@@ -373,7 +373,7 @@ U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
 void AdcSampler::reportTlm_handler(FwIndexType portNum, U32 context) {
     // Telemetry is written here rather than in adcIrq_handler since this is not called from an ISR
     this->tlmWrite_NumReadErrors(this->m_readErrors.load());
-    this->tlmWrite_NumRejectedStartReads(this->m_rejectedStartReads);
+    this->tlmWrite_NumRejectedStartReads(this->m_rejectedStartReads.load());
 }
 
 }  // namespace Va416x0

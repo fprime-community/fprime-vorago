@@ -126,7 +126,7 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! Number of reads that did not complete as expected (incremented in the ADC ISR)
     std::atomic<U32> m_readErrors;
     //! Number of rejected startRead calls
-    U32 m_rejectedStartReads;
+    std::atomic<U32> m_rejectedStartReads;
     //! Delay (in CPU cycles) after the MUX is enabled or disabled
     U32 m_muxEnaDisDelay;
     //! Last request which used a MUX
