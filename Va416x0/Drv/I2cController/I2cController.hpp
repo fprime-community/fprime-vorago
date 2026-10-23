@@ -63,18 +63,15 @@ class I2cController : public I2cControllerComponentBase {
   private:
     Va416x0Types::Optional<Va416x0Mmio::I2c> m_i2c_peripheral;
 
-    //! Check once whether the I2C bus is busy (STATUS_I2CIDLE is clear)
-    bool bus_is_busy();
-
     // ----------------------------------------------------------------------
     // Helper functions for read-write handlers
     // ----------------------------------------------------------------------
 
-    Drv::I2cStatus read_helper(U32 addr,                  //!< I2C subordinate device address
-                               Fw::Buffer& serBuffer,     //!< Buffer with data to read/write to/from
-                               const bool checkBusIdle);  //!< Check for an idle bus before reading
-    Drv::I2cStatus write_helper(U32 addr,                 //!< I2C subordinate device address
-                                Fw::Buffer& serBuffer,    //!< Buffer with data to read/write to/from
+    Drv::I2cStatus read_helper(U32 addr,              //!< I2C subordinate device address
+                               Fw::Buffer& serBuffer  //!< Buffer with data to read/write to/from
+    );
+    Drv::I2cStatus write_helper(U32 addr,               //!< I2C subordinate device address
+                                Fw::Buffer& serBuffer,  //!< Buffer with data to read/write to/from
                                 const bool withStop);
 
     // ----------------------------------------------------------------------

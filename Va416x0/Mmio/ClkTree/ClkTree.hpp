@@ -31,10 +31,6 @@
 
 namespace Va416x0Mmio {
 
-//! Heartbeat Oscillator (HBO) frequency: 20 MHz +/-25%
-constexpr U32 HEARTBEAT_OSC_FREQ = 20 * 1000 * 1000;
-constexpr U32 HEARTBEAT_OSC_MAX_FREQ = HEARTBEAT_OSC_FREQ + (HEARTBEAT_OSC_FREQ / 4);
-
 //! TODOs:
 //! - Allow switching clock trees at runtime. Currently assumes
 //!   applyClockTree is switching from the Heartbeat oscillator
@@ -186,6 +182,7 @@ class ClkTree {
             default:
                 pll_in_freq = 0;
                 break;
+                break;
         }
 
         const U32 pll_freq = ((pll_in_freq / (pll_ref_div + 1)) * (pll_fb_div + 1)) / (pll_out_div + 1);
@@ -194,7 +191,7 @@ class ClkTree {
 
         switch (sysclk_src) {
             case SysclkSource::HEARTBEAT_OSC:
-                return HEARTBEAT_OSC_FREQ / sysclk_div;
+                return 20 * 1000 * 1000 / sysclk_div;
             case SysclkSource::EXTERNAL_CLK:
                 return ext_clk_freq / sysclk_div;
             case SysclkSource::PLL:
