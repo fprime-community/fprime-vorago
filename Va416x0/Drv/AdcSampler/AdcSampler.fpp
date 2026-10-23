@@ -31,6 +31,9 @@ module Va416x0 {
         @ Returns number of values stored into the AdcData array by the last request
         sync input port getNumDataValues: Va416x0.GetAdcDataNum
 
+        @ Schedule port, called by the rate group to report telemetry
+        sync input port reportTlm: Svc.Sched
+
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #
         ###############################################################################

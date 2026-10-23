@@ -296,7 +296,7 @@ void AdcSamplerTester ::fillData(Va416x0::AdcData& data, U16 value) {
 }
 
 void AdcSamplerTester ::checkReadAndUpdateTlm() {
-    this->component.checkRead_handler(0);
+    this->component.reportTlm_handler(0, 0);
 }
 
 void AdcSamplerTester ::testReadSuccessSingleChannelSum() {

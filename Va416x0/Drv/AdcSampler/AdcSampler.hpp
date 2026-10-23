@@ -164,6 +164,11 @@ class AdcSampler final : public AdcSamplerComponentBase {
     //! Handler implementation for getNumDataValues
     U32 getNumDataValues_handler(FwIndexType portNum  //!< The port number
                                  ) override;
+
+    //! Handler implementation for reportTlm
+    void reportTlm_handler(FwIndexType portNum,  //!< The port number
+                           U32 context           //!< The call order
+                           ) override;
 };
 
 }  // namespace Va416x0

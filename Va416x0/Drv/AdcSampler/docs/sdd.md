@@ -119,7 +119,7 @@ Advantages:
 
 Refer to [AdcSampler.fpp](../AdcSampler.fpp). The component has no commands, events or parameters.
 
-The `NumReadErrors` and `NumRejectedStartReads` telemetry channels are written when `checkRead` is called (not from the interrupt handler).
+The `NumReadErrors` and `NumRejectedStartReads` telemetry channels are written when the `reportTlm` schedule port is invoked (by a rate group handler).
 
 ## Unit Tests
 Tests in [test/ut](../test/ut) cover MUX enable/address setup, and with the simulated ADC registers: successful single-channel (summed) and sweep reads; failed reads (sample count mismatch, ADC busy) reporting `ADC_READ_ERROR_VALUE`; a failed request followed by a good one; `startRead` rejected while busy (same and different buffer) and with zero reads; and the `NumReadErrors`/`NumRejectedStartReads` counts.

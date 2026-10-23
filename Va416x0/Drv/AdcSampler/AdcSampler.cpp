@@ -231,9 +231,6 @@ void AdcSampler::adcIrq_handler(FwIndexType portNum) {
 }
 
 Va416x0::AdcSamplerStatus AdcSampler::checkRead_handler(FwIndexType portNum) {
-    // Telemetry is written here rather than in adcIrq_handler since this is not called from an ISR
-    this->tlmWrite_NumReadErrors(this->m_readErrors.load());
-    this->tlmWrite_NumRejectedStartReads(this->m_rejectedStartReads);
     return this->m_requestIndex.load() < this->m_numReads ? Va416x0::AdcSamplerStatus::BUSY
                                                           : Va416x0::AdcSamplerStatus::SUCCESS;
 }
@@ -371,6 +368,12 @@ U32 AdcSampler::calculateGpioPinsValue(U32 request, U32 port_number) {
     }
 
     return pin_values;
+}
+
+void AdcSampler::reportTlm_handler(FwIndexType portNum, U32 context) {
+    // Telemetry is written here rather than in adcIrq_handler since this is not called from an ISR
+    this->tlmWrite_NumReadErrors(this->m_readErrors.load());
+    this->tlmWrite_NumRejectedStartReads(this->m_rejectedStartReads);
 }
 
 }  // namespace Va416x0
