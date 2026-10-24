@@ -56,10 +56,6 @@ doesn't fit in that space, it is dropped and counted in `DroppedEvents`/`Dropped
 instead. This preserves old, not-yet-read Events once a consumer is attached, trading "always
 accept new data" for "never lose data the GDS hasn't read yet."
 
-**Caveat:** If the event buffer stays busy for several RTIs (e.g. sustained ISR logging), the
-handoff is deferred and can race with a GDS read already in progress, causing a one-time
-duplicate or dropped record at the attach transition. This is debug-only and should not happen in flight.
-
 ## Port Descriptions
 | Name | Description |
 |---|---|
