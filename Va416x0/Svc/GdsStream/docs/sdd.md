@@ -49,7 +49,7 @@ case costs a single compare. `FW_ASSERT(m_overwriteMode)` is checked once at the
 
 The GDS side signals attachment by writing a non-zero value to a dedicated memory address after the read/write 
 cursors. `GdsStream` checks this flag once per RTI (in `Run_handler`); once it sees the flag set, it immediately 
-hands the shared read cursor off to the oldest surviving record, permanently switches out of overwrite mode, and 
+hands the shared read cursor off to the oldest surviving record, switches out of overwrite mode, and 
 stops evicting old data — all in that same RTI, with no additional delay. From then on, the write cursor is only 
 allowed to advance into space that the GDS has already consumed (i.e. that the read cursor has passed). If a new Event or console write
 doesn't fit in that space, it is dropped and counted in `DroppedEvents`/`DroppedConsoleBytes`

@@ -206,10 +206,10 @@ class GdsStream final : public GdsStreamComponentBase {
     bool m_setup;
 
     //! True until the GDS has attached and FSW has moved the shared read cursor out of overwrite
-    //! mode; permanently false afterward
+    //! mode; false afterward.
     bool m_overwriteMode;
     //! Start offset (double-modulo cursor space) of the oldest surviving complete record, tracked
-    //! while m_overwriteMode is set
+    //! while m_overwriteMode is set.
     U16 m_oldestRecordCursor;
 
     //! Ensures atomicity protections for the event buffer and related structures (line buffer,

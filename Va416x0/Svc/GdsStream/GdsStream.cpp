@@ -91,6 +91,10 @@ constexpr GdsStream::HeaderType INDICATOR_MASK = 1 << INDICATOR_OFFSET;
 constexpr GdsStream::HeaderType LENGTH_MASK = static_cast<GdsStream::HeaderType>(~INDICATOR_MASK);
 //! Mask to truncate a 16-bit buffer read down to the single log header byte
 constexpr U16 HEADER_BYTE_MASK = std::numeric_limits<GdsStream::HeaderType>::max();
+//! Header of a filler item: a zero-length console record. Written by fillWraparoundRegion and
+//! recognized by evictOldestRecord.
+constexpr GdsStream::HeaderType FILLER_HEADER = static_cast<GdsStream::HeaderType>(GdsStream::LogType::Console)
+                                                << INDICATOR_OFFSET;
 
 constexpr U32 MAX_EVENT_ARG_SIZE = LENGTH_MASK;
 
@@ -160,7 +164,7 @@ constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
 
 //! Size of an empty console entry, which is what wraparound filler is made of
 constexpr U32 CONSOLE_ENTRY_BYTES = consoleSize(1);
-// 12 byte event header goes into envent buffer.
+// 12 byte event header goes into event buffer.
 constexpr U32 EVICTION_LOOP_MAX_COUNT = (MAX_EVENT_ARG_SIZE + sizeof(GdsStream::EventHeader)) / CONSOLE_ENTRY_BYTES;
 
 static_assert(consoleSize(LINE_BUFFER_SIZE) <= eventSize(MAX_EVENT_ARG_SIZE),
@@ -396,9 +400,8 @@ void GdsStream::fillWraparoundRegion(U16 writeCursor) {
 
     // NOTE: Va416x0 is little-endian, header byte should go in the least-significant byte
     // FIXME: do not assume endianness, make this more flexible
-    HeaderType header = static_cast<HeaderType>(LogType::Console) << INDICATOR_OFFSET;
     for (U32 addr = extSramAddr; addr < EVENT_BUFFER_DATA_ADDRESS() + EVENT_BUFFER_DATA_SIZE; addr += sizeof(U16)) {
-        Va416x0Mmio::Amba::write_u16(addr, header);
+        Va416x0Mmio::Amba::write_u16(addr, FILLER_HEADER);
     }
 }
 
@@ -421,7 +424,6 @@ FwSizeType GdsStream::evictOldestRecord(U16 writeCursor) {
     // followed by zero-length console records padding out the end of the buffer (see
     // fillWraparoundRegion), skip the whole run now. It is cheaper than evicting each filler
     // individually, and the fillers must go anyway since the next record starts at the buffer start.
-    constexpr U16 FILLER_HEADER = static_cast<U16>(LogType::Console) << INDICATOR_OFFSET;
     FwSizeType freed = recordSize;
     // Filler can only start near the edge of the buffer, so the common case is a single compare.
     while (((this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK) > FILLER_REGION_START) &&
@@ -461,8 +463,8 @@ bool GdsStream::evictUntilFits(U16 writeCursor,
 
     // Evict whole records until the deficit is covered, without a fit check after every record
     FwSizeType freed = 0;
-    U32 count = 0;  // To prevent infinite loop due to h/w failure
-    while ((freed < deficit) && (count++ < EVICTION_LOOP_MAX_COUNT)) {
+    // The count limit prevents an infinite loop due to h/w failure
+    for (U32 count = 0; (freed < deficit) && (count < EVICTION_LOOP_MAX_COUNT); count++) {
         freed += this->evictOldestRecord(writeCursor);
     }
 
@@ -573,7 +575,6 @@ bool GdsStream::flushConsoleBuffer(void) {
         fits = this->itemFitsInBuffer(readCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
     }
     if (!fits) {
-        this->m_overwriteMode = false;
         // No room to flush the console output, return and wait for the GDS to make space
         return false;
     }
@@ -713,7 +714,6 @@ void GdsStream::LogRecv_handler(FwIndexType portNum,
         // Drop the event, incrementing drop count telemetry
         this->m_droppedEvents++;
         this->m_eventBufferInUse = 0;
-        this->m_overwriteMode = false;
         return;
     }
     if (wraparound) {
