@@ -93,6 +93,8 @@ constexpr GdsStream::HeaderType LENGTH_MASK = static_cast<GdsStream::HeaderType>
 constexpr U16 HEADER_BYTE_MASK = std::numeric_limits<GdsStream::HeaderType>::max();
 //! Header of a filler item: a zero-length console record. Written by fillWraparoundRegion and
 //! recognized by evictOldestRecord.
+// NOTE: Va416x0 is little-endian, header byte should go in the least-significant byte
+// FIXME: do not assume endianness, make this more flexible
 constexpr GdsStream::HeaderType FILLER_HEADER = static_cast<GdsStream::HeaderType>(GdsStream::LogType::Console)
                                                 << INDICATOR_OFFSET;
 
@@ -163,16 +165,19 @@ constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
 }
 
 //! Size of an empty console entry, which is what wraparound filler is made of
-constexpr U32 CONSOLE_ENTRY_BYTES = consoleSize(1);
-// 12 byte event header goes into event buffer.
-constexpr U32 EVICTION_LOOP_MAX_COUNT = (MAX_EVENT_ARG_SIZE + sizeof(GdsStream::EventHeader)) / CONSOLE_ENTRY_BYTES;
+constexpr U32 CONSOLE_ENTRY_BYTES = consoleSize(0);
 
-static_assert(consoleSize(LINE_BUFFER_SIZE) <= eventSize(MAX_EVENT_ARG_SIZE),
-              "Filler region sizing assumes the largest record is an event");
-static_assert(eventSize(MAX_EVENT_ARG_SIZE) < EVENT_BUFFER_DATA_SIZE, "Largest record must fit in the event buffer");
+//! Largest record that can be stored in the event buffer
+constexpr FwSizeType MAX_RECORD_SIZE = (eventSize(MAX_EVENT_ARG_SIZE) > consoleSize(LINE_BUFFER_SIZE))
+                                           ? eventSize(MAX_EVENT_ARG_SIZE)
+                                           : consoleSize(LINE_BUFFER_SIZE);
+// Evicting one largest record, and any filler after it, never takes more than this many evictions
+constexpr U32 EVICTION_LOOP_MAX_COUNT = MAX_RECORD_SIZE / CONSOLE_ENTRY_BYTES;
+
 //! Wraparound filler (see fillWraparoundRegion) is only written when a record does not fit before
-//! the edge of the buffer, so it always starts within the size of the largest event of that edge
-constexpr U16 FILLER_REGION_START = EVENT_BUFFER_DATA_SIZE - eventSize(MAX_EVENT_ARG_SIZE);
+//! the edge of the buffer, so it always starts within MAX_RECORD_SIZE bytes of that edge
+constexpr U16 FILLER_REGION_START = EVENT_BUFFER_DATA_SIZE - MAX_RECORD_SIZE;
+static_assert(MAX_RECORD_SIZE < EVENT_BUFFER_DATA_SIZE, "Largest record must fit in the event buffer");
 
 // ----------------------------------------------------------------------
 // GdsStream functions
@@ -398,8 +403,6 @@ void GdsStream::fillWraparoundRegion(U16 writeCursor) {
     U32 extSramAddr = EVENT_BUFFER_DATA_ADDRESS() + writeCursorRelative;
     FW_ASSERT((extSramAddr % sizeof(U16)) == 0, extSramAddr);
 
-    // NOTE: Va416x0 is little-endian, header byte should go in the least-significant byte
-    // FIXME: do not assume endianness, make this more flexible
     for (U32 addr = extSramAddr; addr < EVENT_BUFFER_DATA_ADDRESS() + EVENT_BUFFER_DATA_SIZE; addr += sizeof(U16)) {
         Va416x0Mmio::Amba::write_u16(addr, FILLER_HEADER);
     }
