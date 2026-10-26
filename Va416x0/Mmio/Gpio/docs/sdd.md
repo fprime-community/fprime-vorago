@@ -4,15 +4,17 @@ Provides memory-mapped I/O register access for VA416x0 GPIO pins and ports
 
 ## Introduction
 
-## Host unit-test simulation
+TODO: Fill this in for the vorago implementation 
 
-**Build**: the real `Pin.cpp`, `Port.cpp` and `PinCommon.cpp` build on every platform and run on the
+## Unit test support
+
+**Build**: `Pin.cpp`, `Port.cpp` and `PinCommon.cpp` build on every platform and run on the
 host against the Amba stub (`Amba/stubs`). Under `BUILD_TESTING` on non-baremetal platforms,
 `test/support/GpioModel.{hpp,cpp}` is compiled into `Va416x0_Mmio_Gpio` itself. It only adds
-symbols, so consumers cannot get multiple definitions. `PortRegisters.hpp` holds the register
+symbols, so there's no issue of multiple definitions. `PortRegisters.hpp` holds the register
 offsets shared by the model and the tests.
 
-**Fixture pattern** (declaration order matters, since pin configuration enables clocks through
+**Usage** (declaration order matters, since pin configuration enables clocks through
 SYSCONFIG):
 
 ```cpp
@@ -43,27 +45,14 @@ injected values (`setInReadValue`, counted in port-wide input-register reads, on
 readback fault (bit inverted); the stored word is unchanged. Injected reads are discarded when the
 pin's `DIR` bit is set.
 
-**Not modelled**: `PULSE`/`PULSEBASE` waveforms and `DELAY1`/`DELAY2` timing; IRQ generation
+**Not modelled**: `PULSE`/`PULSEBASE` and `DELAY1`/`DELAY2` timing; IRQ generation
 (`IRQ_RAW`, `IRQ_END`, `EDGE_STATUS` read back what was written); IEWO input-buffer gating; IOCONFIG
 funsel effects on the pad; clock gating (accesses with the port clock off still take effect);
 registers above bit 15 are stored but have no pins.
 
-**Migration from the old `Gpio::TestSupport` free functions**
-
-| Old (removed)                                   | New                                                      |
-|-------------------------------------------------|----------------------------------------------------------|
-| `reset()`, `resetPorts`                         | `Amba::TestSupport::reset()`                             |
-| `getPinLevel`, `setPinInput`                    | same names on `GpioModel`                                |
-| `getOutCallCount`                               | `getOutWriteCount`                                       |
-| `getInCallCount`                                | `getInputReadCount(port)` (per port)                     |
-| `isConfiguredAsGpio`, `getGpioConfiguration`    | `getPinConfig`, `getDirection`, `IoConfig::read_port_config` |
-| `isConfiguredAsFunction`, `getFunctionConfiguration` | `IoConfig::read_port_config` funsel bits            |
-| readback-fault functions                        | same names on `GpioModel`                                |
-
-**Open items**
-- O1: `DATAMASK` resets to `0xFFFFFFFF` (bit-level table, Programmer's Guide 23.3.8); Table 52 says
-  `0x0`. Confirm on an EM board. `Pin::in()` reads `DATAINRAW` and is unaffected either way.
-- O2: injected reads count port-wide input-register reads, not `Pin::in()` calls. Per-call semantics
+**Caveats**
+- `DATAMASK` resets to `0xFFFFFFFF` (bit-level table, Programmer's Guide 23.3.8); Table 52 says
+  `0x0` but the register table says `0xFFFFFFFF` . `Pin::in()` reads `DATAINRAW` and is unaffected either way.
+- Injected reads count port-wide input-register reads, not `Pin::in()` calls. Per-call semantics
   would need a test hook in flight `Pin::in`; not done.
 
-The rest of this document is TODO.

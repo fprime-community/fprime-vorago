@@ -181,7 +181,7 @@ void GpioModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
             break;
         case Registers::DATAIN:
         case Registers::DATAINRAW:
-            // Read-only on silicon. Keep the pass-through value, then re-impose loopback on OUT
+            // Read-only on uC. Keep the pass-through value, then re-impose loopback on OUT
             // pins and recompute DATAIN.
             this->syncInputs(p);
             break;

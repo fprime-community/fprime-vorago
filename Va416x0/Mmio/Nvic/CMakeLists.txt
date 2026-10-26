@@ -21,7 +21,7 @@ set(NVIC_HEADERS
     Nvic.hpp
 )
 
-# Host simulation support is part of the Nvic target IFF BUILD_TESTING is set and the build is not
+# Unit test support is part of the Nvic target IFF BUILD_TESTING is set and the build is not
 # for baremetal. It adds symbols only and never replaces a flight symbol.
 if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
     list(APPEND NVIC_SOURCES test/support/NvicModel.cpp)

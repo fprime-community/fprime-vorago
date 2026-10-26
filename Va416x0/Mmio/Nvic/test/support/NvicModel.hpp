@@ -82,21 +82,37 @@ class NvicModel final : public Amba::TestSupport::DeviceModel {
     void injectEnableIgnored(Va416x0Types::ExceptionNumber exception, bool ignored);
 
   private:
+    static constexpr U32 BITS_PER_WORD = 32;
+
+    //! One bit per interrupt, packed into 32-interrupt words like the NVIC registers
+    struct Bitset {
+        U32 words[NUM_WORDS] = {};
+        bool get(U32 n) const { return ((this->words[n / BITS_PER_WORD] >> (n % BITS_PER_WORD)) & 1) != 0; }
+        void write(U32 n, bool value) {
+            const U32 mask = 1u << (n % BITS_PER_WORD);
+            if (value) {
+                this->words[n / BITS_PER_WORD] |= mask;
+            } else {
+                this->words[n / BITS_PER_WORD] &= ~mask;
+            }
+        }
+    };
+
+    //! Kinds of per-interrupt write/event counts
+    enum Count { ENABLE, DISABLE, SET_PENDING, CLEAR_PENDING, PRIORITY_WRITE, TRIGGER, NUM_COUNTS };
+
     static U32 index(Va416x0Types::ExceptionNumber exception);  //!< asserts range; 0-based interrupt number
     void clearBookkeeping();
     void sync(U32 word);  //!< poke the mirrored registers for one 32-interrupt word
+    //! Set/clear one bit of a state bitset and re-mirror its register word
+    void writeBit(Bitset& bits, U32 n, bool value);
 
-    U32 enabled[NUM_WORDS];
-    U32 pending[NUM_WORDS];
-    U32 active[NUM_WORDS];
-    U32 stuck_pending[NUM_WORDS];
-    U32 enable_ignored[NUM_WORDS];
-    U32 enable_counts[NUM_INTERRUPTS];
-    U32 disable_counts[NUM_INTERRUPTS];
-    U32 set_pending_counts[NUM_INTERRUPTS];
-    U32 clear_pending_counts[NUM_INTERRUPTS];
-    U32 priority_write_counts[NUM_INTERRUPTS];
-    U32 trigger_counts[NUM_INTERRUPTS];
+    Bitset enabled;
+    Bitset pending;
+    Bitset active;
+    Bitset stuck_pending;
+    Bitset enable_ignored;
+    U32 counts[NUM_COUNTS][NUM_INTERRUPTS];
 };
 
 }  // namespace TestSupport

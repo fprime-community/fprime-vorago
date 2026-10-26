@@ -4,6 +4,10 @@ Provides memory-mapped I/O register access for the VA416x0 timer peripherals
 
 ## Introduction
 
+TODO: Fill this in for the vorago implementation 
+
+## Unit test support
+
 ## Host unit-test simulation
 
 `test/support/TimerModel.{hpp,cpp}` is compiled into `Va416x0_Mmio_Timer` under `BUILD_TESTING` on
