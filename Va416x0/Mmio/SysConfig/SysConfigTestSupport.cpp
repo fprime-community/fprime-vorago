@@ -55,6 +55,9 @@ namespace {
 constexpr U32 DEFAULT_SEED = 0;
 constexpr U32 RESET_INACTIVE_SEED = ~static_cast<U32>(0);
 
+// SYS_CONFIG_ADDRESS in SysConfig.cpp
+constexpr U32 SYSCONFIG_ADDRESS = 0x40010000;
+
 }  // namespace
 
 void reset() {
@@ -94,6 +97,14 @@ void reset() {
     write_ef_id1(DEFAULT_SEED);
     write_procid(DEFAULT_SEED);
     write_perid(DEFAULT_SEED);
+}
+
+Model::Model() {
+    Amba::TestSupport::registerDevice(*this, SYSCONFIG_ADDRESS, 0x1000);
+}
+
+void Model::reset() {
+    TestSupport::reset();
 }
 
 }  // namespace TestSupport

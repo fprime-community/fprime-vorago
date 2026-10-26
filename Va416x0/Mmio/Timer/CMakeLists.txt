@@ -14,15 +14,47 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+set(TIMER_SOURCES
+    Timer.cpp
+)
+set(TIMER_HEADERS
+    Timer.hpp
+)
+set(TIMER_DEPENDS
+    Fw_Types
+    Va416x0_Mmio_Amba
+    Va416x0_Mmio_Gpio
+    Va416x0_Mmio_Signal
+    Va416x0_Types
+)
+
+# Host simulation support is part of the Timer target IFF BUILD_TESTING is set and the build is not
+# for baremetal. It adds symbols only and never replaces a flight symbol.
+if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    list(APPEND TIMER_SOURCES test/support/TimerModel.cpp)
+    list(APPEND TIMER_HEADERS test/support/TimerModel.hpp)
+    list(APPEND TIMER_DEPENDS Va416x0_Mmio_Nvic)
+endif()
+
 register_fprime_library(
     SOURCES
-        Timer.cpp
+        ${TIMER_SOURCES}
     HEADERS
-        Timer.hpp
+        ${TIMER_HEADERS}
     DEPENDS
-        Fw_Types
-        Va416x0_Mmio_Amba
-        Va416x0_Mmio_Gpio
-        Va416x0_Mmio_Signal
-        Va416x0_Types
+        ${TIMER_DEPENDS}
 )
+
+if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    register_fprime_ut(
+        TimerModelTest
+        SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/test/ut/TimerModelTest.cpp"
+        DEPENDS
+            Fw_Types
+            Va416x0_Mmio_Amba
+            Va416x0_Mmio_Nvic
+            Va416x0_Mmio_Timer
+            Va416x0_Types
+    )
+endif()

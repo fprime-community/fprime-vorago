@@ -159,9 +159,13 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         // Confirm that only a single mux is enabled (0) and all others are 1
         for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
             if (i == req_mux_enable) {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
             } else {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
             }
         }
         // Confirm the requests match as expected
@@ -182,9 +186,13 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         // Confirm that only a single mux is enabled (0) and all others are 1
         for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
             if (i == req_mux_enable) {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
             } else {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
             }
         }
         // Confirm the requests match as expected
@@ -205,9 +213,13 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         // Confirm that only a single mux is enabled (0) and all others are 1
         for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
             if (i == req_mux_enable) {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
             } else {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
             }
         }
         // Confirm the requests match as expected
@@ -239,7 +251,9 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
         this->component.startRead_handlerBase(0, 8, three_mux_pin_config_requests, this->m_data);
         EXPECT_TRUE(this->component.m_requestIndex == 0);
         for (U32 i = 0; i < three_mux_pin_config.muxAddrPinCount; i++) {
-            EXPECT_TRUE(three_mux_pin_config.muxAddrPins[i].in() == Fw::Logic::HIGH);
+            EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxAddrPins[i]), Fw::Direction::OUT);
+            EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxAddrPins[i]), Fw::Logic::HIGH);
+            EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxAddrPins[i]), Fw::Logic::HIGH);
         }
     }
 }
