@@ -421,6 +421,7 @@ void AdcSamplerTester ::testStartReadRejectedBusy() {
     // The read in progress is not disturbed (its buffer holds the pre-populated error value)
     ASSERT_EQ(this->m_data[0], ERROR_VALUE);
     ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::BUSY);
+    this->checkReadAndUpdateTlm();
     ASSERT_TLM_NumRejectedStartReads(0, 1U);
 }
 
@@ -452,6 +453,7 @@ void AdcSamplerTester ::testStartReadRejectedZeroReads() {
     ASSERT_EQ(this->m_data[0], DATA_PATTERN);
     ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::SUCCESS);
     ASSERT_EQ(this->component.getNumDataValues_handler(0), 0U);
+    this->checkReadAndUpdateTlm();
     ASSERT_TLM_NumRejectedStartReads(0, 2U);
     ASSERT_TLM_NumReadErrors(0, 0U);
 }
