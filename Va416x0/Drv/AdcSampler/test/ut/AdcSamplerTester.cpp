@@ -20,9 +20,12 @@
 // ======================================================================
 
 #include "AdcSamplerTester.hpp"
+#include "Va416x0/Mmio/Adc/Adc.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
+#include "Va416x0/Mmio/Amba/AmbaTestSupport.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
+#include "Va416x0/Ports/FppConstantsAc.hpp"
 #include "config-vorago/FppConstantsAc.hpp"
 
 namespace Va416x0 {
@@ -242,6 +245,217 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
             EXPECT_TRUE(three_mux_pin_config.muxAddrPins[i].in() == Fw::Logic::HIGH);
         }
     }
+}
+
+// ----------------------------------------------------------------------
+// Read result tests
+// ----------------------------------------------------------------------
+
+// Addresses of the simulated ADC registers (see Adc.cpp)
+constexpr U32 ADC_STATUS_ADDRESS = 0x40022000 + 0x08;
+constexpr U32 ADC_FIFO_DATA_ADDRESS = 0x40022000 + 0x04;
+
+constexpr U16 ERROR_VALUE = static_cast<U16>(ADC_READ_ERROR_VALUE);
+constexpr U16 DATA_PATTERN = 0x1234;
+
+void AdcSamplerTester ::configureComponent() {
+    Va416x0Mmio::Amba::TestSupport::reset();
+    Va416x0Mmio::SysConfig::write_tim_clk_enables(0);
+    Va416x0Mmio::SysConfig::write_peripheral_clk_enable(0);
+    for (U32 portIndex = 0; portIndex < Va416x0Mmio::Gpio::NUM_PORTS; ++portIndex) {
+        Va416x0Mmio::Gpio::Port gpioPort = Va416x0Mmio::Gpio::Port(portIndex);
+        gpioPort.write_dir(0);
+        gpioPort.write_pulse(0);
+        gpioPort.write_pulsebase(0);
+        gpioPort.write_delay1(0);
+        gpioPort.write_delay2(0);
+        gpioPort.write_irq_sen(0);
+        gpioPort.write_irq_edge(0);
+        gpioPort.write_irq_evt(0);
+        gpioPort.write_irq_enb(0);
+    }
+    this->component.configure(three_mux_pin_config);
+    this->fillData(this->m_data, DATA_PATTERN);
+    this->fillData(this->m_otherData, DATA_PATTERN);
+    this->clearHistory();
+}
+
+void AdcSamplerTester ::setAdcRegisters(U32 fifoEntries, bool busy, U32 fifoValue) {
+    U32 status = fifoEntries & Va416x0Mmio::Adc::STATUS_FIFO_ENTRY_CNT_MASK;
+    if (busy) {
+        status |= Va416x0Mmio::Adc::STATUS_IS_BUSY_MASK;
+    }
+    Va416x0Mmio::Amba::write_u32(ADC_STATUS_ADDRESS, status);
+    Va416x0Mmio::Amba::write_u32(ADC_FIFO_DATA_ADDRESS, fifoValue);
+}
+
+void AdcSamplerTester ::fillData(Va416x0::AdcData& data, U16 value) {
+    for (U32 i = 0; i < data.SIZE; i++) {
+        data[i] = value;
+    }
+}
+
+void AdcSamplerTester ::checkReadAndUpdateTlm() {
+    this->component.reportTlm_handler(0, 0);
+}
+
+void AdcSamplerTester ::testReadSuccessSingleChannelSum() {
+    this->configureComponent();
+    // 4 conversions (cnt = 3) of channel 0, not a sweep, not a MUX request
+    this->m_requests[0] = adc_sampler_request(1 << 0, 3, 0, 0, 0, 0);
+    ASSERT_TRUE(this->component.startRead_handler(0, 1, this->m_requests, this->m_data));
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::BUSY);
+    // The data is pre-populated with error values until the read completes
+    ASSERT_EQ(this->m_data[0], ERROR_VALUE);
+    ASSERT_EQ(this->m_data[1], DATA_PATTERN);
+
+    this->setAdcRegisters(4, false, 100);
+    this->component.adcIrq_handler(0);
+
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::SUCCESS);
+    ASSERT_EQ(this->component.getNumDataValues_handler(0), 1U);
+    ASSERT_EQ(this->m_data[0], 400);
+    ASSERT_EQ(this->m_data[1], DATA_PATTERN);  // Nothing else written
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumReadErrors(0, 0U);
+    ASSERT_TLM_NumRejectedStartReads(0, 0U);
+}
+
+void AdcSamplerTester ::testReadSuccessSweep() {
+    this->configureComponent();
+    // Sweep of 3 channels
+    this->m_requests[0] = adc_sampler_request(0x7, 2, 1, 0, 0, 0);
+    ASSERT_TRUE(this->component.startRead_handler(0, 1, this->m_requests, this->m_data));
+
+    this->setAdcRegisters(3, false, 7);
+    this->component.adcIrq_handler(0);
+
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::SUCCESS);
+    ASSERT_EQ(this->component.getNumDataValues_handler(0), 3U);
+    for (U32 i = 0; i < 3; i++) {
+        ASSERT_EQ(this->m_data[i], 7);
+    }
+    ASSERT_EQ(this->m_data[3], DATA_PATTERN);
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumReadErrors(0, 0U);
+}
+
+void AdcSamplerTester ::testReadFailureSampleCount() {
+    this->configureComponent();
+    this->m_requests[0] = adc_sampler_request(1 << 0, 3, 0, 0, 0, 0);
+    ASSERT_TRUE(this->component.startRead_handler(0, 1, this->m_requests, this->m_data));
+
+    // Only 2 of the 4 expected entries are in the FIFO
+    this->setAdcRegisters(2, false, 100);
+    this->component.adcIrq_handler(0);
+
+    // The read is complete, but the single (summed) value is reported as an error
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::SUCCESS);
+    ASSERT_EQ(this->component.getNumDataValues_handler(0), 1U);
+    ASSERT_EQ(this->m_data[0], ERROR_VALUE);
+    ASSERT_EQ(this->m_data[1], DATA_PATTERN);
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumReadErrors(0, 1U);
+}
+
+void AdcSamplerTester ::testReadFailureBusy() {
+    this->configureComponent();
+    this->m_requests[0] = adc_sampler_request(0x7, 2, 1, 0, 0, 0);
+    ASSERT_TRUE(this->component.startRead_handler(0, 1, this->m_requests, this->m_data));
+
+    // Right number of entries, but the ADC still reports busy
+    this->setAdcRegisters(3, true, 7);
+    this->component.adcIrq_handler(0);
+
+    ASSERT_EQ(this->component.getNumDataValues_handler(0), 3U);
+    for (U32 i = 0; i < 3; i++) {
+        ASSERT_EQ(this->m_data[i], ERROR_VALUE);
+    }
+    ASSERT_EQ(this->m_data[3], DATA_PATTERN);
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumReadErrors(0, 1U);
+}
+
+void AdcSamplerTester ::testReadFailureThenSuccess() {
+    this->configureComponent();
+    // Request 0: sweep of 2 channels, request 1: 2 conversions of one channel
+    this->m_requests[0] = adc_sampler_request(0x3, 1, 1, 0, 0, 0);
+    this->m_requests[1] = adc_sampler_request(1 << 4, 1, 0, 0, 0, 0);
+    ASSERT_TRUE(this->component.startRead_handler(0, 2, this->m_requests, this->m_data));
+
+    // First request fails (FIFO empty); the second request is started automatically
+    this->setAdcRegisters(0, false, 5);
+    this->component.adcIrq_handler(0);
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::BUSY);
+
+    // Second request succeeds
+    this->setAdcRegisters(2, false, 5);
+    this->component.adcIrq_handler(0);
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::SUCCESS);
+
+    ASSERT_EQ(this->component.getNumDataValues_handler(0), 3U);
+    ASSERT_EQ(this->m_data[0], ERROR_VALUE);
+    ASSERT_EQ(this->m_data[1], ERROR_VALUE);
+    ASSERT_EQ(this->m_data[2], 10);
+    ASSERT_EQ(this->m_data[3], DATA_PATTERN);
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumReadErrors(0, 1U);
+}
+
+void AdcSamplerTester ::testStartReadRejectedBusy() {
+    this->configureComponent();
+    this->m_requests[0] = adc_sampler_request(1 << 0, 3, 0, 0, 0, 0);
+    ASSERT_TRUE(this->component.startRead_handler(0, 1, this->m_requests, this->m_data));
+
+    // A second request (sweep of 3 channels, then a 4x single channel read) while the first is in progress
+    Va416x0::AdcRequests otherRequests;
+    otherRequests[0] = adc_sampler_request(0x7, 2, 1, 0, 0, 0);
+    otherRequests[1] = adc_sampler_request(1 << 1, 3, 0, 0, 0, 0);
+    ASSERT_FALSE(this->component.startRead_handler(0, 2, otherRequests, this->m_otherData));
+
+    // The sweep produces 3 values and the single channel read produces 1
+    for (U32 i = 0; i < 4; i++) {
+        ASSERT_EQ(this->m_otherData[i], ERROR_VALUE);
+    }
+    ASSERT_EQ(this->m_otherData[4], DATA_PATTERN);
+    // The read in progress is not disturbed (its buffer holds the pre-populated error value)
+    ASSERT_EQ(this->m_data[0], ERROR_VALUE);
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::BUSY);
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumRejectedStartReads(0, 1U);
+}
+
+void AdcSamplerTester ::testStartReadRejectedBusySameBuffer() {
+    this->configureComponent();
+    this->m_requests[0] = adc_sampler_request(1 << 0, 3, 0, 0, 0, 0);
+    ASSERT_TRUE(this->component.startRead_handler(0, 1, this->m_requests, this->m_data));
+
+    // Reusing the buffer that the in-progress read will write to must not touch it
+    this->m_data[0] = 1234;
+    ASSERT_FALSE(this->component.startRead_handler(0, 1, this->m_requests, this->m_data));
+    ASSERT_EQ(this->m_data[0], 1234);
+
+    // The in-progress read still completes normally
+    this->setAdcRegisters(4, false, 100);
+    this->component.adcIrq_handler(0);
+    ASSERT_EQ(this->m_data[0], 400);
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumRejectedStartReads(0, 1U);
+}
+
+void AdcSamplerTester ::testStartReadRejectedZeroReads() {
+    this->configureComponent();
+    this->m_requests[0] = adc_sampler_request(1 << 0, 3, 0, 0, 0, 0);
+    ASSERT_FALSE(this->component.startRead_handler(0, 0, this->m_requests, this->m_data));
+    ASSERT_FALSE(this->component.startRead_handler(0, 0, this->m_requests, this->m_data));
+
+    // Nothing was requested, so no data is written and no read is in progress
+    ASSERT_EQ(this->m_data[0], DATA_PATTERN);
+    ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::SUCCESS);
+    ASSERT_EQ(this->component.getNumDataValues_handler(0), 0U);
+    this->checkReadAndUpdateTlm();
+    ASSERT_TLM_NumRejectedStartReads(0, 2U);
+    ASSERT_TLM_NumReadErrors(0, 0U);
 }
 
 void AdcSamplerTester ::testSetup() {}
