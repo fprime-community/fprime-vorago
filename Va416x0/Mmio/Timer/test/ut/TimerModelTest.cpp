@@ -133,20 +133,6 @@ TEST_F(TimerModelTest, RequestStopHaltsAndClears) {
     EXPECT_EQ(timers.getStopCount(t3), 1u);
 }
 
-TEST_F(TimerModelTest, StartIgnoredFault) {
-    timers.injectStartIgnored(t3, true);
-    t3.write_cnt_value(100);
-    t3.write_enable(1);
-    EXPECT_FALSE(timers.isRunning(t3));
-    EXPECT_EQ(t3.read_enable(), 0u);
-    EXPECT_EQ(timers.getStartCount(t3), 0u);
-    EXPECT_EQ(timers.getWriteCount(t3, Registers::ENABLE), 1u);  // the attempt is still counted
-    EXPECT_TRUE(timers.isStartIgnored(t3));
-    timers.injectStartIgnored(t3, false);
-    t3.write_enable(1);
-    EXPECT_TRUE(timers.isRunning(t3));
-}
-
 TEST_F(TimerModelTest, PerTimerRegisterCounts) {
     t20.write_cnt_value(5);
     t20.write_cnt_value(6);
@@ -174,14 +160,12 @@ TEST_F(TimerModelTest, HelpersDoNotCount) {
 
 TEST_F(TimerModelTest, AmbaResetClearsModel) {
     timers.setStartHistoryDepth(t3, 4);
-    timers.injectStartIgnored(t3, true);
     t20.write_cnt_value(9);
     t20.write_enable(1);
     AmbaTs::reset();
     EXPECT_FALSE(timers.isRunning(t20));
     EXPECT_EQ(timers.getStartCount(t20), 0u);
     EXPECT_EQ(timers.getStartHistoryCount(t20), 0u);
-    EXPECT_FALSE(timers.isStartIgnored(t3));
     EXPECT_EQ(timers.getWriteCount(t20, Registers::CNT_VALUE), 0u);
 }
 

@@ -28,8 +28,17 @@ namespace Amba {
 namespace ResetDefaults {
 
 // Helper macro to define register entries
-#define REG(addr, val) {addr, val, true}
-#define REG_UNKNOWN(addr) {addr, 0, false}
+//! Produces a compile error (non-constexpr call in a constant expression) for an address that is
+//! not U32-aligned
+void misalignedRegisterAddress();
+constexpr U32 alignedAddress(U32 addr) {
+    if ((addr & 0x3) != 0) {
+        misalignedRegisterAddress();
+    }
+    return addr;
+}
+#define REG(addr, val) {alignedAddress(addr), val, true}
+#define REG_UNKNOWN(addr) {alignedAddress(addr), 0, false}
 
 // UART registers (UART0, UART1, UART2)
 constexpr RegisterDefault kUart[] = {
@@ -464,11 +473,10 @@ constexpr RegisterDefault kCortexM4Core[] = {
 
 // Total count of registers across all per-peripheral tables above.
 static constexpr std::size_t kAllRegistersCount =
-    sizeof(kUart) / sizeof(kUart[0]) + sizeof(kSpi) / sizeof(kSpi[0]) + sizeof(kI2c) / sizeof(kI2c[0]) +
-    sizeof(kCan) / sizeof(kCan[0]) + sizeof(kGpio) / sizeof(kGpio[0]) + sizeof(kTimers) / sizeof(kTimers[0]) +
-    sizeof(kOtherPeripherals) / sizeof(kOtherPeripherals[0]) + sizeof(kSystemControl) / sizeof(kSystemControl[0]) +
-    sizeof(kDmaAndNetwork) / sizeof(kDmaAndNetwork[0]) + sizeof(kEbi) / sizeof(kEbi[0]) +
-    sizeof(kCortexM4Core) / sizeof(kCortexM4Core[0]);
+    FW_NUM_ARRAY_ELEMENTS(kUart) + FW_NUM_ARRAY_ELEMENTS(kSpi) + FW_NUM_ARRAY_ELEMENTS(kI2c) +
+    FW_NUM_ARRAY_ELEMENTS(kCan) + FW_NUM_ARRAY_ELEMENTS(kGpio) + FW_NUM_ARRAY_ELEMENTS(kTimers) +
+    FW_NUM_ARRAY_ELEMENTS(kOtherPeripherals) + FW_NUM_ARRAY_ELEMENTS(kSystemControl) +
+    FW_NUM_ARRAY_ELEMENTS(kDmaAndNetwork) + FW_NUM_ARRAY_ELEMENTS(kEbi) + FW_NUM_ARRAY_ELEMENTS(kCortexM4Core);
 
 // Merged table of all register tables above, built and sorted by address once
 // at startup so that lookup() can use a single binary search.

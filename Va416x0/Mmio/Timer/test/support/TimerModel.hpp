@@ -26,23 +26,13 @@
 #include "Va416x0/Mmio/Amba/test/support/RingHistory.hpp"
 #include "Va416x0/Mmio/Nvic/test/support/NvicModel.hpp"
 #include "Va416x0/Mmio/Timer/Timer.hpp"
+#include "Va416x0/Mmio/Timer/TimerRegisters.hpp"
 
 namespace Va416x0Mmio {
 namespace TimerTestSupport {
 
-//! Register offsets within one timer's block (the real ones are private to Timer.cpp)
-namespace Registers {
-constexpr U32 CTRL = 0x000;
-constexpr U32 RST_VALUE = 0x004;
-constexpr U32 CNT_VALUE = 0x008;
-constexpr U32 ENABLE = 0x00C;
-constexpr U32 CSD_CTRL = 0x010;
-constexpr U32 CASCADE0 = 0x014;
-constexpr U32 CASCADE1 = 0x018;
-constexpr U32 CASCADE2 = 0x01C;
-constexpr U32 PWMA_VALUE = 0x020;
-constexpr U32 PWMB_VALUE = 0x024;
-}  // namespace Registers
+//! Register offsets within one timer's block (shared with Timer.cpp)
+namespace Registers = ::Va416x0Mmio::TimerRegisters;
 
 //! Register-level simulation of TIM0-TIM23 (0x40018000 x16 and 0x40028000 x8, 0x400 apart).
 //! Own one per test fixture. Registers with the Amba stub on construction and unregisters on
@@ -98,11 +88,6 @@ class TimerModel final : public Amba::TestSupport::DeviceModel {
     StartEntry getStartHistoryEntry(const Timer& timer, U32 index) const;  //!< 0 = oldest
     StartEntry getLastStart(const Timer& timer) const;                     //!< asserts if none
 
-    // ---- Fault injection ----
-    //! While set, writing ENABLE=1 does not start the timer (ENABLE reads 0)
-    void injectStartIgnored(const Timer& timer, bool ignored);
-    bool isStartIgnored(const Timer& timer) const;
-
   private:
     struct PerTimer {
         PerTimer();
@@ -112,7 +97,6 @@ class TimerModel final : public Amba::TestSupport::DeviceModel {
         U32 starts;
         U32 stops;
         U32 expires;
-        bool start_ignored;
         Amba::TestSupport::RingHistory<StartEntry> history;
     };
 
@@ -122,9 +106,9 @@ class TimerModel final : public Amba::TestSupport::DeviceModel {
     U32 peek(U32 index, U32 offset) const;
     void poke(U32 index, U32 offset, U32 value);
 
-    Nvic::TestSupport::NvicModel* nvic;
-    U32 sequence;
-    PerTimer timers[NUM_TIMERS];
+    Nvic::TestSupport::NvicModel* m_nvic;
+    U32 m_sequence;
+    PerTimer m_timers[NUM_TIMERS];
 };
 
 }  // namespace TimerTestSupport

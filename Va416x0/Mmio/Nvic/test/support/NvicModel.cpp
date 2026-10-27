@@ -48,14 +48,14 @@ NvicModel::NvicModel() {
 }
 
 void NvicModel::clearBookkeeping() {
-    this->enabled = Bitset();
-    this->pending = Bitset();
-    this->active = Bitset();
-    this->stuck_pending = Bitset();
-    this->enable_ignored = Bitset();
+    this->m_enabled = Bitset();
+    this->m_pending = Bitset();
+    this->m_active = Bitset();
+    this->m_stuckPending = Bitset();
+    this->m_enableIgnored = Bitset();
     for (U32 k = 0; k < NUM_COUNTS; k++) {
         for (U32 i = 0; i < NUM_INTERRUPTS; i++) {
-            this->counts[k][i] = 0;
+            this->m_counts[k][i] = 0;
         }
     }
 }
@@ -71,11 +71,11 @@ U32 NvicModel::index(Va416x0Types::ExceptionNumber exception) {
 }
 
 void NvicModel::sync(U32 word) {
-    Amba::TestSupport::pokeU32(ISER + word * WORD_STRIDE, this->enabled.words[word]);
-    Amba::TestSupport::pokeU32(ICER + word * WORD_STRIDE, this->enabled.words[word]);
-    Amba::TestSupport::pokeU32(ISPR + word * WORD_STRIDE, this->pending.words[word]);
-    Amba::TestSupport::pokeU32(ICPR + word * WORD_STRIDE, this->pending.words[word]);
-    Amba::TestSupport::pokeU32(IABR + word * WORD_STRIDE, this->active.words[word]);
+    Amba::TestSupport::pokeU32(ISER + word * WORD_STRIDE, this->m_enabled.words[word]);
+    Amba::TestSupport::pokeU32(ICER + word * WORD_STRIDE, this->m_enabled.words[word]);
+    Amba::TestSupport::pokeU32(ISPR + word * WORD_STRIDE, this->m_pending.words[word]);
+    Amba::TestSupport::pokeU32(ICPR + word * WORD_STRIDE, this->m_pending.words[word]);
+    Amba::TestSupport::pokeU32(IABR + word * WORD_STRIDE, this->m_active.words[word]);
 }
 
 void NvicModel::writeBit(Bitset& bits, U32 n, bool value) {
@@ -97,7 +97,7 @@ void NvicModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
             if (((v >> b) & 1) == 0 || n >= NUM_INTERRUPTS) {
                 continue;
             }
-            this->counts[count][n]++;
+            this->m_counts[count][n]++;
             if (!blocked.get(n)) {
                 state.write(n, set);
             }
@@ -108,13 +108,13 @@ void NvicModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
     const Bitset none;
 
     if (inRange(ISER)) {
-        apply(ISER, this->enabled, ENABLE, true, this->enable_ignored);
+        apply(ISER, this->m_enabled, ENABLE, true, this->m_enableIgnored);
     } else if (inRange(ICER)) {
-        apply(ICER, this->enabled, DISABLE, false, this->enable_ignored);
+        apply(ICER, this->m_enabled, DISABLE, false, this->m_enableIgnored);
     } else if (inRange(ISPR)) {
-        apply(ISPR, this->pending, SET_PENDING, true, none);
+        apply(ISPR, this->m_pending, SET_PENDING, true, none);
     } else if (inRange(ICPR)) {
-        apply(ICPR, this->pending, CLEAR_PENDING, false, this->stuck_pending);
+        apply(ICPR, this->m_pending, CLEAR_PENDING, false, this->m_stuckPending);
     } else if (inRange(IABR)) {
         // Read-only: discard the write
         this->sync((addr - IABR) / WORD_STRIDE);
@@ -125,7 +125,7 @@ void NvicModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
         const U32 first = (addr - IPR);
         for (U32 byte = 0; byte < 4; byte++) {
             if (((access.lane_mask >> (8 * byte)) & 0xFF) != 0 && first + byte < NUM_INTERRUPTS) {
-                this->counts[PRIORITY_WRITE][first + byte]++;
+                this->m_counts[PRIORITY_WRITE][first + byte]++;
             }
         }
     }
@@ -133,31 +133,31 @@ void NvicModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
 }
 
 bool NvicModel::isEnabled(Va416x0Types::ExceptionNumber exception) const {
-    return this->enabled.get(index(exception));
+    return this->m_enabled.get(this->index(exception));
 }
 
 bool NvicModel::isPending(Va416x0Types::ExceptionNumber exception) const {
-    return this->pending.get(index(exception));
+    return this->m_pending.get(this->index(exception));
 }
 
 bool NvicModel::isActive(Va416x0Types::ExceptionNumber exception) const {
-    return this->active.get(index(exception));
+    return this->m_active.get(this->index(exception));
 }
 
 U8 NvicModel::getPriority(Va416x0Types::ExceptionNumber exception) const {
-    const U32 n = index(exception);
+    const U32 n = this->index(exception);
     const U32 word = Amba::TestSupport::peekU32(IPR + (n & ~0x3u));
     return static_cast<U8>((word >> (8 * (n & 0x3))) & 0xFF);
 }
 
 void NvicModel::setActive(Va416x0Types::ExceptionNumber exception, bool isActive) {
-    this->writeBit(this->active, index(exception), isActive);
+    this->writeBit(this->m_active, this->index(exception), isActive);
 }
 
 void NvicModel::trigger(Va416x0Types::ExceptionNumber exception) {
-    const U32 n = index(exception);
-    this->counts[TRIGGER][n]++;
-    this->writeBit(this->pending, n, true);
+    const U32 n = this->index(exception);
+    this->m_counts[TRIGGER][n]++;
+    this->writeBit(this->m_pending, n, true);
 }
 
 bool NvicModel::wouldFire(Va416x0Types::ExceptionNumber exception) const {
@@ -168,40 +168,40 @@ bool NvicModel::acknowledge(Va416x0Types::ExceptionNumber exception) {
     if (!this->wouldFire(exception)) {
         return false;
     }
-    this->writeBit(this->pending, index(exception), false);
+    this->writeBit(this->m_pending, this->index(exception), false);
     return true;
 }
 
 U32 NvicModel::getEnableCount(Va416x0Types::ExceptionNumber exception) const {
-    return this->counts[ENABLE][index(exception)];
+    return this->m_counts[ENABLE][this->index(exception)];
 }
 
 U32 NvicModel::getDisableCount(Va416x0Types::ExceptionNumber exception) const {
-    return this->counts[DISABLE][index(exception)];
+    return this->m_counts[DISABLE][this->index(exception)];
 }
 
 U32 NvicModel::getSetPendingCount(Va416x0Types::ExceptionNumber exception) const {
-    return this->counts[SET_PENDING][index(exception)];
+    return this->m_counts[SET_PENDING][this->index(exception)];
 }
 
 U32 NvicModel::getClearPendingCount(Va416x0Types::ExceptionNumber exception) const {
-    return this->counts[CLEAR_PENDING][index(exception)];
+    return this->m_counts[CLEAR_PENDING][this->index(exception)];
 }
 
 U32 NvicModel::getPriorityWriteCount(Va416x0Types::ExceptionNumber exception) const {
-    return this->counts[PRIORITY_WRITE][index(exception)];
+    return this->m_counts[PRIORITY_WRITE][this->index(exception)];
 }
 
 U32 NvicModel::getTriggerCount(Va416x0Types::ExceptionNumber exception) const {
-    return this->counts[TRIGGER][index(exception)];
+    return this->m_counts[TRIGGER][this->index(exception)];
 }
 
 void NvicModel::injectStuckPending(Va416x0Types::ExceptionNumber exception, bool stuck) {
-    this->stuck_pending.write(index(exception), stuck);
+    this->m_stuckPending.write(this->index(exception), stuck);
 }
 
 void NvicModel::injectEnableIgnored(Va416x0Types::ExceptionNumber exception, bool ignored) {
-    this->enable_ignored.write(index(exception), ignored);
+    this->m_enableIgnored.write(this->index(exception), ignored);
 }
 
 }  // namespace TestSupport

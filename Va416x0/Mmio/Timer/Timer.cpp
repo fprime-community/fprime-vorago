@@ -16,6 +16,7 @@
 
 #include "Timer.hpp"
 #include "Fw/Types/Assert.hpp"
+#include "TimerRegisters.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 
 namespace Va416x0Mmio {
@@ -23,18 +24,7 @@ namespace Va416x0Mmio {
 static constexpr U32 BASE_TIMER_CASCADE_INDEX = 80;
 static constexpr U32 INVALID_CASCADE_INDEX = 127;
 
-enum {
-    CTRL = 0x000,
-    RST_VALUE = 0x004,
-    CNT_VALUE = 0x008,
-    ENABLE = 0x00C,
-    CSD_CTRL = 0x010,
-    CASCADE0 = 0x014,
-    CASCADE1 = 0x018,
-    CASCADE2 = 0x01C,
-    PWMA_VALUE = 0x020,
-    PWMB_VALUE = 0x024,
-};
+using namespace TimerRegisters;
 
 U8 Timer::get_timer_peripheral_index() const {
     FW_ASSERT(timer_peripheral_index < NUM_TIMERS);

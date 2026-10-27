@@ -108,14 +108,14 @@ class GpioModel final : public Amba::TestSupport::DeviceModel {
     U32 latch(U32 port) const;
     void syncInputs(U32 port);
 
-    U32 read_counts[NUM_PORTS_MODELLED][NUM_COUNTED_REGISTERS];
-    U32 write_counts[NUM_PORTS_MODELLED][NUM_COUNTED_REGISTERS];
-    U32 out_write_counts[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
-    bool faults[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
-    U32 input_reads[NUM_PORTS_MODELLED];
-    U32 out_sequence;
-    Amba::TestSupport::RingHistory<OutHistoryEntry> out_history[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
-    std::map<U32, Fw::Logic> pending[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
+    U32 m_readCounts[NUM_PORTS_MODELLED][NUM_COUNTED_REGISTERS];
+    U32 m_writeCounts[NUM_PORTS_MODELLED][NUM_COUNTED_REGISTERS];
+    U32 m_outWriteCounts[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
+    bool m_faults[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
+    U32 m_inputReads[NUM_PORTS_MODELLED];
+    U32 m_outSequence;
+    Amba::TestSupport::RingHistory<OutHistoryEntry> m_outHistory[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
+    std::map<U32, Fw::Logic> m_pending[NUM_PORTS_MODELLED][NUM_PINS_MODELLED];
 };
 
 }  // namespace TestSupport

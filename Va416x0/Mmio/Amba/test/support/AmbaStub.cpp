@@ -34,6 +34,7 @@ namespace Va416x0Mmio {
 namespace Amba {
 
 constexpr U32 bits_per_byte = 8;
+constexpr U32 WORD_MASK = 0x3;  // low address bits within a 32-bit word
 
 std::map<U32, U32> bus_map;
 std::map<U32, U8> ram_valid_mask;  // Per-byte validity for RAM/ROM (bit i = byte i is valid)
@@ -220,10 +221,10 @@ static void writeWord(U32 bus_address,
 U8 read_u8(U32 bus_address) {
     read_u8_count++;
     FW_ASSERT(!in_device_hook, bus_address);
-    U32 bit_shift = (bus_address & 0b11) * bits_per_byte;  // Get the bit offset within the word
-    U32 word_address = bus_address & ~0b11;                // Get the word aligned address
+    U32 bit_shift = (bus_address & WORD_MASK) * bits_per_byte;  // Get the bit offset within the word
+    U32 word_address = bus_address & ~WORD_MASK;                // Get the word aligned address
 
-    if (!ramBytesValid(word_address, bus_address, 1 << (bus_address & 0b11))) {
+    if (!ramBytesValid(word_address, bus_address, 1 << (bus_address & WORD_MASK))) {
         return 0;
     }
     U32 word = readWord(bus_address, word_address, 0xFFU << bit_shift, 1);
@@ -235,12 +236,12 @@ U8 read_u8(U32 bus_address) {
 void write_u8(U32 bus_address, U8 value) {
     write_u8_count++;
     FW_ASSERT(!in_device_hook, bus_address);
-    U32 bit_shift = (bus_address & 0b11) * bits_per_byte;  // Get the bit offset within the word
-    U32 word_address = bus_address & ~0b11;                // Get the word aligned address
+    U32 bit_shift = (bus_address & WORD_MASK) * bits_per_byte;  // Get the bit offset within the word
+    U32 word_address = bus_address & ~WORD_MASK;                // Get the word aligned address
 
     // Shift as U32: a byte shifted into the top of the word overflows a signed int
     writeWord(bus_address, word_address, 0xFFU << bit_shift, static_cast<U32>(value) << bit_shift,
-              1 << (bus_address & 0b11), 1, value);
+              1 << (bus_address & WORD_MASK), 1, value);
 }
 
 U16 read_u16(U32 bus_address) {
@@ -249,7 +250,7 @@ U16 read_u16(U32 bus_address) {
     // Cross halfword access not supported
     FW_ASSERT((bus_address & 0b1) == 0, bus_address);
     U32 bit_shift = (bus_address & 0b10) * bits_per_byte;  // Get the bit offset within the word
-    U32 word_address = bus_address & ~0b11;                // Get the word aligned address
+    U32 word_address = bus_address & ~WORD_MASK;           // Get the word aligned address
 
     if (!ramBytesValid(word_address, bus_address, (bus_address & 0b10) == 0 ? 0x3 : 0xC)) {
         return 0;
@@ -266,7 +267,7 @@ void write_u16(U32 bus_address, U16 value) {
     // Cross halfword access not supported
     FW_ASSERT((bus_address & 0b1) == 0, bus_address);
     U32 bit_shift = (bus_address & 0b10) * bits_per_byte;  // Get the bit offset within the word
-    U32 word_address = bus_address & ~0b11;                // Get the word aligned address
+    U32 word_address = bus_address & ~WORD_MASK;           // Get the word aligned address
 
     // Shift as U32: a halfword shifted into the top of the word overflows a signed int
     writeWord(bus_address, word_address, 0xFFFFU << bit_shift, static_cast<U32>(value) << bit_shift,
@@ -277,8 +278,8 @@ U32 read_u32(U32 bus_address) {
     read_u32_count++;
     FW_ASSERT(!in_device_hook, bus_address);
     // Cross word access not supported
-    FW_ASSERT((bus_address & 0b11) == 0, bus_address);
-    U32 word_address = bus_address & ~0b11;  // Get the word aligned address
+    FW_ASSERT((bus_address & WORD_MASK) == 0, bus_address);
+    U32 word_address = bus_address & ~WORD_MASK;  // Get the word aligned address
 
     if (!ramBytesValid(word_address, bus_address, 0xF)) {
         return 0;
@@ -292,8 +293,8 @@ void write_u32(U32 bus_address, U32 value) {
     write_u32_count++;
     FW_ASSERT(!in_device_hook, bus_address);
     // Cross word access not supported
-    FW_ASSERT((bus_address & 0b11) == 0, bus_address);
-    U32 word_address = bus_address & ~0b11;  // Get the word aligned address
+    FW_ASSERT((bus_address & WORD_MASK) == 0, bus_address);
+    U32 word_address = bus_address & ~WORD_MASK;  // Get the word aligned address
 
     writeWord(bus_address, word_address, 0xFFFFFFFFU, value, 0xF, 4, value);
 }
@@ -401,7 +402,7 @@ void recordRamReadBeforeWriteViolation(U32 address) {
 
 void setHistoryTracking(U32 address, U32 depth) {
     FW_ASSERT(depth > 0, depth);
-    U32 word_address = address & ~3;
+    U32 word_address = address & ~WORD_MASK;
 
     auto iter = history_map.find(word_address);
     if (iter != history_map.end()) {
@@ -413,7 +414,7 @@ void setHistoryTracking(U32 address, U32 depth) {
 }
 
 void clearHistoryTracking(U32 address) {
-    U32 word_address = address & ~3;
+    U32 word_address = address & ~WORD_MASK;
     auto iter = history_map.find(word_address);
     if (iter != history_map.end()) {
         history_map.erase(iter);
@@ -421,12 +422,12 @@ void clearHistoryTracking(U32 address) {
 }
 
 bool isHistoryTracked(U32 address) {
-    U32 word_address = address & ~3;
+    U32 word_address = address & ~WORD_MASK;
     return history_map.find(word_address) != history_map.end();
 }
 
 U32 getHistoryCount(U32 address) {
-    U32 word_address = address & ~3;
+    U32 word_address = address & ~WORD_MASK;
     auto iter = history_map.find(word_address);
     if (iter == history_map.end()) {
         return 0;
@@ -435,7 +436,7 @@ U32 getHistoryCount(U32 address) {
 }
 
 U32 getHistoryDepth(U32 address) {
-    U32 word_address = address & ~3;
+    U32 word_address = address & ~WORD_MASK;
     auto iter = history_map.find(word_address);
     if (iter == history_map.end()) {
         return 0;
@@ -444,7 +445,7 @@ U32 getHistoryDepth(U32 address) {
 }
 
 HistoryEntry getHistoryEntry(U32 address, U32 index) {
-    U32 word_address = address & ~3;
+    U32 word_address = address & ~WORD_MASK;
     auto iter = history_map.find(word_address);
     FW_ASSERT(iter != history_map.end(), word_address);
     return iter->second.get(index);
@@ -455,7 +456,7 @@ void recordHistory(U32 address, bool is_write, U8 size_bytes, U32 value) {
         return;
     }
 
-    U32 word_address = address & ~3;
+    U32 word_address = address & ~WORD_MASK;
     auto iter = history_map.find(word_address);
     if (iter == history_map.end()) {
         return;
@@ -473,8 +474,8 @@ void recordHistory(U32 address, bool is_write, U8 size_bytes, U32 value) {
 }
 
 U32 peekU32(U32 address) {
-    FW_ASSERT((address & 0x3) == 0, address);
-    U32 word_address = address & ~0x3;
+    FW_ASSERT((address & WORD_MASK) == 0, address);
+    U32 word_address = address & ~WORD_MASK;
 
     auto iter = bus_map.find(word_address);
     if (iter != bus_map.end()) {
@@ -503,8 +504,8 @@ U32 peekU32(U32 address) {
 }
 
 void pokeU32(U32 address, U32 value) {
-    FW_ASSERT((address & 0x3) == 0, address);
-    U32 word_address = address & ~0x3;
+    FW_ASSERT((address & WORD_MASK) == 0, address);
+    U32 word_address = address & ~WORD_MASK;
 
     auto iter = bus_map.find(word_address);
     if (iter != bus_map.end()) {
@@ -537,8 +538,8 @@ void DeviceModel::onRead(const DeviceAccess& access, U32& value) {
 void DeviceModel::reset() {}
 
 void registerDevice(DeviceModel& model, U32 base, U32 size) {
-    FW_ASSERT((base & 0x3) == 0, base);
-    FW_ASSERT((size & 0x3) == 0, size);
+    FW_ASSERT((base & WORD_MASK) == 0, base);
+    FW_ASSERT((size & WORD_MASK) == 0, size);
     FW_ASSERT(size > 0, size);
     FW_ASSERT(base + size > base, base, size);  // no wrap-around
     FW_ASSERT(!MemoryMap::isRamOrRom(base), base);

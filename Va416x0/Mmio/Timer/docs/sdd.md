@@ -8,8 +8,6 @@ TODO: Fill this in for the vorago implementation
 
 ## Unit test support
 
-## Host unit-test simulation
-
 `test/support/TimerModel.{hpp,cpp}` is compiled into `Va416x0_Mmio_Timer` under `BUILD_TESTING` on
 non-baremetal platforms (it only adds symbols). The real `Timer.cpp` runs unchanged against the
 Amba stub; `TimerModel` (namespace `Va416x0Mmio::TimerTestSupport`) is an
@@ -22,15 +20,15 @@ and, if `CTRL_IRQ_ENB` is set, marks the timer's done interrupt pending in the `
 `NvicModel::trigger`, whether or not it is enabled). It returns true when the interrupt would be
 taken (enabled in the NVIC); nothing invokes the ISR, so the test calls it (using
 `NvicModel::acknowledge()` to clear the pending bit).
-`CTRL_REQ_STOP` halts the timer and clears itself. **Not modelled**: counting, cascades, PWM and
+`CTRL_REQ_STOP` halts the timer and clears itself.
+
+**Not modelled**: counting, cascades, PWM and
 status outputs.
 
 **Visibility**: `isRunning`, `getCount/getReload/getCtrl`, per-register read and write counts, start
 and stop counts, and a start history (`getLastStart(timer).count` is the count loaded at start, so
 tests can check the duration in ticks). `setStartHistoryDepth` deepens the history (default 1).
 
-**Error injection**: `injectStartIgnored(timer, bool)`: writing ENABLE=1 does not start the timer.
-
-The register offsets in `TimerModel.hpp` duplicate the private enum in `Timer.cpp`; a test checks
-them against the Amba reset table.
+The register offsets live in `TimerRegisters.hpp` (namespace `Va416x0Mmio::TimerRegisters`), shared by
+`Timer.cpp` and `TimerModel` (aliased as `Registers`); a test checks them against the Amba reset table.
 

@@ -37,46 +37,46 @@ namespace TestSupport {
 template <typename T>
 class RingHistory {
   public:
-    explicit RingHistory(U32 depth = 1) : head(0), count(0) { this->setDepth(depth); }
+    explicit RingHistory(U32 depth = 1) : m_head(0), m_count(0) { this->setDepth(depth); }
 
     //! Discards existing entries. depth must be > 0
     void setDepth(U32 depth) {
         FW_ASSERT(depth > 0, depth);
-        this->buf.clear();
-        this->buf.resize(depth);
-        this->head = 0;
-        this->count = 0;
+        this->m_buf.clear();
+        this->m_buf.resize(depth);
+        this->m_head = 0;
+        this->m_count = 0;
     }
 
     void clear() {
-        this->head = 0;
-        this->count = 0;
+        this->m_head = 0;
+        this->m_count = 0;
     }
 
     void push(const T& entry) {
         const U32 depth = this->depth();
-        if (this->count < depth) {
-            this->buf[this->count++] = entry;
+        if (this->m_count < depth) {
+            this->m_buf[this->m_count++] = entry;
         } else {
-            this->buf[this->head] = entry;
-            this->head = (this->head + 1) % depth;
+            this->m_buf[this->m_head] = entry;
+            this->m_head = (this->m_head + 1) % depth;
         }
     }
 
     //! 0 = oldest retained entry. Asserts if index >= count
     T get(U32 index) const {
-        FW_ASSERT(index < this->count, index, this->count);
-        return this->buf[(this->head + index) % this->depth()];
+        FW_ASSERT(index < this->m_count, index, this->m_count);
+        return this->m_buf[(this->m_head + index) % this->depth()];
     }
 
-    U32 depth() const { return static_cast<U32>(this->buf.size()); }
+    U32 depth() const { return static_cast<U32>(this->m_buf.size()); }
 
-    U32 getCount() const { return this->count; }
+    U32 getCount() const { return this->m_count; }
 
   private:
-    std::vector<T> buf;
-    U32 head;
-    U32 count;
+    std::vector<T> m_buf;
+    U32 m_head;
+    U32 m_count;
 };
 
 }  // namespace TestSupport

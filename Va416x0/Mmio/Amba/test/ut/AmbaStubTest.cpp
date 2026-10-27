@@ -166,6 +166,15 @@ TEST_F(AmbaStubTest, RamReadBeforeWriteViolation) {
     EXPECT_EQ(TestSupport::getRamReadBeforeWriteViolationCount(), 1);
 }
 
+TEST_F(AmbaStubTest, RamReadBeforeWriteViolationNonZeroAddress) {
+    TestSupport::setRamReadBeforeWritePolicy(TestSupport::RamReadBeforeWritePolicy::COUNT);
+
+    const U32 address = 0x20000010;
+    EXPECT_EQ(Amba::read_u32(address), 0);
+    EXPECT_EQ(TestSupport::getRamReadBeforeWriteViolationCount(), 1);
+    EXPECT_EQ(TestSupport::getLastRamReadBeforeWriteAddress(), address);
+}
+
 TEST_F(AmbaStubTest, RamPartialWriteViolation) {
     TestSupport::setRamReadBeforeWritePolicy(TestSupport::RamReadBeforeWritePolicy::COUNT);
 

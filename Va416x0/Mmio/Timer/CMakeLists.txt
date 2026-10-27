@@ -19,6 +19,7 @@ set(TIMER_SOURCES
 )
 set(TIMER_HEADERS
     Timer.hpp
+    TimerRegisters.hpp
 )
 set(TIMER_DEPENDS
     Fw_Types

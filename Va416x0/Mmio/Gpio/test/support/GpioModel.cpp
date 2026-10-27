@@ -50,18 +50,18 @@ GpioModel::GpioModel() {
 void GpioModel::clearBookkeeping() {
     for (U32 p = 0; p < NUM_PORTS_MODELLED; p++) {
         for (U32 r = 0; r < NUM_COUNTED_REGISTERS; r++) {
-            this->read_counts[p][r] = 0;
-            this->write_counts[p][r] = 0;
+            this->m_readCounts[p][r] = 0;
+            this->m_writeCounts[p][r] = 0;
         }
-        this->input_reads[p] = 0;
+        this->m_inputReads[p] = 0;
         for (U32 b = 0; b < NUM_PINS_MODELLED; b++) {
-            this->out_write_counts[p][b] = 0;
-            this->faults[p][b] = false;
-            this->out_history[p][b].setDepth(DEFAULT_OUT_HISTORY_DEPTH);
-            this->pending[p][b].clear();
+            this->m_outWriteCounts[p][b] = 0;
+            this->m_faults[p][b] = false;
+            this->m_outHistory[p][b].setDepth(DEFAULT_OUT_HISTORY_DEPTH);
+            this->m_pending[p][b].clear();
         }
     }
-    this->out_sequence = 0;
+    this->m_outSequence = 0;
 }
 
 void GpioModel::reset() {
@@ -83,17 +83,17 @@ U32 GpioModel::reg(U32 port, U32 offset) {
 }
 
 U32 GpioModel::latch(U32 port) const {
-    return Amba::TestSupport::peekU32(reg(port, Registers::DATAOUTRAW));
+    return Amba::TestSupport::peekU32(this->reg(port, Registers::DATAOUTRAW));
 }
 
 void GpioModel::syncInputs(U32 port) {
-    const U32 dir = Amba::TestSupport::peekU32(reg(port, Registers::DIR));
-    const U32 mask = Amba::TestSupport::peekU32(reg(port, Registers::DATAMASK));
+    const U32 dir = Amba::TestSupport::peekU32(this->reg(port, Registers::DIR));
+    const U32 mask = Amba::TestSupport::peekU32(this->reg(port, Registers::DATAMASK));
     const U32 l = this->latch(port);
-    U32 in = Amba::TestSupport::peekU32(reg(port, Registers::DATAINRAW));
+    U32 in = Amba::TestSupport::peekU32(this->reg(port, Registers::DATAINRAW));
     in = (in & ~dir) | (l & dir);
-    Amba::TestSupport::pokeU32(reg(port, Registers::DATAINRAW), in);
-    Amba::TestSupport::pokeU32(reg(port, Registers::DATAIN), in & mask);
+    Amba::TestSupport::pokeU32(this->reg(port, Registers::DATAINRAW), in);
+    Amba::TestSupport::pokeU32(this->reg(port, Registers::DATAIN), in & mask);
 }
 
 void GpioModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
@@ -106,11 +106,11 @@ void GpioModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
         // Reserved, plain memory
         return;
     }
-    this->write_counts[p][idx]++;
+    this->m_writeCounts[p][idx]++;
 
     const U32 lane = access.lane_mask;
     const U32 v = access.new_value & lane;
-    const U32 m = Amba::TestSupport::peekU32(reg(p, Registers::DATAMASK));
+    const U32 m = Amba::TestSupport::peekU32(this->reg(p, Registers::DATAMASK));
     const U32 l = this->latch(p);
 
     U32 newLatch = l;
@@ -143,21 +143,21 @@ void GpioModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
     }
 
     if (latchWrite) {
-        const U32 dir = Amba::TestSupport::peekU32(reg(p, Registers::DIR));
+        const U32 dir = Amba::TestSupport::peekU32(this->reg(p, Registers::DIR));
         for (U32 b = 0; b < NUM_PINS_MODELLED; b++) {
             if (bit(targeted & PIN_MASK, b) == 0) {
                 continue;
             }
-            this->out_write_counts[p][b]++;
+            this->m_outWriteCounts[p][b]++;
             if (bit(dir, b) != 0) {
                 OutHistoryEntry e;
-                e.sequence = ++this->out_sequence;
+                e.sequence = ++this->m_outSequence;
                 e.state = bit(newLatch, b) != 0 ? Fw::Logic::HIGH : Fw::Logic::LOW;
-                this->out_history[p][b].push(e);
+                this->m_outHistory[p][b].push(e);
             }
         }
-        Amba::TestSupport::pokeU32(reg(p, Registers::DATAOUTRAW), newLatch);
-        Amba::TestSupport::pokeU32(reg(p, Registers::DATAOUT), newLatch);
+        Amba::TestSupport::pokeU32(this->reg(p, Registers::DATAOUTRAW), newLatch);
+        Amba::TestSupport::pokeU32(this->reg(p, Registers::DATAOUT), newLatch);
         if (isStrobe(offset)) {
             Amba::TestSupport::pokeU32(access.word_address, 0);
         }
@@ -170,7 +170,7 @@ void GpioModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
             const U32 dir = access.new_value;
             for (U32 b = 0; b < NUM_PINS_MODELLED; b++) {
                 if (bit(dir, b) != 0) {
-                    this->pending[p][b].clear();
+                    this->m_pending[p][b].clear();
                 }
             }
             this->syncInputs(p);
@@ -200,30 +200,30 @@ void GpioModel::onRead(const Amba::TestSupport::DeviceAccess& access, U32& value
         // Reserved, reads as stored value
         return;
     }
-    this->read_counts[p][idx]++;
+    this->m_readCounts[p][idx]++;
 
     // Write-only register read
     FW_ASSERT(!isStrobe(offset), p, offset);
 
     if (offset == Registers::DATAINRAW || offset == Registers::DATAIN) {
-        const U32 k = ++this->input_reads[p];
-        const U32 dir = Amba::TestSupport::peekU32(reg(p, Registers::DIR));
+        const U32 k = ++this->m_inputReads[p];
+        const U32 dir = Amba::TestSupport::peekU32(this->reg(p, Registers::DIR));
         for (U32 b = 0; b < NUM_PINS_MODELLED; b++) {
-            auto it = this->pending[p][b].find(k);
-            if (it != this->pending[p][b].end()) {
+            auto it = this->m_pending[p][b].find(k);
+            if (it != this->m_pending[p][b].end()) {
                 FW_ASSERT(bit(dir, b) == 0, p, b);
                 if (it->second == Fw::Logic::HIGH) {
                     value |= (1u << b);
                 } else {
                     value &= ~(1u << b);
                 }
-                this->pending[p][b].erase(it);
-            } else if (this->faults[p][b]) {
+                this->m_pending[p][b].erase(it);
+            } else if (this->m_faults[p][b]) {
                 value ^= (1u << b);
             }
         }
         if (offset == Registers::DATAIN) {
-            value &= Amba::TestSupport::peekU32(reg(p, Registers::DATAMASK));
+            value &= Amba::TestSupport::peekU32(this->reg(p, Registers::DATAMASK));
         }
     }
 }
@@ -234,8 +234,9 @@ void GpioModel::onRead(const Amba::TestSupport::DeviceAccess& access, U32& value
 
 Fw::Logic GpioModel::getPinLevel(const Pin& pin) const {
     const U32 p = pin.getGpioPortNumber();
-    return bit(Amba::TestSupport::peekU32(reg(p, Registers::DATAINRAW)), pin.getPinNumber()) != 0 ? Fw::Logic::HIGH
-                                                                                                  : Fw::Logic::LOW;
+    return bit(Amba::TestSupport::peekU32(this->reg(p, Registers::DATAINRAW)), pin.getPinNumber()) != 0
+               ? Fw::Logic::HIGH
+               : Fw::Logic::LOW;
 }
 
 Fw::Logic GpioModel::getOutputLatch(const Pin& pin) const {
@@ -245,27 +246,28 @@ Fw::Logic GpioModel::getOutputLatch(const Pin& pin) const {
 
 Fw::Direction GpioModel::getDirection(const Pin& pin) const {
     const U32 p = pin.getGpioPortNumber();
-    return bit(Amba::TestSupport::peekU32(reg(p, Registers::DIR)), pin.getPinNumber()) != 0 ? Fw::Direction::OUT
-                                                                                            : Fw::Direction::IN;
+    return bit(Amba::TestSupport::peekU32(this->reg(p, Registers::DIR)), pin.getPinNumber()) != 0 ? Fw::Direction::OUT
+                                                                                                  : Fw::Direction::IN;
 }
 
 void GpioModel::setPinInput(const Pin& pin, Fw::Logic state) {
     const U32 p = pin.getGpioPortNumber();
     const U32 b = pin.getPinNumber();
-    U32 in = Amba::TestSupport::peekU32(reg(p, Registers::DATAINRAW));
+    U32 in = Amba::TestSupport::peekU32(this->reg(p, Registers::DATAINRAW));
     if (state == Fw::Logic::HIGH) {
         in |= (1u << b);
     } else {
         in &= ~(1u << b);
     }
-    Amba::TestSupport::pokeU32(reg(p, Registers::DATAINRAW), in);
-    Amba::TestSupport::pokeU32(reg(p, Registers::DATAIN), in & Amba::TestSupport::peekU32(reg(p, Registers::DATAMASK)));
+    Amba::TestSupport::pokeU32(this->reg(p, Registers::DATAINRAW), in);
+    Amba::TestSupport::pokeU32(this->reg(p, Registers::DATAIN),
+                               in & Amba::TestSupport::peekU32(this->reg(p, Registers::DATAMASK)));
 }
 
 GpioModel::PinConfig GpioModel::getPinConfig(const Pin& pin) const {
     const U32 p = pin.getGpioPortNumber();
     const U32 b = pin.getPinNumber();
-    auto get = [&](U32 offset) { return bit(Amba::TestSupport::peekU32(reg(p, offset)), b) != 0; };
+    auto get = [&](U32 offset) { return bit(Amba::TestSupport::peekU32(this->reg(p, offset)), b) != 0; };
     PinConfig c;
     c.dir_out = get(Registers::DIR);
     c.pulse = get(Registers::PULSE);
@@ -286,13 +288,13 @@ GpioModel::PinConfig GpioModel::getPinConfig(const Pin& pin) const {
 U32 GpioModel::getReadCount(const Port& port, U32 offset) const {
     const U32 idx = regIndex(offset);
     FW_ASSERT(idx < NUM_COUNTED_REGISTERS, offset);
-    return this->read_counts[port.get_gpio_port()][idx];
+    return this->m_readCounts[port.get_gpio_port()][idx];
 }
 
 U32 GpioModel::getWriteCount(const Port& port, U32 offset) const {
     const U32 idx = regIndex(offset);
     FW_ASSERT(idx < NUM_COUNTED_REGISTERS, offset);
-    return this->write_counts[port.get_gpio_port()][idx];
+    return this->m_writeCounts[port.get_gpio_port()][idx];
 }
 
 // ----------------------------------------------------------------------
@@ -300,23 +302,23 @@ U32 GpioModel::getWriteCount(const Port& port, U32 offset) const {
 // ----------------------------------------------------------------------
 
 U32 GpioModel::getOutWriteCount(const Pin& pin) const {
-    return this->out_write_counts[pin.getGpioPortNumber()][pin.getPinNumber()];
+    return this->m_outWriteCounts[pin.getGpioPortNumber()][pin.getPinNumber()];
 }
 
 void GpioModel::setOutHistoryDepth(const Pin& pin, U32 depth) {
-    this->out_history[pin.getGpioPortNumber()][pin.getPinNumber()].setDepth(depth);
+    this->m_outHistory[pin.getGpioPortNumber()][pin.getPinNumber()].setDepth(depth);
 }
 
 U32 GpioModel::getOutHistoryDepth(const Pin& pin) const {
-    return this->out_history[pin.getGpioPortNumber()][pin.getPinNumber()].depth();
+    return this->m_outHistory[pin.getGpioPortNumber()][pin.getPinNumber()].depth();
 }
 
 U32 GpioModel::getOutHistoryCount(const Pin& pin) const {
-    return this->out_history[pin.getGpioPortNumber()][pin.getPinNumber()].getCount();
+    return this->m_outHistory[pin.getGpioPortNumber()][pin.getPinNumber()].getCount();
 }
 
 GpioModel::OutHistoryEntry GpioModel::getOutHistoryEntry(const Pin& pin, U32 index) const {
-    return this->out_history[pin.getGpioPortNumber()][pin.getPinNumber()].get(index);
+    return this->m_outHistory[pin.getGpioPortNumber()][pin.getPinNumber()].get(index);
 }
 
 Fw::Logic GpioModel::getLastOutValue(const Pin& pin) const {
@@ -333,8 +335,8 @@ void GpioModel::setInReadValue(const Pin& pin, U32 n, Fw::Logic state) {
     FW_ASSERT(n >= 1, n);
     const U32 p = pin.getGpioPortNumber();
     const U32 b = pin.getPinNumber();
-    FW_ASSERT(n <= 0xFFFFFFFFu - this->input_reads[p], n, this->input_reads[p]);
-    this->pending[p][b][this->input_reads[p] + n] = state;
+    FW_ASSERT(n <= 0xFFFFFFFFu - this->m_inputReads[p], n, this->m_inputReads[p]);
+    this->m_pending[p][b][this->m_inputReads[p] + n] = state;
 }
 
 void GpioModel::setInReadSequence(const Pin& pin, const Fw::Logic* values, U32 count) {
@@ -344,35 +346,35 @@ void GpioModel::setInReadSequence(const Pin& pin, const Fw::Logic* values, U32 c
 }
 
 U32 GpioModel::getPendingInReadCount(const Pin& pin) const {
-    return static_cast<U32>(this->pending[pin.getGpioPortNumber()][pin.getPinNumber()].size());
+    return static_cast<U32>(this->m_pending[pin.getGpioPortNumber()][pin.getPinNumber()].size());
 }
 
 void GpioModel::clearInReadValues(const Pin& pin) {
-    this->pending[pin.getGpioPortNumber()][pin.getPinNumber()].clear();
+    this->m_pending[pin.getGpioPortNumber()][pin.getPinNumber()].clear();
 }
 
 U32 GpioModel::getInputReadCount(const Port& port) const {
-    return this->input_reads[port.get_gpio_port()];
+    return this->m_inputReads[port.get_gpio_port()];
 }
 
 void GpioModel::injectReadbackFault(const Pin& pin) {
-    this->faults[pin.getGpioPortNumber()][pin.getPinNumber()] = true;
+    this->m_faults[pin.getGpioPortNumber()][pin.getPinNumber()] = true;
 }
 
 void GpioModel::clearReadbackFault(const Pin& pin) {
-    this->faults[pin.getGpioPortNumber()][pin.getPinNumber()] = false;
+    this->m_faults[pin.getGpioPortNumber()][pin.getPinNumber()] = false;
 }
 
 void GpioModel::clearAllReadbackFaults() {
     for (U32 p = 0; p < NUM_PORTS_MODELLED; p++) {
         for (U32 b = 0; b < NUM_PINS_MODELLED; b++) {
-            this->faults[p][b] = false;
+            this->m_faults[p][b] = false;
         }
     }
 }
 
 bool GpioModel::isReadbackFaultInjected(const Pin& pin) const {
-    return this->faults[pin.getGpioPortNumber()][pin.getPinNumber()];
+    return this->m_faults[pin.getGpioPortNumber()][pin.getPinNumber()];
 }
 
 }  // namespace TestSupport

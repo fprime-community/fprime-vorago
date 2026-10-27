@@ -107,12 +107,12 @@ class NvicModel final : public Amba::TestSupport::DeviceModel {
     //! Set/clear one bit of a state bitset and re-mirror its register word
     void writeBit(Bitset& bits, U32 n, bool value);
 
-    Bitset enabled;
-    Bitset pending;
-    Bitset active;
-    Bitset stuck_pending;
-    Bitset enable_ignored;
-    U32 counts[NUM_COUNTS][NUM_INTERRUPTS];
+    Bitset m_enabled;
+    Bitset m_pending;
+    Bitset m_active;
+    Bitset m_stuckPending;
+    Bitset m_enableIgnored;
+    U32 m_counts[NUM_COUNTS][NUM_INTERRUPTS];
 };
 
 }  // namespace TestSupport

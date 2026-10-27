@@ -47,19 +47,18 @@ void TimerModel::PerTimer::clear() {
     this->starts = 0;
     this->stops = 0;
     this->expires = 0;
-    this->start_ignored = false;
     this->history.setDepth(DEFAULT_START_HISTORY_DEPTH);
 }
 
-TimerModel::TimerModel(Nvic::TestSupport::NvicModel* nvic) : nvic(nvic), sequence(0) {
+TimerModel::TimerModel(Nvic::TestSupport::NvicModel* nvic) : m_nvic(nvic), m_sequence(0) {
     Amba::TestSupport::registerDevice(*this, TIM0_ADDRESS, NUM_APB1_TIMERS * TIM_STRIDE);
     Amba::TestSupport::registerDevice(*this, TIM16_ADDRESS, NUM_APB2_TIMERS * TIM_STRIDE);
 }
 
 void TimerModel::reset() {
-    this->sequence = 0;
+    this->m_sequence = 0;
     for (U32 t = 0; t < NUM_TIMERS; t++) {
-        this->timers[t].clear();
+        this->m_timers[t].clear();
     }
 }
 
@@ -96,20 +95,17 @@ void TimerModel::onWrite(const Amba::TestSupport::DeviceAccess& access) {
     if (idx == NUM_COUNTED_REGISTERS) {
         return;  // reserved, plain memory
     }
-    PerTimer& pt = this->timers[t];
+    PerTimer& pt = this->m_timers[t];
     pt.write_counts[idx]++;
 
     if (offset == Registers::ENABLE) {
         const bool wasRunning = (access.old_value & 1) != 0;
-        bool run = (access.new_value & 1) != 0;
-        if (run && pt.start_ignored) {
-            run = false;
-        }
+        const bool run = (access.new_value & 1) != 0;
         this->poke(t, Registers::ENABLE, run ? 1 : 0);
         if (run && !wasRunning) {
             pt.starts++;
             StartEntry e;
-            e.sequence = ++this->sequence;
+            e.sequence = ++this->m_sequence;
             e.count = this->peek(t, Registers::CNT_VALUE);
             e.reload = this->peek(t, Registers::RST_VALUE);
             pt.history.push(e);
@@ -130,7 +126,7 @@ void TimerModel::onRead(const Amba::TestSupport::DeviceAccess& access, U32& valu
     const U32 t = timerIndex(access.word_address);
     const U32 idx = regIndex(access.word_address & (TIM_STRIDE - 1));
     if (idx != NUM_COUNTED_REGISTERS) {
-        this->timers[t].read_counts[idx]++;
+        this->m_timers[t].read_counts[idx]++;
     }
 }
 
@@ -153,7 +149,7 @@ U32 TimerModel::getCtrl(const Timer& timer) const {
 bool TimerModel::expire(const Timer& timer) {
     const U32 t = timer.get_timer_peripheral_index();
     FW_ASSERT(this->isRunning(timer), t);
-    this->timers[t].expires++;
+    this->m_timers[t].expires++;
     const U32 ctrl = this->peek(t, Registers::CTRL);
     if ((ctrl & Timer::CTRL_AUTO_DISABLE) != 0) {
         this->poke(t, Registers::CNT_VALUE, 0);
@@ -164,49 +160,49 @@ bool TimerModel::expire(const Timer& timer) {
     if ((ctrl & Timer::CTRL_IRQ_ENB) == 0) {
         return false;
     }
-    if (this->nvic == nullptr) {
+    if (this->m_nvic == nullptr) {
         return true;
     }
-    this->nvic->trigger(timer.get_timer_done_exception());
-    return this->nvic->isEnabled(timer.get_timer_done_exception());
+    this->m_nvic->trigger(timer.get_timer_done_exception());
+    return this->m_nvic->isEnabled(timer.get_timer_done_exception());
 }
 
 U32 TimerModel::getExpireCount(const Timer& timer) const {
-    return this->timers[timer.get_timer_peripheral_index()].expires;
+    return this->m_timers[timer.get_timer_peripheral_index()].expires;
 }
 
 U32 TimerModel::getReadCount(const Timer& timer, U32 offset) const {
     const U32 idx = regIndex(offset);
     FW_ASSERT(idx < NUM_COUNTED_REGISTERS, offset);
-    return this->timers[timer.get_timer_peripheral_index()].read_counts[idx];
+    return this->m_timers[timer.get_timer_peripheral_index()].read_counts[idx];
 }
 
 U32 TimerModel::getWriteCount(const Timer& timer, U32 offset) const {
     const U32 idx = regIndex(offset);
     FW_ASSERT(idx < NUM_COUNTED_REGISTERS, offset);
-    return this->timers[timer.get_timer_peripheral_index()].write_counts[idx];
+    return this->m_timers[timer.get_timer_peripheral_index()].write_counts[idx];
 }
 
 U32 TimerModel::getStartCount(const Timer& timer) const {
-    return this->timers[timer.get_timer_peripheral_index()].starts;
+    return this->m_timers[timer.get_timer_peripheral_index()].starts;
 }
 
 U32 TimerModel::getStopCount(const Timer& timer) const {
-    return this->timers[timer.get_timer_peripheral_index()].stops;
+    return this->m_timers[timer.get_timer_peripheral_index()].stops;
 }
 
 void TimerModel::setStartHistoryDepth(const Timer& timer, U32 depth) {
     FW_ASSERT(depth >= 1, depth);
-    PerTimer& pt = this->timers[timer.get_timer_peripheral_index()];
+    PerTimer& pt = this->m_timers[timer.get_timer_peripheral_index()];
     pt.history.setDepth(depth);
 }
 
 U32 TimerModel::getStartHistoryCount(const Timer& timer) const {
-    return this->timers[timer.get_timer_peripheral_index()].history.getCount();
+    return this->m_timers[timer.get_timer_peripheral_index()].history.getCount();
 }
 
 TimerModel::StartEntry TimerModel::getStartHistoryEntry(const Timer& timer, U32 index) const {
-    const PerTimer& pt = this->timers[timer.get_timer_peripheral_index()];
+    const PerTimer& pt = this->m_timers[timer.get_timer_peripheral_index()];
     return pt.history.get(index);
 }
 
@@ -214,14 +210,6 @@ TimerModel::StartEntry TimerModel::getLastStart(const Timer& timer) const {
     const U32 count = this->getStartHistoryCount(timer);
     FW_ASSERT(count > 0, count);
     return this->getStartHistoryEntry(timer, count - 1);
-}
-
-void TimerModel::injectStartIgnored(const Timer& timer, bool ignored) {
-    this->timers[timer.get_timer_peripheral_index()].start_ignored = ignored;
-}
-
-bool TimerModel::isStartIgnored(const Timer& timer) const {
-    return this->timers[timer.get_timer_peripheral_index()].start_ignored;
 }
 
 }  // namespace TimerTestSupport
