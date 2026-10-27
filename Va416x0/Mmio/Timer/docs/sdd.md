@@ -34,4 +34,3 @@ tests can check the duration in ticks). `setStartHistoryDepth` deepens the histo
 The register offsets in `TimerModel.hpp` duplicate the private enum in `Timer.cpp`; a test checks
 them against the Amba reset table.
 
-The rest of this document is TODO.
