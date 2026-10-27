@@ -18,8 +18,10 @@ it the fixture's `NvicModel` (declared first) so that expiry raises the interrup
 
 **Time does not pass.** A started timer stays running until the test calls `expire(timer)`, which
 loads count 0, then either stops the timer (`CTRL_AUTO_DISABLE`) or reloads it from `RST_VALUE`,
-and raises the done interrupt on the `NvicModel` if `CTRL_IRQ_ENB` is set. It returns true when
-the interrupt would be taken (enabled in the NVIC), after which the test calls the ISR.
+and, if `CTRL_IRQ_ENB` is set, marks the timer's done interrupt pending in the `NvicModel` (via
+`NvicModel::trigger`, whether or not it is enabled). It returns true when the interrupt would be
+taken (enabled in the NVIC); nothing invokes the ISR, so the test calls it (using
+`NvicModel::acknowledge()` to clear the pending bit).
 `CTRL_REQ_STOP` halts the timer and clears itself. **Not modelled**: counting, cascades, PWM and
 status outputs.
 
