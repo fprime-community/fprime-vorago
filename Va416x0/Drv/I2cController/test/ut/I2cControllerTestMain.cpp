@@ -31,6 +31,11 @@ TEST(Nominal, offNominalI2c) {
     tester.offNominalI2c();
 }
 
+TEST(Nominal, busBusyI2c) {
+    Va416x0Drv::I2cControllerTester tester;
+    tester.busBusyI2c();
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
