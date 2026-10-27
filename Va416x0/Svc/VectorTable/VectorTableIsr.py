@@ -16,8 +16,21 @@
 
 NUMBER_OF_EXCEPTIONS = 212
 
-print(
-    f"""
+# From 'Cortex -M4 Devices Generic User Guide' (https://support.arm.com/documentation/dui0553/b/)
+# Section 4.3.4 Vector Table Offset Register
+# """
+# When setting TBLOFF, you must align the offset to the number of exception entries in the vector
+# table. The minimum alignment is 32 words, enough for up to 16 interrupts. For more interrupts,
+# adjust the alignment by rounding up to the next power of two. For example, if you require 21
+# interrupts, the alignment must be on a 64-word boundary because the required table size is 37
+# words, and the next power of two is 64. See your vendor documentation for the alignment details
+# of your device.
+# """
+VECTOR_TABLE_ALIGNMENT = max(
+    128, 1 << (len(bin(NUMBER_OF_EXCEPTIONS * 4 - 1)) - 2)
+)  # 1024 (-2 for '0b' str)
+
+print(f"""
 #include "Va416x0/Svc/VectorTable/VectorTable.hpp"
 #include "Va416x0/Types/FppConstantsAc.hpp"
 
@@ -27,25 +40,18 @@ static_assert(Va416x0Types::NUMBER_OF_EXCEPTIONS == {NUMBER_OF_EXCEPTIONS},
 extern "C" {{
 extern void _start(void);
 extern uint8_t __stack[];
-}}"""
-)
+}}""")
 for isr_index in range(2, NUMBER_OF_EXCEPTIONS):
-    print(
-        f"""
+    print(f"""
 void arm_isr_{isr_index}(void) {{
     [[clang::always_inline]] va416x0_vector_table_instance->handle_exception({isr_index});
-}}"""
-    )
-print(
-    """
+}}""")
+print(f"""
 // Based on picolibc vector table.
-extern "C" void * const arm_vector_table[] __attribute__((aligned(128), used, section(".data.init.enter"))) = {
+extern "C" void * const arm_vector_table[] __attribute__((aligned({VECTOR_TABLE_ALIGNMENT}), used, section(".text.init.enter"))) = {{
     __stack,
-    reinterpret_cast<void *>(_start),"""
-)
+    reinterpret_cast<void *>(_start),""")
 for isr_index in range(2, NUMBER_OF_EXCEPTIONS):
     print(f"    reinterpret_cast<void *>(arm_isr_{isr_index}),")
-print(
-    """};
-"""
-)
+print("""};
+""")
