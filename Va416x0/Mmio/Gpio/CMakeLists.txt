@@ -30,7 +30,7 @@ set(GPIO_HEADERS
 # baremetal build will not compile it.
 if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
     list(APPEND GPIO_SOURCES test/support/GpioModel.cpp)
-    list(APPEND GPIO_HEADERS test/support/GpioModel.hpp)
+    list(APPEND GPIO_HEADERS test/support/GpioModel.hpp test/support/GpioModelAssertions.hpp)
 endif()
 
 register_fprime_library(
