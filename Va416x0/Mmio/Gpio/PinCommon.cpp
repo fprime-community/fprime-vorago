@@ -17,8 +17,7 @@
 // ======================================================================
 // \title  PinCommon.cpp
 // \brief  Pin member functions that do not touch hardware, and are
-//         therefore shared by the flight (Pin.cpp) and host unit test
-//         (PinStubs.cpp) implementations.
+//         therefore compiled into every build.
 // ======================================================================
 
 #include "Pin.hpp"

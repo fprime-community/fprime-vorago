@@ -17,6 +17,7 @@
 """
 Module for getting common JLink configuration
 """
+
 import os
 
 # Environment variable for default Jlink connection speed

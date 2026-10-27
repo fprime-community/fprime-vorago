@@ -15,29 +15,31 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // ======================================================================
-// \title  PortTestSupport.hpp
-// \brief  Test-only helpers implemented by PortStubs.cpp.
-//
-//         PortStubs.cpp owns the simulated per-pin level storage, so it also
-//         owns clearing it. Gpio::TestSupport::reset() (PinTestSupport.hpp)
-//         calls resetPorts() for you; call it directly only if you want to
-//         clear the port state without clearing the Pin-level configuration
-//         records and call counters.
+// \title  TimerRegisters.hpp
+// \brief  Timer register offsets within one timer's block, shared by flight
+//         code and unit test support.
 // ======================================================================
 
-#ifndef Va416x0_Mmio_PortTestSupport_HPP
-#define Va416x0_Mmio_PortTestSupport_HPP
+#ifndef Va416x0_Mmio_Timer_TimerRegisters_HPP
+#define Va416x0_Mmio_Timer_TimerRegisters_HPP
+
+#include "Fw/Types/BasicTypes.hpp"
 
 namespace Va416x0Mmio {
-namespace Gpio {
-namespace TestSupport {
+namespace TimerRegisters {
 
-//! Clear the simulated pin levels owned by the Port stubs, returning every
-//! pin on every port to Fw::Logic::LOW
-void resetPorts();
+constexpr U32 CTRL = 0x000;
+constexpr U32 RST_VALUE = 0x004;
+constexpr U32 CNT_VALUE = 0x008;
+constexpr U32 ENABLE = 0x00C;
+constexpr U32 CSD_CTRL = 0x010;
+constexpr U32 CASCADE0 = 0x014;
+constexpr U32 CASCADE1 = 0x018;
+constexpr U32 CASCADE2 = 0x01C;
+constexpr U32 PWMA_VALUE = 0x020;
+constexpr U32 PWMB_VALUE = 0x024;
 
-}  // namespace TestSupport
-}  // namespace Gpio
+}  // namespace TimerRegisters
 }  // namespace Va416x0Mmio
 
 #endif

@@ -24,6 +24,7 @@
 
 #include "Va416x0/Drv/AdcSampler/AdcSampler.hpp"
 #include "Va416x0/Drv/AdcSampler/AdcSamplerGTestBase.hpp"
+#include "Va416x0/Mmio/Gpio/test/support/GpioModel.hpp"
 
 namespace Va416x0 {
 
@@ -115,6 +116,9 @@ class AdcSamplerTester final : public AdcSamplerGTestBase {
     // ----------------------------------------------------------------------
     // Member variables
     // ----------------------------------------------------------------------
+
+    //! Simulated GPIO ports; Pin::in() checks on OUT pins need its loopback
+    Va416x0Mmio::Gpio::TestSupport::GpioModel m_gpioModel;
 
     //! The component under test
     AdcSampler component;

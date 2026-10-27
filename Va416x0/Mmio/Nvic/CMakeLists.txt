@@ -14,13 +14,40 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+set(NVIC_SOURCES
+    Nvic.cpp
+)
+set(NVIC_HEADERS
+    Nvic.hpp
+)
+
+# Unit test support is part of the Nvic target IFF BUILD_TESTING is set and the build is not
+# for baremetal. It adds symbols only and never replaces a flight symbol.
+if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    list(APPEND NVIC_SOURCES test/support/NvicModel.cpp)
+    list(APPEND NVIC_HEADERS test/support/NvicModel.hpp)
+endif()
+
 register_fprime_library(
     SOURCES
-        Nvic.cpp
+        ${NVIC_SOURCES}
     HEADERS
-        Nvic.hpp
+        ${NVIC_HEADERS}
     DEPENDS
         Fw_Types
         Va416x0_Mmio_Amba
         Va416x0_Types
 )
+
+if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    register_fprime_ut(
+        NvicModelTest
+        SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/test/ut/NvicModelTest.cpp"
+        DEPENDS
+            Fw_Types
+            Va416x0_Mmio_Amba
+            Va416x0_Mmio_Nvic
+            Va416x0_Types
+    )
+endif()

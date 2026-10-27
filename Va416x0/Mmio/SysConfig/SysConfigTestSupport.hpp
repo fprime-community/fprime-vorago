@@ -34,6 +34,8 @@
 #ifndef Va416x0_Mmio_SysConfigTestSupport_HPP
 #define Va416x0_Mmio_SysConfigTestSupport_HPP
 
+#include "Va416x0/Mmio/Amba/test/support/AmbaTestSupport.hpp"
+
 namespace Va416x0Mmio {
 namespace SysConfig {
 namespace TestSupport {
@@ -54,6 +56,16 @@ namespace TestSupport {
 //! SysConfigTestSupport.cpp. A test that depends on a specific register's
 //! reset value must write that value itself.
 void reset();
+
+//! Device model for the SYSCONFIG block (0x40010000, 0x1000 bytes). Behaves as plain memory;
+//! its reset() runs SysConfig::TestSupport::reset() so that a single
+//! Amba::TestSupport::reset() leaves SYSCONFIG seeded. Own one in the test fixture, declared
+//! BEFORE any model whose reset() relies on SYSCONFIG.
+class Model final : public Amba::TestSupport::DeviceModel {
+  public:
+    Model();
+    void reset() override;
+};
 
 }  // namespace TestSupport
 }  // namespace SysConfig

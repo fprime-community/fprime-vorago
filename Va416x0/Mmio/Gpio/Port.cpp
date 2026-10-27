@@ -17,6 +17,7 @@
 #include "Port.hpp"
 #include "Fw/Types/Assert.hpp"
 #include "Os/Mutex.hpp"
+#include "PortRegisters.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
 #include "Va416x0/Mmio/Gpio/Pin.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
@@ -24,51 +25,29 @@
 namespace Va416x0Mmio {
 namespace Gpio {
 
-constexpr U32 GPIO_ADDRESS = 0x40012000;
+using namespace Registers;
 
 Os::Mutex Port::config_locks[NUM_PORTS];
 
 enum {
-    GPIO_PORT_STRIDE = 0x400,
     GPIO_EXCEPTION_BASE = Va416x0Types::ExceptionNumber::INTERRUPT_PORTA_0,
     GPIO_EXCEPTION_STRIDE = 16,
     GPIO_CASCADE_BASE = 0,
     GPIO_CASCADE_STRIDE = 16,
-
-    DATAIN = 0x000,
-    DATAINRAW = 0x004,
-    DATAOUT = 0x008,
-    DATAOUTRAW = 0x00C,
-    SETOUT = 0x010,
-    CLROUT = 0x014,
-    TOGOUT = 0x018,
-    DATAMASK = 0x01C,
-    DIR = 0x020,
-    PULSE = 0x024,
-    PULSEBASE = 0x028,
-    DELAY1 = 0x02C,
-    DELAY2 = 0x030,
-    IRQ_SEN = 0x034,
-    IRQ_EDGE = 0x038,
-    IRQ_EVT = 0x03C,
-    IRQ_ENB = 0x040,
-    IRQ_RAW = 0x044,
-    IRQ_END = 0x048,
-    EDGE_STATUS = 0x04C,
 };
 
 U32 Port::read(U32 offset) const {
     // Note: No assertion necessary. The validity of 'gpio_port' already gets checked when the Gpio::Port gets
     // instantiated.
     // FIXME: Should we pre-calculate the base address?
-    return Amba::read_u32(GPIO_ADDRESS | (gpio_port * GPIO_PORT_STRIDE) | offset);
+    return Amba::read_u32(BASE | (gpio_port * PORT_STRIDE) | offset);
 }
 
 void Port::write(U32 offset, U32 value) const {
     // Note: No assertion necessary. The validity of 'gpio_port' already gets checked when the Gpio::Port gets
     // instantiated.
     // FIXME: Should we pre-calculate the base address?
-    Amba::write_u32(GPIO_ADDRESS | (gpio_port * GPIO_PORT_STRIDE) | offset, value);
+    Amba::write_u32(BASE | (gpio_port * PORT_STRIDE) | offset, value);
 }
 
 Os::Mutex& Port::get_gpio_config_lock() const {

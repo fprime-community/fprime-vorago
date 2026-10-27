@@ -14,28 +14,23 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
-    set(GPIO_SOURCES
-        Pin.cpp
-        PinCommon.cpp
-        Port.cpp
-    )
-    set(GPIO_HEADERS
-        Pin.hpp
-        Port.hpp
-    )
-else()
-    set(GPIO_SOURCES
-        PinCommon.cpp
-        PinStubs.cpp
-        PortStubs.cpp
-    )
-    set(GPIO_HEADERS
-        Pin.hpp
-        PinTestSupport.hpp
-        Port.hpp
-        PortTestSupport.hpp
-    )
+set(GPIO_SOURCES
+    Pin.cpp
+    PinCommon.cpp
+    Port.cpp
+)
+set(GPIO_HEADERS
+    Pin.hpp
+    Port.hpp
+    PortRegisters.hpp
+)
+
+# Host simulation support is part of the Gpio target IFF BUILD_TESTING is set and the build is
+# not for baremetal. It adds symbols only and never replaces a flight symbol. A non-test or
+# baremetal build will not compile it.
+if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    list(APPEND GPIO_SOURCES test/support/GpioModel.cpp)
+    list(APPEND GPIO_HEADERS test/support/GpioModel.hpp test/support/GpioModelAssertions.hpp)
 endif()
 
 register_fprime_library(
@@ -52,3 +47,17 @@ register_fprime_library(
         Va416x0_Mmio_Signal
         Va416x0_Types
 )
+
+if (BUILD_TESTING AND NOT FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
+    register_fprime_ut(
+        GpioModelTest
+        SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/test/ut/GpioModelTest.cpp"
+        DEPENDS
+            Fw_Types
+            Va416x0_Mmio_Amba
+            Va416x0_Mmio_Gpio
+            Va416x0_Mmio_IoConfig
+            Va416x0_Mmio_SysConfig
+    )
+endif()
