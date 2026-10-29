@@ -40,10 +40,12 @@ displace many small ones. `evictUntilFits()` performs the eviction as follows:
    fail if the eviction loop hit its bound (`EVICTION_LOOP_MAX_COUNT`), indicating a hardware
    problem, in which case the record is not stored.
 
-Filler (written when a record doesn't fit before the end of the buffer) is only skipped over
-when the oldest cursor lies in the final `eventSize(MAX_EVENT_ARG_SIZE)` bytes of the buffer, so the common
-case costs a single compare. `FW_ASSERT(m_overwriteMode)` is checked once at the top of
-`evictUntilFits()`.
+Filler (written when a record doesn't fit before the end of the buffer) is only checked for when
+the oldest cursor is in the final `MAX_RECORD_SIZE` bytes of the buffer, so the common case costs
+a single compare. There, after evicting a record, `evictOldestRecord()` reads the next word. If it
+is filler, everything after it up to the end of the buffer is filler too, because filler is written
+in one pass to the end, so the oldest cursor jumps straight to the end of the buffer. The cursor
+is never moved past the write cursor. 
 
 ### Event Storage After GDS Attach (Keep-Oldest Mode)
 

@@ -429,15 +429,20 @@ FwSizeType GdsStream::evictOldestRecord(U16 writeCursor) {
     // individually, and the fillers must go anyway since the next record starts at the buffer start.
     FwSizeType freed = recordSize;
     // Filler can only start near the edge of the buffer, so the common case is a single compare.
-    while (((this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK) > FILLER_REGION_START) &&
-           (this->m_oldestRecordCursor != writeCursor)) {
-        U16 word = Va416x0Mmio::Amba::read_u16(EVENT_BUFFER_DATA_ADDRESS() +
-                                               (this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK));
-        if ((word & HEADER_BYTE_MASK) != FILLER_HEADER) {
-            break;
+    // The cursor != writeCursor guard is needed because words at or beyond the write cursor are stale
+    // and can look like old records.
+    const U16 edgeRelative = this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK;
+    if ((edgeRelative > FILLER_REGION_START) && (this->m_oldestRecordCursor != writeCursor)) {
+        U16 word = Va416x0Mmio::Amba::read_u16(EVENT_BUFFER_DATA_ADDRESS() + edgeRelative);
+        if ((word & HEADER_BYTE_MASK) == FILLER_HEADER) {
+            // Invariant: fillWraparoundRegion writes filler in one pass from the write cursor to the
+            // edge, and records never straddle the edge, so a filler word here means every word from
+            // here to the edge is filler (a real record is never zero-length, see writeConsoleBuffer).
+            // Read one word and jump to the edge instead of reading each filler word.
+            const FwSizeType skip = EVENT_BUFFER_DATA_SIZE - edgeRelative;
+            this->m_oldestRecordCursor = (this->m_oldestRecordCursor + skip) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+            freed += skip;
         }
-        this->m_oldestRecordCursor = (this->m_oldestRecordCursor + sizeof(U16)) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
-        freed += sizeof(U16);
     }
     return freed;
 }
@@ -660,13 +665,13 @@ void GdsStream::Run_handler(FwIndexType portNum, U32 context) {
     if (this->m_overwriteMode) {
         U16 attachRequest = Va416x0Mmio::Amba::read_u16(GDS_ATTACH_REQUEST_ADDRESS());
         if (attachRequest != GDS_ATTACH_REQUEST_NONE) {
-            // Ensure exclusive access to the event buffer; if it's busy, just retry next tick
+            // Ensure exclusive access to the event buffer
             U8 active = this->m_eventBufferInUse.exchange(1);
-            if (active == 0) {
-                Va416x0Mmio::Amba::write_u16(READ_CURSOR_ADDRESS(), this->m_oldestRecordCursor);
-                this->m_overwriteMode = false;
-                this->m_eventBufferInUse = 0;
-            }
+            // Since this code runs in the main loop, we can never fail to acquire the event buffer.
+            FW_ASSERT(active == 0, active);
+            Va416x0Mmio::Amba::write_u16(READ_CURSOR_ADDRESS(), this->m_oldestRecordCursor);
+            this->m_overwriteMode = false;
+            this->m_eventBufferInUse = 0;
         }
     }
 
