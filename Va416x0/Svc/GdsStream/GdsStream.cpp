@@ -156,8 +156,7 @@ constexpr FwSizeType eventSize(FwSizeType argsSize) {
     return size + (size & 0x1);
 }
 
-//! Returns the size of the console buffer when stored to external SRAM, given the current size of
-//! the buffer.
+//! Largest record that can be stored in the event buffer.
 constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
     FwSizeType size = sizeof(GdsStream::HeaderType) + bufferSize;
     // Serialized console output must be U16-aligned, add 1 byte of padding if the size is odd
@@ -168,9 +167,7 @@ constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
 constexpr U32 CONSOLE_ENTRY_BYTES = consoleSize(0);
 
 //! Largest record that can be stored in the event buffer
-constexpr FwSizeType MAX_RECORD_SIZE = (eventSize(MAX_EVENT_ARG_SIZE) > consoleSize(LINE_BUFFER_SIZE))
-                                           ? eventSize(MAX_EVENT_ARG_SIZE)
-                                           : consoleSize(LINE_BUFFER_SIZE);
+constexpr FwSizeType MAX_RECORD_SIZE = std::max(eventSize(MAX_EVENT_ARG_SIZE), consoleSize(LINE_BUFFER_SIZE));
 // Evicting one largest record, and any filler after it, never takes more than this many evictions
 constexpr U32 EVICTION_LOOP_MAX_COUNT = MAX_RECORD_SIZE / CONSOLE_ENTRY_BYTES;
 
