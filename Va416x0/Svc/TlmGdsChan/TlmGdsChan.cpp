@@ -41,8 +41,10 @@ constexpr U32 PONG_BUFFER_OFFSET = Va416x0::TlmGdsChan_PongBufferOffset;
 constexpr U32 PING_PONG_BUFFER_SIZE = TlmGdsChanCfg::PingPongBufferSize;
 
 // TlmGdsChan external SRAM allocation
+// Explicitly aligned so this array's own alignment doesn't depend on the size of whatever other
+// components' arrays happen to be linked into .EXTI_SRAM ahead of it
 constexpr U32 EXTSRAM_ALLOCATION_SIZE = PING_PONG_SELECT_SIZE + (2 * PING_PONG_BUFFER_SIZE);
-__attribute__((section(".EXTI_SRAM"), used)) U8 TlmGdsChanExtSRAM[EXTSRAM_ALLOCATION_SIZE];
+__attribute__((section(".EXTI_SRAM"), used, aligned(4))) U8 TlmGdsChanExtSRAM[EXTSRAM_ALLOCATION_SIZE];
 
 // Assert that all external SRAM offsets are U16-aligned
 static_assert((PING_PONG_SELECT_OFFSET % sizeof(U16)) == 0, "Ping-pong selector offset must be 16-bit aligned");

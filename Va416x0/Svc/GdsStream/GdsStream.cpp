@@ -25,6 +25,7 @@
 #include "Va416x0/Mmio/Lock/Lock.hpp"
 #include "Va416x0/Svc/GdsStream/FppConstantsAc.hpp"
 
+#include <algorithm>
 #include <climits>
 #include <cstdio>
 #include <limits>
@@ -40,9 +41,16 @@ constexpr U32 COMMAND_BUFFER_OFFSET = Va416x0::GdsStream_CommandBufferOffset;
 constexpr U32 COMMAND_BUFFER_SIZE = Va416x0::GdsStream_CommandBufferSize;
 constexpr U16 COMMAND_MAGIC_WORD = Va416x0::GdsStream_CommandMagicWord;
 
+// Written by FSW at setup to indicate no attach-request is outstanding.
+// GDS writes a non-zero value (1) once it attaches. FSW only
+// reads this field, never writes any value other than GDS_ATTACH_REQUEST_NONE.
+constexpr U16 GDS_ATTACH_REQUEST_NONE = 0;
+
 // GdsStream external SRAM allocation
+// Explicitly aligned so this array's own alignment doesn't depend on the size of whatever other
+// components' arrays happen to be linked into .EXTI_SRAM ahead of it
 constexpr U32 EXTSRAM_ALLOCATION_SIZE = EVENT_BUFFER_SIZE + COMMAND_BUFFER_SIZE;
-__attribute__((section(".EXTI_SRAM"), used)) U8 GdsStreamExtSRAM[EXTSRAM_ALLOCATION_SIZE];
+__attribute__((section(".EXTI_SRAM"), used, aligned(4))) U8 GdsStreamExtSRAM[EXTSRAM_ALLOCATION_SIZE];
 
 // Assert that all external SRAM offsets are U16-aligned
 static_assert((EVENT_BUFFER_OFFSET % sizeof(U16)) == 0, "EventBufferOffset must be 16-bit aligned");
@@ -61,7 +69,7 @@ static_assert(COMMAND_BUFFER_OFFSET >= (EVENT_BUFFER_OFFSET + EVENT_BUFFER_SIZE)
 
 // Read and write cursors are stored modulo double the length of the event buffer, assert that
 // this can be properly indexed
-constexpr U32 EVENT_BUFFER_DATA_SIZE = EVENT_BUFFER_SIZE - (3 * sizeof(U16));
+constexpr U32 EVENT_BUFFER_DATA_SIZE = EVENT_BUFFER_SIZE - (4 * sizeof(U16));
 static_assert((EVENT_BUFFER_DATA_SIZE * 2) <= std::numeric_limits<U16>::max(),
               "Read and write cursors are U16 values that are stored modulo double the length of the event buffer");
 
@@ -77,8 +85,20 @@ constexpr U16 EVENT_BUFFER_DOUBLE_SIZE_MASK =
 
 //! The event vs. console indicator is stored in the top bit of the log header
 constexpr U32 INDICATOR_OFFSET = (sizeof(GdsStream::HeaderType) * CHAR_BIT) - 1;
+//! Mask to isolate the single-bit event/console indicator
+constexpr GdsStream::HeaderType INDICATOR_MASK = 1 << INDICATOR_OFFSET;
 //! The remaining bits of the log header store the length
-constexpr GdsStream::HeaderType LENGTH_MASK = ~(1 << INDICATOR_OFFSET);
+constexpr GdsStream::HeaderType LENGTH_MASK = static_cast<GdsStream::HeaderType>(~INDICATOR_MASK);
+//! Mask to truncate a 16-bit buffer read down to the single log header byte
+constexpr U16 HEADER_BYTE_MASK = std::numeric_limits<GdsStream::HeaderType>::max();
+//! Header of a filler item: a zero-length console record. Written by fillWraparoundRegion and
+//! recognized by evictOldestRecord.
+// NOTE: Va416x0 is little-endian, header byte should go in the least-significant byte
+// FIXME: do not assume endianness, make this more flexible
+constexpr GdsStream::HeaderType FILLER_HEADER = static_cast<GdsStream::HeaderType>(GdsStream::LogType::Console)
+                                                << INDICATOR_OFFSET;
+
+constexpr U32 MAX_EVENT_ARG_SIZE = LENGTH_MASK;
 
 // The console line buffer is indexed using a U8, assert that this can be properly indexed
 static_assert(LINE_BUFFER_SIZE <= std::numeric_limits<U8>::max(), "Console line buffer is indexed using a U8");
@@ -103,9 +123,14 @@ static inline U32 WRITE_CURSOR_ADDRESS() {
     return READ_CURSOR_ADDRESS() + sizeof(U16);
 }
 
-static inline U32 EVENT_BUFFER_DATA_ADDRESS() {
+static inline U32 GDS_ATTACH_REQUEST_ADDRESS() {
     // Event buffer + magic word + read cursor + write cursor
     return WRITE_CURSOR_ADDRESS() + sizeof(U16);
+}
+
+static inline U32 EVENT_BUFFER_DATA_ADDRESS() {
+    // Event buffer + magic word + read cursor + write cursor + GDS attach request flag
+    return GDS_ATTACH_REQUEST_ADDRESS() + sizeof(U16);
 }
 
 static inline U32 COMMAND_MAGIC_WORD_ADDRESS() {
@@ -131,20 +156,36 @@ constexpr FwSizeType eventSize(FwSizeType argsSize) {
     return size + (size & 0x1);
 }
 
-//! Returns the size of the console buffer when stored to external SRAM, given the current size of
-//! the buffer.
+//! Largest record that can be stored in the event buffer.
 constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
     FwSizeType size = sizeof(GdsStream::HeaderType) + bufferSize;
     // Serialized console output must be U16-aligned, add 1 byte of padding if the size is odd
     return size + (size & 0x1);
 }
 
+//! Size of an empty console entry, which is what wraparound filler is made of
+constexpr U32 CONSOLE_ENTRY_BYTES = consoleSize(0);
+
+//! Largest record that can be stored in the event buffer
+constexpr FwSizeType MAX_RECORD_SIZE = std::max(eventSize(MAX_EVENT_ARG_SIZE), consoleSize(LINE_BUFFER_SIZE));
+// Evicting one largest record, and any filler after it, never takes more than this many evictions
+constexpr U32 EVICTION_LOOP_MAX_COUNT = MAX_RECORD_SIZE / CONSOLE_ENTRY_BYTES;
+
+//! Wraparound filler (see fillWraparoundRegion) is only written when a record does not fit before
+//! the edge of the buffer, so it always starts within MAX_RECORD_SIZE bytes of that edge
+constexpr U16 FILLER_REGION_START = EVENT_BUFFER_DATA_SIZE - MAX_RECORD_SIZE;
+static_assert(MAX_RECORD_SIZE < EVENT_BUFFER_DATA_SIZE, "Largest record must fit in the event buffer");
+
 // ----------------------------------------------------------------------
 // GdsStream functions
 // ----------------------------------------------------------------------
 
 GdsStream::GdsStream(const char* const compName)
-    : GdsStreamComponentBase(compName), m_setup(false), m_lineBufferPos(0) {
+    : GdsStreamComponentBase(compName),
+      m_setup(false),
+      m_overwriteMode(true),
+      m_oldestRecordCursor(0),
+      m_lineBufferPos(0) {
     // Verify at construction time that m_lineBuffer is misaligned by 1 byte.
     // See GdsStream::writeConsoleBuffer for why this is needed.
     FW_ASSERT(reinterpret_cast<uintptr_t>(&m_lineBuffer[0]) % 2 == 1,
@@ -167,6 +208,10 @@ void GdsStream::setup() {
     // Zero out the read and write cursors
     Va416x0Mmio::Amba::write_u16(READ_CURSOR_ADDRESS(), 0);
     Va416x0Mmio::Amba::write_u16(WRITE_CURSOR_ADDRESS(), 0);
+    // No GDS attach request outstanding; FSW starts (and a reset returns) in overwrite mode
+    Va416x0Mmio::Amba::write_u16(GDS_ATTACH_REQUEST_ADDRESS(), GDS_ATTACH_REQUEST_NONE);
+    this->m_overwriteMode = true;
+    this->m_oldestRecordCursor = 0;
 
     // Write the magic word to the start of the command buffer
     Va416x0Mmio::Amba::write_u16(COMMAND_MAGIC_WORD_ADDRESS(), COMMAND_MAGIC_WORD);
@@ -214,7 +259,7 @@ bool GdsStream::itemFitsInBuffer(U16 readCursor,
     } else if (readCursorRelative > writeCursorRelative) {
         // Read cursor is in front of the write cursor and has not wrapped around; the space
         // remaining is the distance from the write cursor to the read cursor
-        fits = size <= (readCursorRelative - writeCursorRelative);
+        fits = size <= static_cast<FwSizeType>(readCursorRelative - writeCursorRelative);
         extSramAddr = EVENT_BUFFER_DATA_ADDRESS() + writeCursorRelative;
         nextWriteCursor = (writeCursor + size) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
     } else if (writeCursorRelative > readCursorRelative) {
@@ -355,12 +400,82 @@ void GdsStream::fillWraparoundRegion(U16 writeCursor) {
     U32 extSramAddr = EVENT_BUFFER_DATA_ADDRESS() + writeCursorRelative;
     FW_ASSERT((extSramAddr % sizeof(U16)) == 0, extSramAddr);
 
-    // NOTE: Va416x0 is little-endian, header byte should go in the least-significant byte
-    // FIXME: do not assume endianness, make this more flexible
-    HeaderType header = static_cast<HeaderType>(LogType::Console) << INDICATOR_OFFSET;
     for (U32 addr = extSramAddr; addr < EVENT_BUFFER_DATA_ADDRESS() + EVENT_BUFFER_DATA_SIZE; addr += sizeof(U16)) {
-        Va416x0Mmio::Amba::write_u16(addr, header);
+        Va416x0Mmio::Amba::write_u16(addr, FILLER_HEADER);
     }
+}
+
+FwSizeType GdsStream::evictOldestRecord(U16 writeCursor) {
+    // NOTE: the caller (evictUntilFits) asserts m_overwriteMode once rather than on every eviction
+
+    // Read the header of the oldest surviving record to determine its size, the same way
+    // writeEvent/writeConsoleBuffer encoded it.
+    U16 oldestRelative = this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK;
+    U16 headerWord = Va416x0Mmio::Amba::read_u16(EVENT_BUFFER_DATA_ADDRESS() + oldestRelative);
+    HeaderType header = static_cast<HeaderType>(headerWord & HEADER_BYTE_MASK);
+    LogType type = static_cast<LogType>((header & INDICATOR_MASK) >> INDICATOR_OFFSET);
+    HeaderType length = header & LENGTH_MASK;
+    FwSizeType recordSize = (type == LogType::Event) ? eventSize(length) : consoleSize(length);
+
+    // Advance past the evicted record, using the same double-modulo convention as nextWriteCursor
+    this->m_oldestRecordCursor = (this->m_oldestRecordCursor + recordSize) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+
+    // Records are never split across the edge of the circular buffer; if the evicted record was
+    // followed by zero-length console records padding out the end of the buffer (see
+    // fillWraparoundRegion), skip the whole run now. It is cheaper than evicting each filler
+    // individually, and the fillers must go anyway since the next record starts at the buffer start.
+    FwSizeType freed = recordSize;
+    // Filler can only start near the edge of the buffer, so the common case is a single compare.
+    // The cursor != writeCursor guard is needed because words at or beyond the write cursor are stale
+    // and can look like old records.
+    const U16 edgeRelative = this->m_oldestRecordCursor & EVENT_BUFFER_SIZE_MASK;
+    if ((edgeRelative > FILLER_REGION_START) && (this->m_oldestRecordCursor != writeCursor)) {
+        U16 word = Va416x0Mmio::Amba::read_u16(EVENT_BUFFER_DATA_ADDRESS() + edgeRelative);
+        if ((word & HEADER_BYTE_MASK) == FILLER_HEADER) {
+            // Invariant: fillWraparoundRegion writes filler in one pass from the write cursor to the
+            // edge, and records never straddle the edge, so a filler word here means every word from
+            // here to the edge is filler (a real record is never zero-length, see writeConsoleBuffer).
+            // Read one word and jump to the edge instead of reading each filler word.
+            const FwSizeType skip = EVENT_BUFFER_DATA_SIZE - edgeRelative;
+            this->m_oldestRecordCursor = (this->m_oldestRecordCursor + skip) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+            freed += skip;
+        }
+    }
+    return freed;
+}
+
+bool GdsStream::evictUntilFits(U16 writeCursor,
+                               FwSizeType size,
+                               U32& extSramAddr,
+                               U16& nextWriteCursor,
+                               bool& wraparound) {
+    FW_ASSERT(this->m_overwriteMode);
+    // Common case: the item already fits
+    if (this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
+                               wraparound)) {
+        return true;
+    }
+
+    // Items are never split across the edge of the circular buffer. If the item does not fit
+    // before the edge, the rest of the buffer (the tail) is filled with filler and the item is
+    // written at the start of the buffer, so the filler counts toward the space that is needed.
+    FwSizeType tail = EVENT_BUFFER_DATA_SIZE - (writeCursor & EVENT_BUFFER_SIZE_MASK);
+    FwSizeType needed = (size <= tail) ? size : (tail + size);
+    FwSizeType used = (writeCursor - this->m_oldestRecordCursor) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+    FW_ASSERT(used <= EVENT_BUFFER_DATA_SIZE, used);
+    FwSizeType free = EVENT_BUFFER_DATA_SIZE - used;
+    FwSizeType deficit = (needed > free) ? (needed - free) : 0;
+
+    // Evict whole records until the deficit is covered, without a fit check after every record
+    FwSizeType freed = 0;
+    // The count limit prevents an infinite loop due to h/w failure
+    for (U32 count = 0; (freed < deficit) && (count < EVICTION_LOOP_MAX_COUNT); count++) {
+        freed += this->evictOldestRecord(writeCursor);
+    }
+
+    // The deficit is exact, so the item fits unless the loop gave up (e.g. h/w failure)
+    return this->itemFitsInBuffer(this->m_oldestRecordCursor, writeCursor, size, extSramAddr, nextWriteCursor,
+                                  wraparound);
 }
 
 bool GdsStream::prepareConsoleWrite() {
@@ -446,8 +561,7 @@ bool GdsStream::flushConsoleBuffer(void) {
         return true;
     }
 
-    // Read the current value of the read and write cursors
-    U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());
+    // Read the current value of the write cursor
     U16 writeCursor = Va416x0Mmio::Amba::read_u16(WRITE_CURSOR_ADDRESS());
     // Check if the console output can fit in the space remaining in the buffer and determine where
     // exactly it will be written to, as well as the next value of the write cursor
@@ -455,7 +569,16 @@ bool GdsStream::flushConsoleBuffer(void) {
     U16 nextWriteCursor;
     bool wraparound;
     FwSizeType size = consoleSize(bufferSize);
-    bool fits = this->itemFitsInBuffer(readCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    bool fits;
+    if (this->m_overwriteMode) {
+        // Nothing has read the buffer yet; evict the oldest record(s) to make room rather than
+        // dropping the new output
+        fits = this->evictUntilFits(writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    } else {
+        // The GDS has attached at some point; keep old data and drop new output if there's no room
+        U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());
+        fits = this->itemFitsInBuffer(readCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    }
     if (!fits) {
         // No room to flush the console output, return and wait for the GDS to make space
         return false;
@@ -532,6 +655,23 @@ void GdsStream::Run_handler(FwIndexType portNum, U32 context) {
         return;
     }
 
+    // One-way transition out of overwrite mode: once the GDS has requested attachment, hand off
+    // the shared read cursor to the oldest surviving record and permanently switch to keep-oldest
+    // behavior. This is the only place that ever reads the attach request flag or writes the read
+    // cursor.
+    if (this->m_overwriteMode) {
+        U16 attachRequest = Va416x0Mmio::Amba::read_u16(GDS_ATTACH_REQUEST_ADDRESS());
+        if (attachRequest != GDS_ATTACH_REQUEST_NONE) {
+            // Ensure exclusive access to the event buffer
+            U8 active = this->m_eventBufferInUse.exchange(1);
+            // Since this code runs in the main loop, we can never fail to acquire the event buffer.
+            FW_ASSERT(active == 0, active);
+            Va416x0Mmio::Amba::write_u16(READ_CURSOR_ADDRESS(), this->m_oldestRecordCursor);
+            this->m_overwriteMode = false;
+            this->m_eventBufferInUse = 0;
+        }
+    }
+
     // Check for a command in the command buffer
     this->checkCommandBuffer();
 
@@ -557,16 +697,24 @@ void GdsStream::LogRecv_handler(FwIndexType portNum,
         return;
     }
 
-    // Read the current value of the read and write cursors
-    U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());
+    // Read the current value of the write cursor
     U16 writeCursor = Va416x0Mmio::Amba::read_u16(WRITE_CURSOR_ADDRESS());
-    // Check if the console output can fit in the space remaining in the buffer and determine where
-    // exactly it will be written to, as well as the next value of the write cursor
+    // Check if the event can fit in the space remaining in the buffer and determine where exactly
+    // it will be written to, as well as the next value of the write cursor
     U32 extSramAddr;
     U16 nextWriteCursor;
     bool wraparound;
     FwSizeType size = eventSize(args.getSize());
-    bool fits = this->itemFitsInBuffer(readCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    bool fits;
+    if (this->m_overwriteMode) {
+        // Nothing has read the buffer yet; evict the oldest record(s) to make room rather than
+        // dropping the new event
+        fits = this->evictUntilFits(writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    } else {
+        // The GDS has attached at some point; keep old data and drop the new event if there's no room
+        U16 readCursor = Va416x0Mmio::Amba::read_u16(READ_CURSOR_ADDRESS());
+        fits = this->itemFitsInBuffer(readCursor, writeCursor, size, extSramAddr, nextWriteCursor, wraparound);
+    }
     if (!fits) {
         // Drop the event, incrementing drop count telemetry
         this->m_droppedEvents++;

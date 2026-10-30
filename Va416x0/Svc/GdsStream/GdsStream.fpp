@@ -31,8 +31,9 @@ module Va416x0 {
 
         @ Offset of the event/console buffer within GdsStream external SRAM
         dictionary constant EventBufferOffset = 0
-        @ Size of the event/console buffer (8 KiB plus the magic word plus the 16-bit read and write cursors)
-        dictionary constant EventBufferSize = 0x2006
+        @ Size of the event/console buffer (8 KiB plus the magic word, the 16-bit read/write
+        @ cursors, and the GDS attach request flag)
+        dictionary constant EventBufferSize = 0x2008
         # 2 KiB event buffer size == 1 << 13
         constant EventBufferSizeShift = 13
 

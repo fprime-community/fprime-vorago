@@ -18,6 +18,6 @@ module Va416x0 {
 
     @ Version for the GDS JLink communication protocol. This value must be incremented whenever the
     @ protocol is modified.
-    dictionary constant GdsJLinkProtocolVersion = 1
+    dictionary constant GdsJLinkProtocolVersion = 2
 
 }
