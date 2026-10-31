@@ -156,7 +156,8 @@ constexpr FwSizeType eventSize(FwSizeType argsSize) {
     return size + (size & 0x1);
 }
 
-//! Largest record that can be stored in the event buffer.
+//! Returns the size of the console buffer when stored to external SRAM, given the current size of
+//! the buffer.
 constexpr FwSizeType consoleSize(FwSizeType bufferSize) {
     FwSizeType size = sizeof(GdsStream::HeaderType) + bufferSize;
     // Serialized console output must be U16-aligned, add 1 byte of padding if the size is odd
