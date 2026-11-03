@@ -438,6 +438,10 @@ FwSizeType GdsStream::evictOldestRecord(U16 writeCursor) {
             // here to the edge is filler (a real record is never zero-length, see writeConsoleBuffer).
             // Read one word and jump to the edge instead of reading each filler word.
             const FwSizeType skip = EVENT_BUFFER_DATA_SIZE - edgeRelative;
+            // Filler is only written when the writer wraps to the start of the buffer, so the write cursor
+            // cannot lie between here and the edge: skipping must not move the oldest cursor past it.
+            const FwSizeType used = (writeCursor - this->m_oldestRecordCursor) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
+            FW_ASSERT(skip <= used, skip, used);
             this->m_oldestRecordCursor = (this->m_oldestRecordCursor + skip) & EVENT_BUFFER_DOUBLE_SIZE_MASK;
             freed += skip;
         }
