@@ -8,17 +8,15 @@ TODO: Fill this in for the vorago implementation
 
 ## Unit test support
 
-**Build**: `Pin.cpp`, `Port.cpp` and `PinCommon.cpp` build on every platform and run on the
+**Build**: `Pin.cpp` and `Port.cpp` build on every platform and run on the
 host against the Amba stub (`Amba/stubs`). Under `BUILD_TESTING` on non-baremetal platforms,
 `test/support/GpioModel.{hpp,cpp}` is compiled into `Va416x0_Mmio_Gpio` itself. It only adds
 symbols, so there's no issue of multiple definitions. `PortRegisters.hpp` holds the register
 offsets shared by the model and the tests.
 
-**Usage** (declaration order matters, since pin configuration enables clocks through
-SYSCONFIG):
+**Usage**:
 
 ```cpp
-SysConfig::TestSupport::Model sysconfig;
 Gpio::TestSupport::GpioModel gpio;
 // SetUp(): Amba::TestSupport::reset();
 ```

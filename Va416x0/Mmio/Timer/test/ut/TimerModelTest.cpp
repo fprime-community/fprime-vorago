@@ -29,7 +29,7 @@ using namespace TimerTestSupport;
 
 class TimerModelTest : public ::testing::Test {
   protected:
-    TimerModelTest() : timers(&nvic) {}
+    TimerModelTest() : timers(nvic) {}
 
     void SetUp() override { AmbaTs::reset(); }
 

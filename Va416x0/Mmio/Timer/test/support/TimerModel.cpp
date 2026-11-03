@@ -50,7 +50,7 @@ void TimerModel::PerTimer::clear() {
     this->history.setDepth(DEFAULT_START_HISTORY_DEPTH);
 }
 
-TimerModel::TimerModel(Nvic::TestSupport::NvicModel* nvic) : m_nvic(nvic), m_sequence(0) {
+TimerModel::TimerModel(Nvic::TestSupport::NvicModel& nvic) : m_nvic(nvic), m_sequence(0) {
     Amba::TestSupport::registerDevice(*this, TIM0_ADDRESS, NUM_APB1_TIMERS * TIM_STRIDE);
     Amba::TestSupport::registerDevice(*this, TIM16_ADDRESS, NUM_APB2_TIMERS * TIM_STRIDE);
 }
@@ -160,11 +160,8 @@ bool TimerModel::expire(const Timer& timer) {
     if ((ctrl & Timer::CTRL_IRQ_ENB) == 0) {
         return false;
     }
-    if (this->m_nvic == nullptr) {
-        return true;
-    }
-    this->m_nvic->trigger(timer.get_timer_done_exception());
-    return this->m_nvic->isEnabled(timer.get_timer_done_exception());
+    this->m_nvic.trigger(timer.get_timer_done_exception());
+    return this->m_nvic.isEnabled(timer.get_timer_done_exception());
 }
 
 U32 TimerModel::getExpireCount(const Timer& timer) const {

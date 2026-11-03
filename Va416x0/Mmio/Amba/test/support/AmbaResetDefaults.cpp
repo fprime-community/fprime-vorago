@@ -20,6 +20,7 @@
 
 #include "AmbaTestSupport.hpp"
 #include "Fw/Types/Assert.hpp"
+#include "Va416x0/Mmio/SysConfig/SysConfigRegisters.hpp"
 
 #include <algorithm>
 
@@ -227,9 +228,47 @@ constexpr RegisterDefault kOtherPeripherals[] = {
 
 // System control registers
 constexpr RegisterDefault kSystemControl[] = {
-    // SYSCONFIG @ 0x40010000
-    REG(0x40010000, 0x00000000),  // SYSCONFIG_CTRL
-    REG(0x40010004, 0x00000000),  // SYSCONFIG_STAT
+    // SYSCONFIG (offsets from SysConfigRegisters.hpp).
+    // Not the VA416x0 power-on reset values: zero is a known baseline, except that TIM_RESETS and
+    // PERIPHERAL_RESET are active-low (SysConfig::reset_peripheral() pulses a bit low and restores
+    // ~0), so all-ones means "no peripheral held in reset". The read-only ID registers (EF_ID0,
+    // EF_ID1, PROCID, PERID) are zero only so that reading them is legal; a test that reads them
+    // must write the value it expects.
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::ROM_PROT, 0x00000000),          // SYSCONFIG_ROM_PROT
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::ROM_SCRUB, 0x00000000),         // SYSCONFIG_ROM_SCRUB
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::RAM0_SCRUB, 0x00000000),        // SYSCONFIG_RAM0_SCRUB
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::RAM1_SCRUB, 0x00000000),        // SYSCONFIG_RAM1_SCRUB
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::IRQ_ENB, 0x00000000),           // SYSCONFIG_IRQ_ENB
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::IRQ_RAW, 0x00000000),           // SYSCONFIG_IRQ_RAW
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::IRQ_END, 0x00000000),           // SYSCONFIG_IRQ_END
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::IRQ_CLR, 0x00000000),           // SYSCONFIG_IRQ_CLR
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::RAM0_SBE, 0x00000000),          // SYSCONFIG_RAM0_SBE
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::RAM1_SBE, 0x00000000),          // SYSCONFIG_RAM1_SBE
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::RAM0_MBE, 0x00000000),          // SYSCONFIG_RAM0_MBE
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::RAM1_MBE, 0x00000000),          // SYSCONFIG_RAM1_MBE
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::ROM_SBE, 0x00000000),           // SYSCONFIG_ROM_SBE
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::ROM_MBE, 0x00000000),           // SYSCONFIG_ROM_MBE
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::ROM_RETRIES, 0x00000000),       // SYSCONFIG_ROM_RETRIES
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::REFRESH_CONFIG_H, 0x00000000),  // SYSCONFIG_REFRESH_CONFIG_H
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::TIM_RESETS, 0xFFFFFFFF),        // SYSCONFIG_TIM_RESETS
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::TIM_CLK_ENABLES, 0x00000000),   // SYSCONFIG_TIM_CLK_ENABLES
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::PERIPHERAL_RESET, 0xFFFFFFFF),  // SYSCONFIG_PERIPHERAL_RESET
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::PERIPHERAL_CLK_ENABLE,
+        0x00000000),                                                                  // SYSCONFIG_PERIPHERAL_CLK_ENABLE
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::SPW_M4_CTRL, 0x00000000),  // SYSCONFIG_SPW_M4_CTRL
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::PMU_CTRL, 0x00000000),     // SYSCONFIG_PMU_CTRL
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::WAKEUP_CNT, 0x00000000),   // SYSCONFIG_WAKEUP_CNT
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::EBI_CFG0, 0x00000000),     // SYSCONFIG_EBI_CFG0
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::EBI_CFG1, 0x00000000),     // SYSCONFIG_EBI_CFG1
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::EBI_CFG2, 0x00000000),     // SYSCONFIG_EBI_CFG2
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::EBI_CFG3, 0x00000000),     // SYSCONFIG_EBI_CFG3
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::SW_CLKDIV10, 0x00000000),  // SYSCONFIG_SW_CLKDIV10
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::REFRESH_CONFIG_L, 0x00000000),  // SYSCONFIG_REFRESH_CONFIG_L
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::EF_CONFIG, 0x00000000),         // SYSCONFIG_EF_CONFIG
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::EF_ID0, 0x00000000),            // SYSCONFIG_EF_ID0
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::EF_ID1, 0x00000000),            // SYSCONFIG_EF_ID1
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::PROCID, 0x00000000),            // SYSCONFIG_PROCID
+    REG(SysConfig::Registers::BASE + SysConfig::Registers::PERID, 0x00000000),             // SYSCONFIG_PERID
     // CLKGEN @ 0x40006000
     REG(0x40006000, 0x00000000),  // CLKGEN_CTRL
     REG(0x40006004, 0x00000000),  // CLKGEN_STAT

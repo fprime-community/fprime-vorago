@@ -16,7 +16,6 @@
 
 set(GPIO_SOURCES
     Pin.cpp
-    PinCommon.cpp
     Port.cpp
 )
 set(GPIO_HEADERS

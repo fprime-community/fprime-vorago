@@ -24,7 +24,6 @@
 #include "Va416x0/Mmio/Gpio/test/support/GpioModel.hpp"
 #include "Va416x0/Mmio/IoConfig/IoConfig.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
-#include "Va416x0/Mmio/SysConfig/SysConfigTestSupport.hpp"
 
 namespace Va416x0Mmio {
 namespace Gpio {
@@ -36,8 +35,6 @@ class GpioModelTest : public ::testing::Test {
   protected:
     void SetUp() override { AmbaTs::reset(); }
 
-    // Declaration order matters: the GPIO model's pin configuration enables clocks via SYSCONFIG
-    SysConfig::TestSupport::Model sysconfig;
     TestSupport::GpioModel gpio;
 };
 
@@ -361,7 +358,6 @@ TEST_F(GpioModelTest, TwoPinsSamePortIndependent) {
 // No fixture, so no GpioModel is registered: SETOUT is just stored memory.
 TEST(GpioNoModelTest, NoModelMeansPlainMemory) {
     AmbaTs::reset();
-    SysConfig::TestSupport::reset();
     PORTA[3].configure_as_gpio(Fw::Direction::OUT);
     PORTA[3].out(Fw::Logic::HIGH);
     EXPECT_EQ(PORTA.read_dataoutraw(), 0u);

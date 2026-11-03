@@ -82,7 +82,7 @@ stored word is untouched.
 
 **Reset.** `reset()` clears memory, calls `reset()` once on each registered model in registration
 order, then zeroes counters and history. If one model's `reset()` depends on another (for example,
-it enables clocks through SYSCONFIG), register it after that model.
+it relies on another model's registers), register it after that model.
 
 **Re-entrancy.** Inside a hook, use only `peekU32`/`pokeU32`, which bypass counters, history and
 hooks. Any `read_*`/`write_*` call from a hook asserts. The stub tracks this with a flag that is

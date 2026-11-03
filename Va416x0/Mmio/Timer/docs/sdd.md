@@ -12,7 +12,7 @@ TODO: Fill this in for the vorago implementation
 non-baremetal platforms (it only adds symbols). The real `Timer.cpp` runs unchanged against the
 Amba stub; `TimerModel` (namespace `Va416x0Mmio::TimerTestSupport`) is an
 `Amba::TestSupport::DeviceModel` over TIM0-TIM15 and TIM16-TIM23 that the test fixture owns. Pass
-it the fixture's `NvicModel` (declared first) so that expiry raises the interrupt.
+it the fixture's `NvicModel` (declared first, required) so that expiry raises the interrupt.
 
 **Time does not pass.** A started timer stays running until the test calls `expire(timer)`, which
 loads count 0, then either stops the timer (`CTRL_AUTO_DISABLE`) or reloads it from `RST_VALUE`,

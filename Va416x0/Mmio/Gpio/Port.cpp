@@ -25,8 +25,6 @@
 namespace Va416x0Mmio {
 namespace Gpio {
 
-using namespace Registers;
-
 Os::Mutex Port::config_locks[NUM_PORTS];
 
 enum {
@@ -40,14 +38,14 @@ U32 Port::read(U32 offset) const {
     // Note: No assertion necessary. The validity of 'gpio_port' already gets checked when the Gpio::Port gets
     // instantiated.
     // FIXME: Should we pre-calculate the base address?
-    return Amba::read_u32(BASE | (gpio_port * PORT_STRIDE) | offset);
+    return Amba::read_u32(Registers::BASE | (gpio_port * Registers::PORT_STRIDE) | offset);
 }
 
 void Port::write(U32 offset, U32 value) const {
     // Note: No assertion necessary. The validity of 'gpio_port' already gets checked when the Gpio::Port gets
     // instantiated.
     // FIXME: Should we pre-calculate the base address?
-    Amba::write_u32(BASE | (gpio_port * PORT_STRIDE) | offset, value);
+    Amba::write_u32(Registers::BASE | (gpio_port * Registers::PORT_STRIDE) | offset, value);
 }
 
 Os::Mutex& Port::get_gpio_config_lock() const {
@@ -85,163 +83,163 @@ void Port::configure_pins(U32 selected_pins,
 }
 
 U32 Port::read_datain() const {
-    return read(DATAIN);
+    return read(Registers::DATAIN);
 }
 
 void Port::write_datain(U32 value) const {
-    write(DATAIN, value);
+    write(Registers::DATAIN, value);
 }
 
 U32 Port::read_datainraw() const {
-    return read(DATAINRAW);
+    return read(Registers::DATAINRAW);
 }
 
 void Port::write_datainraw(U32 value) const {
-    write(DATAINRAW, value);
+    write(Registers::DATAINRAW, value);
 }
 
 U32 Port::read_dataout() const {
-    return read(DATAOUT);
+    return read(Registers::DATAOUT);
 }
 
 void Port::write_dataout(U32 value) const {
-    write(DATAOUT, value);
+    write(Registers::DATAOUT, value);
 }
 
 U32 Port::read_dataoutraw() const {
-    return read(DATAOUTRAW);
+    return read(Registers::DATAOUTRAW);
 }
 
 void Port::write_dataoutraw(U32 value) const {
-    write(DATAOUTRAW, value);
+    write(Registers::DATAOUTRAW, value);
 }
 
 U32 Port::read_setout() const {
-    return read(SETOUT);
+    return read(Registers::SETOUT);
 }
 
 void Port::write_setout(U32 value) const {
-    write(SETOUT, value);
+    write(Registers::SETOUT, value);
 }
 
 U32 Port::read_clrout() const {
-    return read(CLROUT);
+    return read(Registers::CLROUT);
 }
 
 void Port::write_clrout(U32 value) const {
-    write(CLROUT, value);
+    write(Registers::CLROUT, value);
 }
 
 U32 Port::read_togout() const {
-    return read(TOGOUT);
+    return read(Registers::TOGOUT);
 }
 
 void Port::write_togout(U32 value) const {
-    write(TOGOUT, value);
+    write(Registers::TOGOUT, value);
 }
 
 U32 Port::read_datamask() const {
-    return read(DATAMASK);
+    return read(Registers::DATAMASK);
 }
 
 void Port::write_datamask(U32 value) const {
-    write(DATAMASK, value);
+    write(Registers::DATAMASK, value);
 }
 
 U32 Port::read_dir() const {
-    return read(DIR);
+    return read(Registers::DIR);
 }
 
 void Port::write_dir(U32 value) const {
-    write(DIR, value);
+    write(Registers::DIR, value);
 }
 
 U32 Port::read_pulse() const {
-    return read(PULSE);
+    return read(Registers::PULSE);
 }
 
 void Port::write_pulse(U32 value) const {
-    write(PULSE, value);
+    write(Registers::PULSE, value);
 }
 
 U32 Port::read_pulsebase() const {
-    return read(PULSEBASE);
+    return read(Registers::PULSEBASE);
 }
 
 void Port::write_pulsebase(U32 value) const {
-    write(PULSEBASE, value);
+    write(Registers::PULSEBASE, value);
 }
 
 U32 Port::read_delay1() const {
-    return read(DELAY1);
+    return read(Registers::DELAY1);
 }
 
 void Port::write_delay1(U32 value) const {
-    write(DELAY1, value);
+    write(Registers::DELAY1, value);
 }
 
 U32 Port::read_delay2() const {
-    return read(DELAY2);
+    return read(Registers::DELAY2);
 }
 
 void Port::write_delay2(U32 value) const {
-    write(DELAY2, value);
+    write(Registers::DELAY2, value);
 }
 
 U32 Port::read_irq_sen() const {
-    return read(IRQ_SEN);
+    return read(Registers::IRQ_SEN);
 }
 
 void Port::write_irq_sen(U32 value) const {
-    write(IRQ_SEN, value);
+    write(Registers::IRQ_SEN, value);
 }
 
 U32 Port::read_irq_edge() const {
-    return read(IRQ_EDGE);
+    return read(Registers::IRQ_EDGE);
 }
 
 void Port::write_irq_edge(U32 value) const {
-    write(IRQ_EDGE, value);
+    write(Registers::IRQ_EDGE, value);
 }
 
 U32 Port::read_irq_evt() const {
-    return read(IRQ_EVT);
+    return read(Registers::IRQ_EVT);
 }
 
 void Port::write_irq_evt(U32 value) const {
-    write(IRQ_EVT, value);
+    write(Registers::IRQ_EVT, value);
 }
 
 U32 Port::read_irq_enb() const {
-    return read(IRQ_ENB);
+    return read(Registers::IRQ_ENB);
 }
 
 void Port::write_irq_enb(U32 value) const {
-    write(IRQ_ENB, value);
+    write(Registers::IRQ_ENB, value);
 }
 
 U32 Port::read_irq_raw() const {
-    return read(IRQ_RAW);
+    return read(Registers::IRQ_RAW);
 }
 
 void Port::write_irq_raw(U32 value) const {
-    write(IRQ_RAW, value);
+    write(Registers::IRQ_RAW, value);
 }
 
 U32 Port::read_irq_end() const {
-    return read(IRQ_END);
+    return read(Registers::IRQ_END);
 }
 
 void Port::write_irq_end(U32 value) const {
-    write(IRQ_END, value);
+    write(Registers::IRQ_END, value);
 }
 
 U32 Port::read_edge_status() const {
-    return read(EDGE_STATUS);
+    return read(Registers::EDGE_STATUS);
 }
 
 void Port::write_edge_status(U32 value) const {
-    write(EDGE_STATUS, value);
+    write(Registers::EDGE_STATUS, value);
 }
 
 Va416x0Types::ExceptionNumber::T Port::get_base_exception() const {

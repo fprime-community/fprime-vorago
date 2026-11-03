@@ -56,11 +56,6 @@ struct DeviceRange {
 static std::vector<DeviceRange> device_ranges;  // registration order
 static bool in_device_hook = false;
 
-// Forward declaration for findDevice (defined in TestSupport namespace below)
-namespace TestSupport {
-DeviceModel* findDevice(U32 word_address);
-}
-
 static void notSupported() {
     fputs("Raw AMBA access not supported in unit tests.\n", stderr);
     abort();
@@ -569,14 +564,6 @@ void unregisterDevice(DeviceModel& model) {
     }
 }
 
-U32 getRegisteredDeviceRangeCount() {
-    return static_cast<U32>(device_ranges.size());
-}
-
-}  // namespace TestSupport
-
-// Implementation of findDevice (defined outside namespace for proper linking)
-namespace TestSupport {
 DeviceModel* findDevice(U32 word_address) {
     for (const auto& range : device_ranges) {
         if ((word_address - range.base) < range.size) {
@@ -585,6 +572,11 @@ DeviceModel* findDevice(U32 word_address) {
     }
     return nullptr;
 }
+
+U32 getRegisteredDeviceRangeCount() {
+    return static_cast<U32>(device_ranges.size());
+}
+
 }  // namespace TestSupport
 
 }  // namespace Amba

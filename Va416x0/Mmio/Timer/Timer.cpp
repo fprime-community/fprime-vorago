@@ -24,8 +24,6 @@ namespace Va416x0Mmio {
 static constexpr U32 BASE_TIMER_CASCADE_INDEX = 80;
 static constexpr U32 INVALID_CASCADE_INDEX = 127;
 
-using namespace TimerRegisters;
-
 U8 Timer::get_timer_peripheral_index() const {
     FW_ASSERT(timer_peripheral_index < NUM_TIMERS);
     return timer_peripheral_index;
@@ -74,91 +72,91 @@ void Timer::write(U32 offset, U32 value) const {
 }
 
 U32 Timer::read_ctrl() const {
-    return read(CTRL);
+    return read(TimerRegisters::CTRL);
 }
 
 void Timer::write_ctrl(U32 value) const {
-    write(CTRL, value);
+    write(TimerRegisters::CTRL, value);
 }
 
 U32 Timer::read_rst_value() const {
-    return read(RST_VALUE);
+    return read(TimerRegisters::RST_VALUE);
 }
 
 void Timer::write_rst_value(U32 value) const {
-    write(RST_VALUE, value);
+    write(TimerRegisters::RST_VALUE, value);
 }
 
 U32 Timer::address_cnt_value() const {
-    return timer_address + CNT_VALUE;
+    return timer_address + TimerRegisters::CNT_VALUE;
 }
 
 U32 Timer::read_cnt_value() const {
-    return read(CNT_VALUE);
+    return read(TimerRegisters::CNT_VALUE);
 }
 
 void Timer::write_cnt_value(U32 value) const {
-    write(CNT_VALUE, value);
+    write(TimerRegisters::CNT_VALUE, value);
 }
 
 U32 Timer::address_enable() const {
-    return timer_address + ENABLE;
+    return timer_address + TimerRegisters::ENABLE;
 }
 
 U32 Timer::read_enable() const {
-    return read(ENABLE);
+    return read(TimerRegisters::ENABLE);
 }
 
 void Timer::write_enable(U32 value) const {
-    write(ENABLE, value);
+    write(TimerRegisters::ENABLE, value);
 }
 
 U32 Timer::read_csd_ctrl() const {
-    return read(CSD_CTRL);
+    return read(TimerRegisters::CSD_CTRL);
 }
 
 void Timer::write_csd_ctrl(U32 value) const {
-    write(CSD_CTRL, value);
+    write(TimerRegisters::CSD_CTRL, value);
 }
 
 U32 Timer::read_cascade0() const {
-    return read(CASCADE0);
+    return read(TimerRegisters::CASCADE0);
 }
 
 void Timer::write_cascade0(U32 value) const {
-    write(CASCADE0, value);
+    write(TimerRegisters::CASCADE0, value);
 }
 
 U32 Timer::read_cascade1() const {
-    return read(CASCADE1);
+    return read(TimerRegisters::CASCADE1);
 }
 
 void Timer::write_cascade1(U32 value) const {
-    write(CASCADE1, value);
+    write(TimerRegisters::CASCADE1, value);
 }
 
 U32 Timer::read_cascade2() const {
-    return read(CASCADE2);
+    return read(TimerRegisters::CASCADE2);
 }
 
 void Timer::write_cascade2(U32 value) const {
-    write(CASCADE2, value);
+    write(TimerRegisters::CASCADE2, value);
 }
 
 U32 Timer::read_pwma_value() const {
-    return read(PWMA_VALUE);
+    return read(TimerRegisters::PWMA_VALUE);
 }
 
 void Timer::write_pwma_value(U32 value) const {
-    write(PWMA_VALUE, value);
+    write(TimerRegisters::PWMA_VALUE, value);
 }
 
 U32 Timer::read_pwmb_value() const {
-    return read(PWMB_VALUE);
+    return read(TimerRegisters::PWMB_VALUE);
 }
 
 void Timer::write_pwmb_value(U32 value) const {
-    write(PWMB_VALUE, value);
+    write(TimerRegisters::PWMB_VALUE, value);
 }
 
 }  // namespace Va416x0Mmio

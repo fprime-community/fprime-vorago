@@ -41,7 +41,7 @@ namespace Registers = ::Va416x0Mmio::TimerRegisters;
 //! Time does not pass: a started timer stays running until the test calls expire(). Modelled:
 //! ENABLE start/stop (with a history of the count loaded at each start), CTRL.REQ_STOP, and
 //! expiry (count reaches zero; AUTO_DISABLE stops the timer, otherwise it reloads from
-//! RST_VALUE; IRQ_ENB raises the done interrupt on the NvicModel, if one was supplied). Not
+//! RST_VALUE; IRQ_ENB raises the done interrupt on the NvicModel). Not
 //! modelled: counting, cascades, PWM and status outputs.
 class TimerModel final : public Amba::TestSupport::DeviceModel {
   public:
@@ -49,8 +49,8 @@ class TimerModel final : public Amba::TestSupport::DeviceModel {
     static constexpr U32 NUM_COUNTED_REGISTERS = 10;
     static constexpr U32 DEFAULT_START_HISTORY_DEPTH = 1;
 
-    //! `nvic` (optional) receives the done interrupt of an expiring timer
-    explicit TimerModel(Nvic::TestSupport::NvicModel* nvic = nullptr);
+    //! `nvic` receives the done interrupt of an expiring timer
+    explicit TimerModel(Nvic::TestSupport::NvicModel& nvic);
 
     // ---- DeviceModel ----
     void onWrite(const Amba::TestSupport::DeviceAccess& access) override;
@@ -106,7 +106,7 @@ class TimerModel final : public Amba::TestSupport::DeviceModel {
     U32 peek(U32 index, U32 offset) const;
     void poke(U32 index, U32 offset, U32 value);
 
-    Nvic::TestSupport::NvicModel* m_nvic;
+    Nvic::TestSupport::NvicModel& m_nvic;
     U32 m_sequence;
     PerTimer m_timers[NUM_TIMERS];
 };

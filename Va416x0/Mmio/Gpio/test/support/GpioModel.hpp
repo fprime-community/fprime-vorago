@@ -36,8 +36,7 @@ namespace Gpio {
 namespace TestSupport {
 
 //! Register-level simulation of the seven GPIO ports. See
-//! Gpio/docs/sdd.md "Host unit-test simulation". Own one per test fixture, declared after a
-//! SysConfig::TestSupport::Model (pin configuration enables clocks through SYSCONFIG).
+//! Gpio/docs/sdd.md "Host unit-test simulation". Own one per test fixture.
 //! Registers with the Amba stub on construction and unregisters on destruction.
 class GpioModel final : public Amba::TestSupport::DeviceModel {
   public:
