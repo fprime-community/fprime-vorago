@@ -223,6 +223,8 @@ function(register_with_bsp TARGET_NAME)
     # Generate deployment build information prior to linking
     set(BUILD_INFO_AC_CPP "${BUILD_INFO_AC_DIR}/${TARGET_NAME}_BuildInfoAc.cpp")
     set(BUILD_INFO_AC_OBJ "${BUILD_INFO_AC_CPP}.obj")
+    # The build ID alone, for build tooling that needs to know the ID of this binary
+    set(BUILD_INFO_ID_TXT "${BUILD_INFO_AC_DIR}/${TARGET_NAME}_BuildId.txt")
     # This is needed to expand the CMAKE_CXX_FLAGS variable into a list for use inside add_custom_command
     set(BUILD_INFO_AC_CMD "${CMAKE_CXX_COMPILER}" -c "${BUILD_INFO_AC_CPP}" -o "${BUILD_INFO_AC_OBJ}")
     separate_arguments(BUILD_INFO_AC_CXX_FLAGS UNIX_COMMAND "${CMAKE_CXX_FLAGS}")
@@ -243,6 +245,7 @@ function(register_with_bsp TARGET_NAME)
         COMMAND "${CMAKE_COMMAND}" -E env
             "FPRIME_PROJECT_ROOT=${FPRIME_PROJECT_ROOT}"
             "${PYTHON}" "${BUILD_INFO_AC_SCRIPT}" "${TARGET_NAME}" "${BUILD_INFO_AC_CPP}"
+            --build-id-file "${BUILD_INFO_ID_TXT}"
         # Then compile to an object file to be linked to the target
         COMMAND ${BUILD_INFO_AC_CMD}
     )
