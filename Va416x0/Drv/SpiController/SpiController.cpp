@@ -20,6 +20,7 @@
 // ======================================================================
 
 #include "Va416x0/Drv/SpiController/SpiController.hpp"
+#include <algorithm>
 #include "Va416x0/Mmio/ClkTree/ClkTree.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
 
@@ -87,6 +88,8 @@ void SpiController ::open(Va416x0Mmio::Spi spi,
         spi_clk_hz, peripheral_freq, desired_fraction, fraction_remainder);
     ctrl0 |= (desired_fraction - 1) << Va416x0Mmio::Spi::CTRL0_SCRDV_SHIFT;
 
+    this->m_clockCyclesPerByte = (Va416x0Mmio::ClkTree::getActiveSysclkFreq() + spi_clk_hz - 1) / spi_clk_hz;
+
     spi.write_ctrl0(ctrl0);
     spi.write_ctrl1(ctrl1);
     // We could probably support a wider range of SPI frequencies if we allowed for configuring this register.
@@ -153,7 +156,11 @@ void SpiController ::SpiReadWrite_handler(FwIndexType portNum, Fw::Buffer& write
     U32 read_index = 0;
     U32 last_write_index = buffer_size - 1;
     U32 i = 0;
-    U32 cycle_limit = 0xffffffff;
+    // FIXME: This is a less ridiculous over-estimate than 0xFFFFFFFF
+    // But it could still result in serious trouble if we had a hardware glitch
+    // and ran to the end of the delay.
+    U64 cycleLimitU64 = 10 + U64(this->m_clockCyclesPerByte) * buffer_size;
+    U32 cycle_limit = cycleLimitU64 > 0xFFFFFFFF ? 0xFFFFFFFF : U32(cycleLimitU64);
     while (write_index < buffer_size || read_index < buffer_size) {
         if (write_index < buffer_size && (status & Va416x0Mmio::Spi::STATUS_TX_FIFO_NOT_FULL)) {
             // Always set BM_STOP bit for the last write byte (it doesn't hurt non-blockmode interactions)
@@ -171,6 +178,7 @@ void SpiController ::SpiReadWrite_handler(FwIndexType portNum, Fw::Buffer& write
         status = spi.read_status();
 
         // Loop guard
+        // FIXME: This should not assert; that would be asserting on a hardware failure.
         i++;
         FW_ASSERT(i < cycle_limit, i, read_index, write_index);
     }

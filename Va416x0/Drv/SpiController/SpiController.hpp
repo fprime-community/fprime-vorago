@@ -77,6 +77,7 @@ class SpiController final : public SpiControllerComponentBase {
 
   private:
     Va416x0Types::Optional<Va416x0Mmio::Spi> m_spiDevice;
+    U32 m_clockCyclesPerByte;
 
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
