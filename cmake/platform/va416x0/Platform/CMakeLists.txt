@@ -34,5 +34,6 @@ register_fprime_config(
         Va416x0_Os_TimerRawTime
         Fw_StringFormat_snprintf
         Fw_StringScan_sscanf
+        Fw_AssertHook_fputs
     INTERFACE # No buildable files generated
 )
