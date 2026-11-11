@@ -250,30 +250,40 @@ void TlmGdsChan::setup(FwEnumStoreType memId, Fw::MemAllocator& allocator) {
     }
 }
 
-TlmGdsChan::MapEntry* TlmGdsChan::getMapEntry(FwChanIdType chanId, U8& size) {
-    // FIXME: this function should not assert in the case of unexpected/invalid component or
-    // channel IDs; this could be a FATAL or warning event or a counter, figure out an alternate
-    // approach at a later date
-
+TlmGdsChan::MapEntry* TlmGdsChan::findMapEntry(FwChanIdType chanId, U8& size) {
     // Channel IDs are split into component IDs and a component-relative channel ID
     FwChanIdType compId = (chanId & Va416x0::ComponentIdMask) >> Va416x0::ComponentIdOffset;
     FwChanIdType chanRelId = (chanId & Va416x0::DictionaryItemIdMask) >> Va416x0::DictionaryItemIdOffset;
 
     // Find the offset of the component using the autocoded lookup table
-    FW_ASSERT(compId < Va416x0::TlmCfg::COMPONENT_COUNT, chanId, compId, Va416x0::TlmCfg::COMPONENT_COUNT);
+    if (compId >= Va416x0::TlmCfg::COMPONENT_COUNT) {
+        return nullptr;
+    }
     const Va416x0::TlmCfg::ComponentLookup& componentLookup = this->m_componentLookupTable[compId];
 
     // Then index to the channel within the component
+    if (chanRelId >= componentLookup.length) {
+        return nullptr;
+    }
     U16 index = componentLookup.offset + chanRelId;
-    FW_ASSERT(chanRelId < componentLookup.length, chanId, chanRelId, componentLookup.length);
-    FW_ASSERT(index < Va416x0::TlmCfg::CHANNEL_COUNT, index, Va416x0::TlmCfg::CHANNEL_COUNT);
+    if (index >= Va416x0::TlmCfg::CHANNEL_COUNT) {
+        return nullptr;
+    }
 
-    // Assert that we are not accessing an invalid channel ID
-    FW_ASSERT(OFFSET_INVALID != m_offsetMap[index].offset, chanId);
+    // Gaps in the channel IDs are marked with an invalid offset
+    if (OFFSET_INVALID == m_offsetMap[index].offset) {
+        return nullptr;
+    }
 
     size = Va416x0::TlmCfg::CHANNEL_TABLE[index];
 
     return &m_offsetMap[index];
+}
+
+TlmGdsChan::MapEntry* TlmGdsChan::getMapEntry(FwChanIdType chanId, U8& size) {
+    MapEntry* p_mapEntry = this->findMapEntry(chanId, size);
+    FW_ASSERT(p_mapEntry != nullptr, chanId);
+    return p_mapEntry;
 }
 
 // ----------------------------------------------------------------------
@@ -343,9 +353,12 @@ void TlmGdsChan::TlmRecv_handler(FwIndexType portNum, FwChanIdType id, Fw::Time&
 }
 
 Fw::TlmValid TlmGdsChan::TlmGet_helper(FwChanIdType id, const TlmItemHeader*& pHeader, Fw::TlmBuffer& val) {
-    // Get the map entry of this channel
+    // Get the map entry of this channel; an unknown channel ID is reported as invalid rather than asserting
     U8 size;
-    MapEntry* p_mapEntry = getMapEntry(id, size);
+    MapEntry* p_mapEntry = findMapEntry(id, size);
+    if (p_mapEntry == nullptr) {
+        return Fw::TlmValid::INVALID;
+    }
 
     // The channel has never been written, so there is no value to return
     if (SELECTOR_NEVER_SET == p_mapEntry->selector) {
