@@ -223,6 +223,11 @@ void GdsStream::setup() {
     this->m_setup = true;
 }
 
+void GdsStream::configure() {
+    this->tlmWrite_DroppedEvents(this->m_droppedEvents);
+    this->tlmWrite_DroppedConsoleBytes(this->m_droppedConsoleBytes);
+}
+
 bool GdsStream::itemFitsInBuffer(U16 readCursor,
                                  U16 writeCursor,
                                  FwSizeType size,

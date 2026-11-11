@@ -40,6 +40,10 @@ class VectorTable : public VectorTableComponentBase {
     //! Destroy VectorTable object
     ~VectorTable();
 
+    //! Configure the component. Writes initial telemetry values so that every channel
+    //! has a value before the first rate group cycle. Call after ports are connected.
+    void configure();
+
     void handle_exception(U8 exception);
 
     // ----------------------------------------------------------------------
