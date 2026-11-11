@@ -49,6 +49,10 @@ VectorTable ::VectorTable(const char* const compName)
 
 VectorTable ::~VectorTable() {}
 
+void VectorTable::configure() {
+    this->tlmWrite_RtiIrqDutyCycleHwm(this->m_rtiHwmIrqDutyUtilTicks);
+}
+
 // ----------------------------------------------------------------------
 // Handler implementations for typed input ports
 // ----------------------------------------------------------------------
