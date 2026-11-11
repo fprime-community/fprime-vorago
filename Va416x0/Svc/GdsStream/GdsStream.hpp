@@ -88,6 +88,10 @@ class GdsStream final : public GdsStreamComponentBase {
     //! once external SRAM is configured by the bootloader this can be done in the constructor
     void setup();
 
+    //! Configure the component. Writes initial telemetry values so that every channel
+    //! has a value before the first rate group cycle. Call after ports are connected.
+    void configure();
+
     //! Write a character of console output to the buffer.
     FwSizeType writeChar(char c);
 
