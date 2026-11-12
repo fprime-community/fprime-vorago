@@ -88,6 +88,10 @@ class GdsStream final : public GdsStreamComponentBase {
     //! once external SRAM is configured by the bootloader this can be done in the constructor
     void setup();
 
+    //! Configure the component. Writes initial telemetry values so that every channel
+    //! has a value before the first rate group cycle. Call after ports are connected.
+    void configure();
+
     //! Write a character of console output to the buffer.
     FwSizeType writeChar(char c);
 
@@ -146,6 +150,22 @@ class GdsStream final : public GdsStreamComponentBase {
     void fillWraparoundRegion(U16 writeCursor  //!< Value of the write cursor
     );
 
+    //! Evict the oldest surviving record in the event buffer by advancing m_oldestRecordCursor
+    //! past it, along with any wraparound filler records that directly follow it (see
+    //! fillWraparoundRegion). Only valid while m_overwriteMode is set. Returns the number of bytes freed.
+    FwSizeType evictOldestRecord(U16 writeCursor  //!< Value of the write cursor, eviction never passes it
+    );
+
+    //! Evict oldest records until the given item fits in the buffer (or the eviction limit is
+    //! reached). Only valid while m_overwriteMode is set. Returns whether the item fits; the
+    //! output parameters are as for itemFitsInBuffer.
+    bool evictUntilFits(U16 writeCursor,       //!< Value of the write cursor
+                        FwSizeType size,       //!< Size of the event/console item
+                        U32& extSramAddr,      //!< Output parameter, see itemFitsInBuffer
+                        U16& nextWriteCursor,  //!< Output parameter, see itemFitsInBuffer
+                        bool& wraparound       //!< Output parameter, see itemFitsInBuffer
+    );
+
     //! Check to see if a command has been uplinked to the command buffer by the GDS. If so, parse
     //! and dispatch the command packet
     void checkCommandBuffer();
@@ -188,6 +208,13 @@ class GdsStream final : public GdsStreamComponentBase {
 
     //! Component setup is complete
     bool m_setup;
+
+    //! True until the GDS has attached and FSW has moved the shared read cursor out of overwrite
+    //! mode; false afterward.
+    bool m_overwriteMode;
+    //! Start offset (double-modulo cursor space) of the oldest surviving complete record, tracked
+    //! while m_overwriteMode is set.
+    U16 m_oldestRecordCursor;
 
     //! Ensures atomicity protections for the event buffer and related structures (line buffer,
     //! etc.) when handling events and console output

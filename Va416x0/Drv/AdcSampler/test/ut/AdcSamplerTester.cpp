@@ -22,7 +22,7 @@
 #include "AdcSamplerTester.hpp"
 #include "Va416x0/Mmio/Adc/Adc.hpp"
 #include "Va416x0/Mmio/Amba/Amba.hpp"
-#include "Va416x0/Mmio/Amba/AmbaTestSupport.hpp"
+#include "Va416x0/Mmio/Amba/test/support/AmbaTestSupport.hpp"
 #include "Va416x0/Mmio/Gpio/Port.hpp"
 #include "Va416x0/Mmio/SysConfig/SysConfig.hpp"
 #include "Va416x0/Ports/FppConstantsAc.hpp"
@@ -162,9 +162,13 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         // Confirm that only a single mux is enabled (0) and all others are 1
         for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
             if (i == req_mux_enable) {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
             } else {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
             }
         }
         // Confirm the requests match as expected
@@ -185,9 +189,13 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         // Confirm that only a single mux is enabled (0) and all others are 1
         for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
             if (i == req_mux_enable) {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
             } else {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
             }
         }
         // Confirm the requests match as expected
@@ -208,9 +216,13 @@ void AdcSamplerTester ::testStartReadMuxEnableDisableDelay() {
         // Confirm that only a single mux is enabled (0) and all others are 1
         for (U8 i = 0; i < three_mux_pin_config.muxEnPinCount; i++) {
             if (i == req_mux_enable) {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::LOW);
             } else {
-                EXPECT_TRUE(three_mux_pin_config.muxEnPins[i].in() == Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxEnPins[i]), Fw::Direction::OUT);
+                EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
+                EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxEnPins[i]), Fw::Logic::HIGH);
             }
         }
         // Confirm the requests match as expected
@@ -242,7 +254,9 @@ void AdcSamplerTester ::testStartReadGpioConfiguration() {
         this->component.startRead_handlerBase(0, 8, three_mux_pin_config_requests, this->m_data);
         EXPECT_TRUE(this->component.m_requestIndex == 0);
         for (U32 i = 0; i < three_mux_pin_config.muxAddrPinCount; i++) {
-            EXPECT_TRUE(three_mux_pin_config.muxAddrPins[i].in() == Fw::Logic::HIGH);
+            EXPECT_EQ(this->m_gpioModel.getDirection(three_mux_pin_config.muxAddrPins[i]), Fw::Direction::OUT);
+            EXPECT_EQ(this->m_gpioModel.getOutputLatch(three_mux_pin_config.muxAddrPins[i]), Fw::Logic::HIGH);
+            EXPECT_EQ(this->m_gpioModel.getPinLevel(three_mux_pin_config.muxAddrPins[i]), Fw::Logic::HIGH);
         }
     }
 }
@@ -421,6 +435,7 @@ void AdcSamplerTester ::testStartReadRejectedBusy() {
     // The read in progress is not disturbed (its buffer holds the pre-populated error value)
     ASSERT_EQ(this->m_data[0], ERROR_VALUE);
     ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::BUSY);
+    this->checkReadAndUpdateTlm();
     ASSERT_TLM_NumRejectedStartReads(0, 1U);
 }
 
@@ -452,6 +467,7 @@ void AdcSamplerTester ::testStartReadRejectedZeroReads() {
     ASSERT_EQ(this->m_data[0], DATA_PATTERN);
     ASSERT_EQ(this->component.checkRead_handler(0), AdcSamplerStatus::SUCCESS);
     ASSERT_EQ(this->component.getNumDataValues_handler(0), 0U);
+    this->checkReadAndUpdateTlm();
     ASSERT_TLM_NumRejectedStartReads(0, 2U);
     ASSERT_TLM_NumReadErrors(0, 0U);
 }

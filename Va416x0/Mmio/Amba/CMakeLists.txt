@@ -26,10 +26,12 @@ if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
 else()
     register_fprime_library(
         SOURCES
-            AmbaStub.cpp
+            test/support/AmbaStub.cpp
+            test/support/AmbaResetDefaults.cpp
         HEADERS
             Amba.hpp
-            AmbaTestSupport.hpp
+            test/support/AmbaTestSupport.hpp
+            test/support/RingHistory.hpp
         DEPENDS
             Fw_Types
     )

@@ -55,6 +55,11 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("target", help="Name of the CMake build target")
     parser.add_argument("output_path", help="Output path for the generated CPP file")
+    parser.add_argument(
+        "--build-id-file",
+        help="Also write the build identifier, alone, to this text file (for build tooling "
+        "that needs to know the ID of the binary)",
+    )
     return parser.parse_args(args)
 
 
@@ -143,6 +148,14 @@ def generate_source(filepath: str, deployment_name: str, build_identifier: str):
         sys.exit(f"ERROR: failed to generate file '{filepath}': {ex}")
 
 
+def generate_build_id_file(filepath: str, build_identifier: str):
+    try:
+        with open(filepath, "w") as f:
+            f.write(build_identifier + "\n")
+    except Exception as ex:
+        sys.exit(f"ERROR: failed to generate file '{filepath}': {ex}")
+
+
 def main(args: argparse.Namespace):
     deployment_name = args.target
 
@@ -156,6 +169,8 @@ def main(args: argparse.Namespace):
     print(f"Stamped {deployment_name} with build identifier: {build_identifier}")
 
     generate_source(args.output_path, deployment_name, build_identifier)
+    if args.build_id_file:
+        generate_build_id_file(args.build_id_file, build_identifier)
 
 
 if __name__ == "__main__":

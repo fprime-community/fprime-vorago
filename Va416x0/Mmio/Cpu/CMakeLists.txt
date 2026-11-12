@@ -26,10 +26,20 @@ if (FPRIME_PLATFORM STREQUAL "va416x0-baremetal")
 else ()
     register_fprime_library(
         SOURCES
-            CpuStubs.cpp
+            test/support/CpuStubs.cpp
         HEADERS
             Cpu.hpp
+            test/support/CpuTestSupport.hpp
         DEPENDS
             Fw_Types
     )
+    if (BUILD_TESTING)
+        register_fprime_ut(
+            CpuStubTest
+            SOURCES
+                "${CMAKE_CURRENT_LIST_DIR}/test/ut/CpuStubTest.cpp"
+            DEPENDS
+                Fw_Types
+        )
+    endif()
 endif ()

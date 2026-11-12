@@ -102,7 +102,10 @@ class TlmGdsChan final : public TlmGdsChanComponentBase {
     // Private interfaces
     // ----------------------------------------------------------------------
 
-    //! Get the map entry of the given channel ID
+    //! Get the map entry of the given channel ID, or nullptr if the ID is not valid
+    MapEntry* findMapEntry(FwChanIdType chanId, U8& size);
+
+    //! Get the map entry of the given channel ID; asserts if the ID is not valid
     MapEntry* getMapEntry(FwChanIdType chanId, U8& size);
 
   private:
