@@ -167,9 +167,12 @@ U32 ClkTree::getPeripheralFreq(const Va416x0Mmio::SysConfig::ClockedPeripheral& 
         case Va416x0Mmio::SysConfig::ClockedPeripheral::UART1_INDEX:
         case Va416x0Mmio::SysConfig::ClockedPeripheral::DAC_INDEX:
         case Va416x0Mmio::SysConfig::ClockedPeripheral::ADC_INDEX:
-        case Va416x0Mmio::SysConfig::ClockedPeripheral::WATCHDOG_INDEX:
         case Va416x0Mmio::SysConfig::ClockedPeripheral::UTILITY_INDEX:
             return m_apb2_freq;
+        case Va416x0Mmio::SysConfig::ClockedPeripheral::WATCHDOG_INDEX:
+            //! The watchdog counter is clocked by the Heartbeat Oscillator (nominal frequency;
+            //! it varies by +/-25%, see HEARTBEAT_OSC_MAX_FREQ), independent of the clock tree
+            return HEARTBEAT_OSC_FREQ;
         default:
             FW_ASSERT(false);
             return 0;
